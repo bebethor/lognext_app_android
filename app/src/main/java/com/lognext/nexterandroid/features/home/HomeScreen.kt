@@ -10,6 +10,7 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -32,6 +33,7 @@ import androidx.compose.material.ButtonDefaults
 import androidx.compose.material.Card
 import androidx.compose.material.CircularProgressIndicator
 import androidx.compose.material.Divider
+import androidx.compose.material.Icon
 import androidx.compose.material.MaterialTheme
 import androidx.compose.material.OutlinedButton
 import androidx.compose.material.Text
@@ -115,6 +117,8 @@ private fun LoginScreen(
     onSignIn: () -> Unit
 ) {
     val transition = rememberInfiniteTransition()
+    val isDark = isSystemInDarkTheme()
+    val logoRes = if (isDark) R.drawable.lognext_logo_negative else R.drawable.lognext_logo
     val textAlpha by transition.animateFloat(
         initialValue = 0.45f,
         targetValue = 1f,
@@ -127,16 +131,18 @@ private fun LoginScreen(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color.White)
+            .background(if (isDark) NexterColors.DarkPageBackground else Color.White)
     ) {
-        Image(
-            painter = painterResource(id = R.drawable.login_bottom_wave),
-            contentDescription = null,
-            contentScale = ContentScale.Crop,
-            modifier = Modifier
-                .fillMaxSize()
-                .offset(y = 100.dp)
-        )
+        if (!isDark) {
+            Image(
+                painter = painterResource(id = R.drawable.login_bottom_wave),
+                contentDescription = null,
+                contentScale = ContentScale.Crop,
+                modifier = Modifier
+                    .fillMaxSize()
+                    .offset(y = 100.dp)
+            )
+        }
 
         Column(
             modifier = Modifier
@@ -147,7 +153,7 @@ private fun LoginScreen(
             Spacer(modifier = Modifier.weight(1f))
 
             Image(
-                painter = painterResource(id = R.drawable.lognext_logo),
+                painter = painterResource(id = logoRes),
                 contentDescription = "Lognext",
                 modifier = Modifier
                     .width(235.dp)
@@ -162,7 +168,7 @@ private fun LoginScreen(
                 onClick = onSignIn,
                 colors = ButtonDefaults.outlinedButtonColors(
                     backgroundColor = Color.Transparent,
-                    contentColor = NexterColors.Navy
+                    contentColor = NexterColors.primaryText()
                 ),
                 elevation = null,
                 shape = RoundedCornerShape(28.dp),
@@ -173,14 +179,14 @@ private fun LoginScreen(
             ) {
                 if (isSigningIn) {
                     CircularProgressIndicator(
-                        color = NexterColors.Navy,
+                        color = NexterColors.primaryText(),
                         strokeWidth = 2.dp,
                         modifier = Modifier.size(24.dp)
                     )
                 } else {
                     Text(
                         text = "INICIAR SESIÓN",
-                        color = NexterColors.Navy,
+                        color = NexterColors.primaryText(),
                         fontSize = 18.sp,
                         fontWeight = FontWeight.Black
                     )
@@ -217,7 +223,7 @@ private fun LoginClaimLine(red: String, navy: String) {
     Text(
         text = buildAnnotatedString {
             withStyle(SpanStyle(color = NexterColors.Red)) { append(red) }
-            withStyle(SpanStyle(color = NexterColors.Navy)) { append(navy) }
+            withStyle(SpanStyle(color = NexterColors.primaryText())) { append(navy) }
         },
         fontSize = 22.sp,
         fontWeight = FontWeight.Black
@@ -247,7 +253,7 @@ private fun AuthenticatedHome(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(NexterColors.PageBackground)
+            .background(NexterColors.pageBackground())
     ) {
         TopBar(authState.user.displayName, onSignOut)
 
@@ -274,44 +280,50 @@ private fun TopBar(displayName: String, onSignOut: () -> Unit) {
     val date = remember {
         SimpleDateFormat("d MMM", Locale.getDefault()).format(Date()).replace(".", "")
     }
+    val isDark = isSystemInDarkTheme()
+    val logoRes = if (isDark) R.drawable.lognext_logo_negative else R.drawable.lognext_logo
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .height(56.dp)
-            .background(Color.White)
-            .border(BorderStroke(1.dp, NexterColors.Navy.copy(alpha = 0.06f)))
-            .padding(horizontal = 16.dp),
+            .background(if (isDark) NexterColors.cardBackground() else Color.Transparent)
+            .height(if (isDark) 70.dp else 54.dp)
+            .padding(horizontal = 24.dp, vertical = if (isDark) 8.dp else 0.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Image(
-            painter = painterResource(id = R.drawable.lognext_logo),
+            painter = painterResource(id = logoRes),
             contentDescription = "Lognext",
             modifier = Modifier
-                .height(20.dp)
-                .width(88.dp)
+                .height(30.dp)
+                .width(132.dp)
                 .weight(1f, fill = false)
         )
         Spacer(modifier = Modifier.weight(1f))
-        Text(text = date, color = NexterColors.Navy.copy(alpha = 0.35f), fontSize = 11.sp)
-        Spacer(modifier = Modifier.width(8.dp))
+        Text(text = date, color = if (isDark) Color.White.copy(alpha = 0.72f) else NexterColors.Navy.copy(alpha = 0.35f), fontSize = 22.sp)
+        Spacer(modifier = Modifier.width(10.dp))
         Box(
             modifier = Modifier
-                .size(32.dp)
-                .clip(RoundedCornerShape(8.dp))
+                .size(35.dp)
+                .clip(RoundedCornerShape(12.dp))
                 .background(NexterColors.Red),
             contentAlignment = Alignment.Center
         ) {
-            Text(text = initials(displayName), color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+            Text(text = initials(displayName), color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.Bold)
         }
-        Spacer(modifier = Modifier.width(6.dp))
+        Spacer(modifier = Modifier.width(10.dp))
         OutlinedButton(
             onClick = onSignOut,
-            shape = RoundedCornerShape(8.dp),
-            border = BorderStroke(1.dp, NexterColors.Red.copy(alpha = 0.7f)),
-            modifier = Modifier.size(width = 42.dp, height = 32.dp),
+            shape = RoundedCornerShape(12.dp),
+            border = BorderStroke(1.5.dp, NexterColors.Red.copy(alpha = 0.7f)),
+            modifier = Modifier.size(35.dp),
             contentPadding = androidx.compose.foundation.layout.PaddingValues(0.dp)
         ) {
-            Text("↗", color = NexterColors.Red, fontSize = 14.sp, fontWeight = FontWeight.Bold)
+            Icon(
+                painter = painterResource(id = R.drawable.ic_logout),
+                contentDescription = "Cerrar sesión",
+                tint = NexterColors.Red,
+                modifier = Modifier.size(20.dp)
+            )
         }
     }
 }
@@ -394,7 +406,7 @@ private fun MeetingsCard(uiState: HomeUiState) {
         when {
             uiState.visibleMeetings.isEmpty() && !uiState.isLoading -> EmptyText("No tienes reuniones hoy")
             else -> uiState.visibleMeetings.forEachIndexed { index, meeting ->
-                if (index > 0) Divider(color = NexterColors.Navy.copy(alpha = 0.04f))
+                if (index > 0) Divider(color = NexterColors.border())
                 MeetingRow(meeting, index)
             }
         }
@@ -407,7 +419,7 @@ private fun MeetingRow(meeting: HomeCalendarEvent, index: Int) {
     Row(modifier = Modifier.padding(vertical = 9.dp), verticalAlignment = Alignment.Top) {
         Text(
             text = meeting.startTimeText,
-            color = NexterColors.Navy.copy(alpha = 0.40f),
+            color = NexterColors.tertiaryText(),
             fontSize = 11.sp,
             fontWeight = FontWeight.SemiBold,
             modifier = Modifier.width(40.dp)
@@ -421,8 +433,8 @@ private fun MeetingRow(meeting: HomeCalendarEvent, index: Int) {
         )
         Spacer(modifier = Modifier.width(10.dp))
         Column(modifier = Modifier.weight(1f)) {
-            Text(meeting.subject, color = NexterColors.Navy, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, maxLines = 2)
-            Text(meeting.subtitle, color = NexterColors.Navy.copy(alpha = 0.40f), fontSize = 10.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Text(meeting.subject, color = NexterColors.primaryText(), fontSize = 12.sp, fontWeight = FontWeight.SemiBold, maxLines = 2)
+            Text(meeting.subtitle, color = NexterColors.tertiaryText(), fontSize = 10.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
         }
         meeting.tagText?.let {
             Text(
@@ -447,7 +459,7 @@ private fun TasksCard(uiState: HomeUiState) {
             EmptyText("No tienes tareas pendientes")
         } else {
             pendingTasks.forEachIndexed { index, task ->
-                if (index > 0) Divider(color = NexterColors.Navy.copy(alpha = 0.04f))
+                if (index > 0) Divider(color = NexterColors.border())
                 TaskRow(task)
             }
         }
@@ -462,16 +474,16 @@ private fun TaskRow(task: HomeTask) {
                 .padding(top = 1.dp)
                 .size(18.dp)
                 .clip(CircleShape)
-                .border(BorderStroke(2.dp, NexterColors.Navy.copy(alpha = 0.20f)), CircleShape)
+                .border(BorderStroke(2.dp, NexterColors.tertiaryText()), CircleShape)
         )
         Spacer(modifier = Modifier.width(10.dp))
         Column(modifier = Modifier.weight(1f)) {
-            Text(task.title, color = NexterColors.Navy, fontSize = 12.sp, fontWeight = FontWeight.Medium, maxLines = 2)
+            Text(task.title, color = NexterColors.primaryText(), fontSize = 12.sp, fontWeight = FontWeight.Medium, maxLines = 2)
             Row(modifier = Modifier.padding(top = 3.dp), verticalAlignment = Alignment.CenterVertically) {
                 PriorityChip(task.importance, task.priorityLabel)
                 task.dueDateText?.let {
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text(it, color = NexterColors.Navy.copy(alpha = 0.40f), fontSize = 10.sp)
+                    Text(it, color = NexterColors.tertiaryText(), fontSize = 10.sp)
                 }
             }
         }
@@ -501,10 +513,10 @@ private fun HtmlCard(
     content: @Composable ColumnScope.() -> Unit
 ) {
     Card(
-        backgroundColor = Color.White,
+        backgroundColor = NexterColors.cardBackground(),
         elevation = 0.dp,
         shape = RoundedCornerShape(14.dp),
-        border = BorderStroke(1.dp, NexterColors.Navy.copy(alpha = 0.06f)),
+        border = BorderStroke(1.dp, NexterColors.border()),
         modifier = Modifier
             .fillMaxWidth()
             .padding(bottom = 10.dp)
@@ -518,12 +530,12 @@ private fun HtmlCard(
             ) {
                 Text(title, fontSize = 13.sp)
                 Spacer(modifier = Modifier.width(6.dp))
-                Text(label, color = NexterColors.Navy, fontSize = 12.sp, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
+                Text(label, color = NexterColors.primaryText(), fontSize = 12.sp, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
                 action?.let {
                     Text(it, color = NexterColors.Red, fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
                 }
             }
-            Divider(color = NexterColors.Navy.copy(alpha = 0.05f))
+            Divider(color = NexterColors.border())
             Column(modifier = Modifier.padding(horizontal = 14.dp, vertical = 3.dp), content = content)
         }
     }
@@ -535,7 +547,7 @@ private fun LoadingCard() {
         Row(modifier = Modifier.padding(vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {
             CircularProgressIndicator(color = NexterColors.Red, modifier = Modifier.size(24.dp))
             Spacer(modifier = Modifier.width(10.dp))
-            Text("Cargando tu inicio...", color = NexterColors.Navy.copy(alpha = 0.55f), fontSize = 12.sp)
+            Text("Cargando tu inicio...", color = NexterColors.secondaryText(), fontSize = 12.sp)
         }
     }
 }
@@ -543,7 +555,7 @@ private fun LoadingCard() {
 @Composable
 private fun ErrorCard(message: String, onRetry: () -> Unit) {
     HtmlCard(title = "!", label = "No se pudo cargar") {
-        Text(message, color = NexterColors.Navy.copy(alpha = 0.55f), fontSize = 12.sp, modifier = Modifier.padding(top = 10.dp))
+        Text(message, color = NexterColors.secondaryText(), fontSize = 12.sp, modifier = Modifier.padding(top = 10.dp))
         Button(
             onClick = onRetry,
             colors = ButtonDefaults.buttonColors(backgroundColor = NexterColors.Navy, contentColor = Color.White),
@@ -561,7 +573,7 @@ private fun ErrorCard(message: String, onRetry: () -> Unit) {
 private fun EmptyText(text: String) {
     Text(
         text = text,
-        color = NexterColors.Navy.copy(alpha = 0.45f),
+        color = NexterColors.secondaryText(),
         fontSize = 12.sp,
         modifier = Modifier.padding(vertical = 20.dp)
     )
@@ -572,7 +584,7 @@ private fun CenteredHomeShell(content: @Composable ColumnScope.() -> Unit) {
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(NexterColors.PageBackground)
+            .background(NexterColors.pageBackground())
             .padding(24.dp),
         verticalArrangement = Arrangement.Center,
         content = content

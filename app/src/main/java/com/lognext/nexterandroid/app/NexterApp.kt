@@ -1,23 +1,24 @@
 package com.lognext.nexterandroid.app
 
-import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.border
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.BottomNavigation
 import androidx.compose.material.BottomNavigationItem
+import androidx.compose.material.Divider
+import androidx.compose.material.Icon
 import androidx.compose.material.Scaffold
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import com.lognext.nexterandroid.R
 import com.lognext.nexterandroid.core.AppDependencies
 import com.lognext.nexterandroid.core.auth.AuthState
 import com.lognext.nexterandroid.features.clock.ClockScreen
@@ -45,26 +46,40 @@ fun NexterApp() {
             val backStackEntry = navController.currentBackStackEntryAsState().value
             val currentRoute = backStackEntry?.destination?.route
 
-            BottomNavigation(
-                backgroundColor = Color.White,
-                contentColor = NexterColors.Red,
-                elevation = 0.dp,
-                modifier = Modifier.border(BorderStroke(1.dp, NexterColors.Navy.copy(alpha = 0.08f)))
-            ) {
-                destinations.forEach { destination ->
-                    BottomNavigationItem(
-                        selected = currentRoute == destination.route,
-                        onClick = {
-                            navController.navigate(destination.route) {
-                                launchSingleTop = true
-                                popUpTo(AppDestination.Home.route)
+            Column {
+                Divider(color = NexterColors.border(), thickness = 1.dp)
+                BottomNavigation(
+                    backgroundColor = NexterColors.cardBackground(),
+                    contentColor = NexterColors.Red,
+                    elevation = 8.dp
+                ) {
+                    destinations.forEach { destination ->
+                        val selected = currentRoute == destination.route
+                        val itemColor = if (selected) {
+                            NexterColors.Red
+                        } else {
+                            NexterColors.secondaryText()
+                        }
+                        BottomNavigationItem(
+                            selected = selected,
+                            onClick = {
+                                navController.navigate(destination.route) {
+                                    launchSingleTop = true
+                                    popUpTo(AppDestination.Home.route)
+                                }
+                            },
+                            selectedContentColor = NexterColors.Red,
+                            unselectedContentColor = NexterColors.secondaryText(),
+                            label = { Text(destination.label) },
+                            icon = {
+                                Icon(
+                                    painter = painterResource(id = destination.iconRes()),
+                                    contentDescription = destination.label,
+                                    tint = itemColor
+                                )
                             }
-                        },
-                        selectedContentColor = NexterColors.Red,
-                        unselectedContentColor = NexterColors.Navy.copy(alpha = 0.35f),
-                        label = { Text(destination.label, fontSize = 9.sp) },
-                        icon = { Text(destination.label.first().toString(), fontSize = 18.sp) }
-                    )
+                        )
+                    }
                 }
             }
         }
@@ -79,5 +94,14 @@ fun NexterApp() {
             composable(AppDestination.People.route) { PeopleScreen() }
             composable(AppDestination.More.route) { MoreScreen() }
         }
+    }
+}
+
+private fun AppDestination.iconRes(): Int {
+    return when (this) {
+        AppDestination.Home -> R.drawable.ic_tab_tasks
+        AppDestination.Clock -> R.drawable.ic_tab_clock_check
+        AppDestination.People -> R.drawable.ic_tab_people
+        AppDestination.More -> R.drawable.ic_tab_more_circle
     }
 }
