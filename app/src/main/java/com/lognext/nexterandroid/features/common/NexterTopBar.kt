@@ -23,8 +23,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.lognext.nexterandroid.R
@@ -45,8 +48,14 @@ fun NexterTopBar(
     val isDark = isNexterDarkTheme()
     val logoRes = if (isDark) R.drawable.lognext_logo_negative else R.drawable.lognext_logo
     val topBarBackground = if (isDark) NexterColors.cardBackground() else NexterColors.pageBackground()
+    val statusBarHeight = systemBarHeight("status_bar_height")
 
-    Column(modifier = Modifier.background(topBarBackground)) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(topBarBackground)
+            .padding(top = statusBarHeight)
+    ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -101,6 +110,15 @@ fun NexterTopBar(
         }
         Divider(color = NexterColors.border(), thickness = 1.dp)
     }
+}
+
+@Composable
+private fun systemBarHeight(resourceName: String): Dp {
+    val context = LocalContext.current
+    val density = LocalDensity.current
+    val resourceId = context.resources.getIdentifier(resourceName, "dimen", "android")
+    val heightPx = if (resourceId > 0) context.resources.getDimensionPixelSize(resourceId) else 0
+    return with(density) { heightPx.toDp() }
 }
 
 private fun initials(displayName: String): String {
