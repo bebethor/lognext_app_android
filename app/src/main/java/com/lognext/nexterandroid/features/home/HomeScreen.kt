@@ -20,6 +20,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -31,12 +32,14 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.Button
 import androidx.compose.material.ButtonDefaults
 import androidx.compose.material.Card
+import androidx.compose.material.AlertDialog
 import androidx.compose.material.CircularProgressIndicator
 import androidx.compose.material.Divider
 import androidx.compose.material.OutlinedButton
 import androidx.compose.material.RadioButton
 import androidx.compose.material.Text
 import androidx.compose.material.TextField
+import androidx.compose.material.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -613,105 +616,116 @@ private fun AgendaDialog(
     onScopeSelected: (AgendaScope) -> Unit,
     onRetry: () -> Unit
 ) {
-    Dialog(onDismissRequest = onDismiss) {
-        Card(
-            backgroundColor = NexterColors.pageBackground(),
-            shape = RoundedCornerShape(18.dp),
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Column(modifier = Modifier.padding(bottom = 12.dp)) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        backgroundColor = NexterColors.cardBackground(),
+        contentColor = NexterColors.primaryText(),
+        shape = RoundedCornerShape(16.dp),
+        title = {
+            Column {
+                Text(
+                    "Agenda",
+                    color = NexterColors.primaryText(),
+                    fontSize = 22.sp,
+                    fontWeight = FontWeight.Bold
+                )
+                Text(
+                    "Tus reuniones y próximos eventos",
+                    color = NexterColors.secondaryText(),
+                    fontSize = 12.sp,
+                    modifier = Modifier.padding(top = 2.dp)
+                )
+            }
+        },
+        text = {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(max = 520.dp)
+            ) {
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .background(NexterColors.cardBackground())
-                        .padding(16.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        "⌄",
-                        color = NexterColors.Red,
-                        fontSize = 26.sp,
-                        fontWeight = FontWeight.Bold,
-                        modifier = Modifier
-                            .size(38.dp)
-                            .clip(CircleShape)
-                            .background(NexterColors.Red.copy(alpha = 0.10f))
-                            .clickable(onClick = onDismiss)
-                            .padding(start = 11.dp)
-                    )
-                    Spacer(modifier = Modifier.width(12.dp))
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text("Agenda", color = NexterColors.primaryText(), fontSize = 22.sp, fontWeight = FontWeight.Bold)
-                        Text("Tus reuniones y próximos eventos", color = NexterColors.secondaryText(), fontSize = 12.sp)
-                    }
-                }
-
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 12.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(NexterColors.pageBackground())
+                        .padding(4.dp),
+                    horizontalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
                     AgendaScope.values().forEach { scope ->
                         val selected = uiState.agendaScope == scope
-                        Text(
-                            text = scope.title,
-                            color = if (selected) NexterColors.cardBackground() else NexterColors.secondaryText(),
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.SemiBold,
+                        Box(
                             modifier = Modifier
                                 .weight(1f)
                                 .clip(RoundedCornerShape(10.dp))
-                                .background(if (selected) NexterColors.primaryText() else NexterColors.cardBackground())
-                                .border(BorderStroke(1.dp, NexterColors.border()), RoundedCornerShape(10.dp))
+                                .background(if (selected) NexterColors.cardBackground() else Color.Transparent)
                                 .clickable { onScopeSelected(scope) }
-                                .padding(vertical = 12.dp),
-                        )
+                                .padding(vertical = 10.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = scope.title,
+                                color = if (selected) NexterColors.Red else NexterColors.secondaryText(),
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                        }
                     }
                 }
 
-                when {
-                    uiState.isLoadingAgenda || !uiState.hasLoadedAgenda -> {
-                        DialogStateMessage("Cargando agenda…", showProgress = true)
-                    }
-                    uiState.agendaErrorMessage != null -> {
-                        Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(24.dp),
-                            horizontalAlignment = Alignment.CenterHorizontally
-                        ) {
-                            Text("No se pudo cargar la agenda", color = NexterColors.primaryText(), fontSize = 15.sp, fontWeight = FontWeight.Bold)
-                            Text(uiState.agendaErrorMessage, color = NexterColors.secondaryText(), fontSize = 12.sp, modifier = Modifier.padding(top = 8.dp))
-                            Button(
-                                onClick = onRetry,
-                                colors = ButtonDefaults.buttonColors(backgroundColor = NexterColors.Red, contentColor = Color.White),
-                                modifier = Modifier.padding(top = 12.dp)
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 14.dp)
+                ) {
+                    when {
+                        uiState.isLoadingAgenda || !uiState.hasLoadedAgenda -> {
+                            DialogStateMessage("Cargando agenda…", showProgress = true)
+                        }
+                        uiState.agendaErrorMessage != null -> {
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 24.dp),
+                                horizontalAlignment = Alignment.CenterHorizontally
                             ) {
-                                Text("Reintentar")
+                                Text("No se pudo cargar la agenda", color = NexterColors.primaryText(), fontSize = 15.sp, fontWeight = FontWeight.Bold)
+                                Text(uiState.agendaErrorMessage, color = NexterColors.secondaryText(), fontSize = 12.sp, modifier = Modifier.padding(top = 8.dp))
+                                Button(
+                                    onClick = onRetry,
+                                    colors = ButtonDefaults.buttonColors(backgroundColor = NexterColors.Red, contentColor = Color.White),
+                                    modifier = Modifier.padding(top = 12.dp)
+                                ) {
+                                    Text("Reintentar")
+                                }
                             }
                         }
-                    }
-                    uiState.visibleAgendaEvents.isEmpty() -> {
-                        DialogStateMessage(uiState.agendaScope.emptyTitle, subtitle = "Cuando tengas reuniones programadas aparecerán aquí.")
-                    }
-                    else -> {
-                        Column(
-                            modifier = Modifier
-                                .height(420.dp)
-                                .verticalScroll(rememberScrollState())
-                                .padding(horizontal = 16.dp)
-                        ) {
-                            uiState.visibleAgendaEvents.groupedByDay().forEach { group ->
-                                AgendaDaySection(group)
-                                Spacer(modifier = Modifier.height(10.dp))
+                        uiState.visibleAgendaEvents.isEmpty() -> {
+                            DialogStateMessage(uiState.agendaScope.emptyTitle, subtitle = "Cuando tengas reuniones programadas aparecerán aquí.")
+                        }
+                        else -> {
+                            val scrollState = rememberScrollState()
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .heightIn(max = 360.dp)
+                                    .verticalScroll(scrollState)
+                            ) {
+                                uiState.visibleAgendaEvents.groupedByDay().forEach { group ->
+                                    AgendaDaySection(group)
+                                    Spacer(modifier = Modifier.height(10.dp))
+                                }
                             }
                         }
                     }
                 }
             }
+        },
+        confirmButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Cerrar", color = NexterColors.Red, fontWeight = FontWeight.SemiBold)
+            }
         }
-    }
+    )
 }
 
 @Composable
