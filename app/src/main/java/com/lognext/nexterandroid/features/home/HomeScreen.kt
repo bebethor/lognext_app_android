@@ -983,33 +983,52 @@ private fun AddTaskDialog(
 
                         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                             Text("Prioridad", color = NexterColors.secondaryText(), fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .clip(RoundedCornerShape(12.dp))
-                                    .background(NexterColors.pageBackground())
-                                    .padding(4.dp),
-                                horizontalArrangement = Arrangement.spacedBy(4.dp)
-                            ) {
+                            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                                 listOf("high" to "Alta", "normal" to "Normal", "low" to "Baja").forEach { (value, label) ->
                                     val selected = priority == value
-                                    Box(
+                                    val accent = priorityColor(value)
+                                    Row(
                                         modifier = Modifier
-                                            .weight(1f)
-                                            .clip(RoundedCornerShape(10.dp))
-                                            .background(if (selected) NexterColors.cardBackground() else Color.Transparent)
+                                            .fillMaxWidth()
+                                            .clip(RoundedCornerShape(12.dp))
+                                            .background(if (selected) accent.copy(alpha = 0.10f) else NexterColors.pageBackground())
+                                            .border(
+                                                BorderStroke(
+                                                    1.dp,
+                                                    if (selected) accent.copy(alpha = 0.65f) else NexterColors.border()
+                                                ),
+                                                RoundedCornerShape(12.dp)
+                                            )
                                             .clickable { priority = value }
-                                            .padding(vertical = 10.dp),
-                                        contentAlignment = Alignment.Center
+                                            .padding(horizontal = 12.dp, vertical = 12.dp),
+                                        verticalAlignment = Alignment.CenterVertically
                                     ) {
-                                        Text(
-                                            label,
-                                            color = if (selected) priorityColor(value) else NexterColors.secondaryText(),
-                                            fontSize = 12.sp,
-                                            fontWeight = FontWeight.SemiBold,
-                                            maxLines = 1,
-                                            overflow = TextOverflow.Ellipsis
+                                        Box(
+                                            modifier = Modifier
+                                                .size(if (selected) 14.dp else 10.dp)
+                                                .clip(CircleShape)
+                                                .background(accent)
                                         )
+                                        Spacer(modifier = Modifier.width(10.dp))
+                                        Text(
+                                            text = label,
+                                            color = NexterColors.primaryText(),
+                                            fontSize = 14.sp,
+                                            fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
+                                            maxLines = 1,
+                                            overflow = TextOverflow.Ellipsis,
+                                            modifier = Modifier.weight(1f)
+                                        )
+                                        if (selected) {
+                                            Text(
+                                                text = "Seleccionada",
+                                                color = accent,
+                                                fontSize = 11.sp,
+                                                fontWeight = FontWeight.SemiBold,
+                                                maxLines = 1,
+                                                overflow = TextOverflow.Ellipsis
+                                            )
+                                        }
                                     }
                                 }
                             }
