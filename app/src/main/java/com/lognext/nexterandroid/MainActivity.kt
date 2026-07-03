@@ -21,9 +21,11 @@ class MainActivity : ComponentActivity() {
         setContent {
             val isDark = isNexterDarkTheme()
             val view = LocalView.current
+            val topBarColor = if (isDark) NexterColors.DarkCardBackground else NexterColors.PageBackground
+            val bottomBarColor = if (isDark) NexterColors.DarkCardBackground else NexterColors.White
             SideEffect {
-                window.statusBarColor = if (isDark) NexterColors.DarkPageBackground.toArgb() else NexterColors.White.toArgb()
-                window.navigationBarColor = if (isDark) NexterColors.DarkPageBackground.toArgb() else NexterColors.White.toArgb()
+                window.statusBarColor = topBarColor.toArgb()
+                window.navigationBarColor = bottomBarColor.toArgb()
                 val insetsController = WindowCompat.getInsetsController(window, view)
                 insetsController?.isAppearanceLightStatusBars = !isDark
                 insetsController?.isAppearanceLightNavigationBars = !isDark

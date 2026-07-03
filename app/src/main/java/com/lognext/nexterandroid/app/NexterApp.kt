@@ -1,6 +1,9 @@
 package com.lognext.nexterandroid.app
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.BottomNavigation
 import androidx.compose.material.BottomNavigationItem
@@ -11,9 +14,11 @@ import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
@@ -22,16 +27,20 @@ import com.lognext.nexterandroid.R
 import com.lognext.nexterandroid.core.AppDependencies
 import com.lognext.nexterandroid.core.auth.AuthState
 import com.lognext.nexterandroid.features.clock.ClockScreen
+import com.lognext.nexterandroid.features.common.NexterTopBar
 import com.lognext.nexterandroid.features.home.HomeScreen
 import com.lognext.nexterandroid.features.more.MoreScreen
 import com.lognext.nexterandroid.features.people.PeopleScreen
 import com.lognext.nexterandroid.ui.theme.NexterColors
+import kotlinx.coroutines.launch
 
 @Composable
 fun NexterApp() {
     val navController = rememberNavController()
+    val scope = rememberCoroutineScope()
     val authState by AppDependencies.authRepository.authState.collectAsState()
-    val showBottomBar = authState is AuthState.Authenticated
+    val authenticatedState = authState as? AuthState.Authenticated
+    val showAuthenticatedChrome = authenticatedState != null
     val destinations = listOf(
         AppDestination.Home,
         AppDestination.Clock,
@@ -40,25 +49,40 @@ fun NexterApp() {
     )
 
     Scaffold(
+        topBar = {
+            authenticatedState?.let { state ->
+                NexterTopBar(
+                    displayName = state.user.displayName,
+                    onSignOut = { scope.launch { AppDependencies.authRepository.signOut() } }
+                )
+            }
+        },
         bottomBar = {
-            if (!showBottomBar) return@Scaffold
+            if (!showAuthenticatedChrome) return@Scaffold
 
             val backStackEntry = navController.currentBackStackEntryAsState().value
             val currentRoute = backStackEntry?.destination?.route
 
-            Column {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(NexterColors.cardBackground())
+            ) {
                 Divider(color = NexterColors.border(), thickness = 1.dp)
                 BottomNavigation(
                     backgroundColor = NexterColors.cardBackground(),
                     contentColor = NexterColors.Red,
-                    elevation = 8.dp
+                    elevation = 0.dp,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(62.dp)
                 ) {
                     destinations.forEach { destination ->
                         val selected = currentRoute == destination.route
                         val itemColor = if (selected) {
                             NexterColors.Red
                         } else {
-                            NexterColors.secondaryText()
+                            NexterColors.tertiaryText()
                         }
                         BottomNavigationItem(
                             selected = selected,
@@ -69,8 +93,8 @@ fun NexterApp() {
                                 }
                             },
                             selectedContentColor = NexterColors.Red,
-                            unselectedContentColor = NexterColors.secondaryText(),
-                            label = { Text(destination.label) },
+                            unselectedContentColor = NexterColors.tertiaryText(),
+                            label = { Text(destination.label, fontSize = 8.sp) },
                             icon = {
                                 Icon(
                                     painter = painterResource(id = destination.iconRes()),

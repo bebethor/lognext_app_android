@@ -2,10 +2,23 @@ package com.lognext.nexterandroid.features.home
 
 import com.google.gson.annotations.SerializedName
 import java.text.SimpleDateFormat
+import java.util.Calendar
 import java.util.Locale
 import java.util.TimeZone
 import java.util.Date
 import java.util.concurrent.TimeUnit
+
+enum class AgendaScope(val title: String, val endpoint: String, val emptyTitle: String) {
+    Today("Hoy", "/api/v1/calendar/today", "No tienes reuniones hoy"),
+    Week("Semana", "/api/v1/calendar/week", "No tienes reuniones esta semana"),
+    Upcoming("Próximas", "/api/v1/calendar/upcoming", "No tienes próximas reuniones")
+}
+
+data class AgendaEventGroup(
+    val dateKey: String,
+    val title: String,
+    val events: List<HomeCalendarEvent>
+)
 
 data class HomeSummary(
     @SerializedName("first_name") val firstName: String,
@@ -40,6 +53,24 @@ data class HomeCalendarEvent(
         get() = startDate?.let {
             SimpleDateFormat("HH:mm", Locale.getDefault()).format(it)
         } ?: "--:--"
+
+    val dayKey: String
+        get() = startDate?.let {
+            SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(it)
+        } ?: start
+
+    val dayTitle: String
+        get() {
+            val date = startDate ?: return "Sin fecha"
+            val today = Calendar.getInstance()
+            val eventDay = Calendar.getInstance().apply { time = date }
+            if (today.sameDay(eventDay)) return "Hoy"
+            today.add(Calendar.DAY_OF_YEAR, 1)
+            if (today.sameDay(eventDay)) return "Mañana"
+            return SimpleDateFormat("EEEE d MMM", Locale.getDefault())
+                .format(date)
+                .replaceFirstChar { if (it.isLowerCase()) it.titlecase(Locale.getDefault()) else it.toString() }
+        }
 
     val subtitle: String
         get() {
@@ -99,6 +130,14 @@ data class HomeTask(
         }
 }
 
+data class HomeTaskCreateRequest(
+    val title: String,
+    val description: String?,
+    val importance: String,
+    @SerializedName("due_date") val dueDate: String?,
+    @SerializedName("start_date") val startDate: String? = null
+)
+
 fun List<HomeCalendarEvent>.sortedByStartDate(): List<HomeCalendarEvent> {
     return sortedWith(
         compareBy<HomeCalendarEvent> { it.startDate ?: Date(Long.MAX_VALUE) }
@@ -111,6 +150,23 @@ fun List<HomeTask>.sortedByDueDate(): List<HomeTask> {
         compareBy<HomeTask> { it.sortDueDate ?: Date(Long.MAX_VALUE) }
             .thenBy { it.title.lowercase(Locale.getDefault()) }
     )
+}
+
+fun List<HomeCalendarEvent>.groupedByDay(): List<AgendaEventGroup> {
+    return groupBy { it.dayKey }
+        .map { (key, events) ->
+            AgendaEventGroup(
+                dateKey = key,
+                title = events.firstOrNull()?.dayTitle ?: key,
+                events = events.sortedByStartDate()
+            )
+        }
+        .sortedWith(compareBy { group -> group.events.firstOrNull()?.startDate ?: Date(Long.MAX_VALUE) })
+}
+
+private fun Calendar.sameDay(other: Calendar): Boolean {
+    return get(Calendar.YEAR) == other.get(Calendar.YEAR) &&
+        get(Calendar.DAY_OF_YEAR) == other.get(Calendar.DAY_OF_YEAR)
 }
 
 private fun parseIsoDate(value: String): Date? {

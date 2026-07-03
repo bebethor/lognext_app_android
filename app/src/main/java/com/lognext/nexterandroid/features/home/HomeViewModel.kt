@@ -18,7 +18,15 @@ data class HomeUiState(
     val pendingTasksCount: Int? = null,
     val urgentTasksCount: Int? = null,
     val todayMeetings: List<HomeCalendarEvent> = emptyList(),
+    val agendaScope: AgendaScope = AgendaScope.Today,
+    val agendaEvents: List<HomeCalendarEvent> = emptyList(),
+    val isLoadingAgenda: Boolean = false,
+    val hasLoadedAgenda: Boolean = false,
+    val agendaErrorMessage: String? = null,
     val tasks: List<HomeTask> = emptyList(),
+    val completedTaskIds: Set<String> = emptySet(),
+    val isCreatingTask: Boolean = false,
+    val createTaskErrorMessage: String? = null,
     val errorMessage: String? = null
 ) {
     val formattedVacationDays: String
@@ -28,12 +36,18 @@ data class HomeUiState(
         }
 
     val displayedPendingTasksCount: Int
-        get() = if (tasks.isNotEmpty()) tasks.count { !it.isCompleted } else pendingTasksCount ?: 0
+        get() = if (tasks.isNotEmpty()) tasks.count { it.id !in completedTaskIds } else pendingTasksCount ?: 0
 
     val visibleMeetings: List<HomeCalendarEvent>
         get() {
             val now = Date()
             return todayMeetings.filter { (it.endDate ?: Date(Long.MAX_VALUE)).after(now) }.take(3)
+        }
+
+    val visibleAgendaEvents: List<HomeCalendarEvent>
+        get() {
+            val now = Date()
+            return agendaEvents.filter { (it.endDate ?: Date(Long.MAX_VALUE)).after(now) }
         }
 }
 
@@ -76,12 +90,127 @@ class HomeViewModel(
                     pendingTasksCount = summary.pendingTasksCount,
                     urgentTasksCount = summary.urgentTasksCount,
                     todayMeetings = meetings.events.sortedByStartDate(),
-                    tasks = tasks.tasks.sortedByDueDate()
+                    tasks = tasks.tasks.sortedByDueDate(),
+                    completedTaskIds = tasks.tasks.filter { it.isCompleted }.map { it.id }.toSet()
                 )
             }.onFailure { error ->
                 mutableUiState.value = mutableUiState.value.copy(
                     isLoading = false,
                     errorMessage = error.message ?: "No se pudo cargar Home."
+                )
+            }
+        }
+    }
+
+    fun loadAgenda(scope: AgendaScope, force: Boolean = false) {
+        if (AppConfig.UseFakeLogin) {
+            mutableUiState.value = mutableUiState.value.copy(
+                agendaScope = scope,
+                agendaEvents = mockAgendaEvents(scope),
+                isLoadingAgenda = false,
+                hasLoadedAgenda = true,
+                agendaErrorMessage = null
+            )
+            return
+        }
+
+        if (!force && mutableUiState.value.hasLoadedAgenda && mutableUiState.value.agendaScope == scope) return
+
+        viewModelScope.launch {
+            mutableUiState.value = mutableUiState.value.copy(
+                agendaScope = scope,
+                isLoadingAgenda = true,
+                agendaErrorMessage = null
+            )
+            runCatching {
+                service.getEvents(scope).events.sortedByStartDate()
+            }.onSuccess { events ->
+                mutableUiState.value = mutableUiState.value.copy(
+                    agendaEvents = events,
+                    isLoadingAgenda = false,
+                    hasLoadedAgenda = true
+                )
+            }.onFailure {
+                mutableUiState.value = mutableUiState.value.copy(
+                    agendaEvents = emptyList(),
+                    isLoadingAgenda = false,
+                    hasLoadedAgenda = true,
+                    agendaErrorMessage = "Inténtalo de nuevo más tarde."
+                )
+            }
+        }
+    }
+
+    fun toggleCompleted(task: HomeTask) {
+        val completed = mutableUiState.value.completedTaskIds.toMutableSet()
+        if (!completed.add(task.id)) completed.remove(task.id)
+        mutableUiState.value = mutableUiState.value.copy(completedTaskIds = completed)
+    }
+
+    fun createTask(title: String, description: String, priority: String, dueDate: String?) {
+        val cleanTitle = title.trim()
+        if (cleanTitle.isEmpty() || mutableUiState.value.isCreatingTask) return
+
+        if (AppConfig.UseFakeLogin) {
+            val created = HomeTask(
+                id = "mock-task-${System.currentTimeMillis()}",
+                title = cleanTitle,
+                description = description.trim().ifBlank { null },
+                importance = priority,
+                dueDate = dueDate?.takeIf { it.isNotBlank() },
+                isCompleted = false
+            )
+            mutableUiState.value = mutableUiState.value.copy(
+                tasks = (mutableUiState.value.tasks + created).sortedByDueDate(),
+                createTaskErrorMessage = null
+            )
+            return
+        }
+
+        viewModelScope.launch {
+            mutableUiState.value = mutableUiState.value.copy(isCreatingTask = true, createTaskErrorMessage = null)
+            val request = HomeTaskCreateRequest(
+                title = cleanTitle,
+                description = description.trim().ifBlank { null },
+                importance = priority,
+                dueDate = dueDate?.takeIf { it.isNotBlank() }
+            )
+            runCatching {
+                service.createTask(request)
+            }.onSuccess { task ->
+                mutableUiState.value = mutableUiState.value.copy(
+                    isCreatingTask = false,
+                    tasks = (mutableUiState.value.tasks + task).sortedByDueDate()
+                )
+            }.onFailure {
+                mutableUiState.value = mutableUiState.value.copy(
+                    isCreatingTask = false,
+                    createTaskErrorMessage = "No se pudo crear la tarea. Revisa los datos e inténtalo de nuevo."
+                )
+            }
+        }
+    }
+
+    fun deleteTask(task: HomeTask) {
+        if (AppConfig.UseFakeLogin) {
+            mutableUiState.value = mutableUiState.value.copy(
+                tasks = mutableUiState.value.tasks.filterNot { it.id == task.id },
+                completedTaskIds = mutableUiState.value.completedTaskIds - task.id
+            )
+            return
+        }
+
+        viewModelScope.launch {
+            runCatching {
+                service.deleteTask(task.id)
+            }.onSuccess {
+                mutableUiState.value = mutableUiState.value.copy(
+                    tasks = mutableUiState.value.tasks.filterNot { it.id == task.id },
+                    completedTaskIds = mutableUiState.value.completedTaskIds - task.id
+                )
+            }.onFailure {
+                mutableUiState.value = mutableUiState.value.copy(
+                    errorMessage = "No se pudo borrar la tarea. Inténtalo de nuevo."
                 )
             }
         }
@@ -155,7 +284,38 @@ class HomeViewModel(
                     dueDate = null,
                     isCompleted = false
                 )
-            ).sortedByDueDate()
+            ).sortedByDueDate(),
+            completedTaskIds = emptySet()
         )
+    }
+
+    private fun mockAgendaEvents(scope: AgendaScope): List<HomeCalendarEvent> {
+        val baseEvents = mockHomeState().todayMeetings
+        if (scope == AgendaScope.Today) return baseEvents
+        val extra = listOf(
+            HomeCalendarEvent(
+                id = "mock-agenda-4",
+                subject = "Seguimiento cliente Lognext",
+                start = "2099-01-02T10:30:00Z",
+                end = "2099-01-02T11:15:00Z",
+                location = "Sala Sur",
+                isOnlineMeeting = false,
+                joinUrl = null,
+                attendeesCount = 5,
+                organizer = "Comercial"
+            ),
+            HomeCalendarEvent(
+                id = "mock-agenda-5",
+                subject = "Demo interna StaffHub",
+                start = "2099-01-04T12:00:00Z",
+                end = "2099-01-04T13:00:00Z",
+                location = null,
+                isOnlineMeeting = true,
+                joinUrl = null,
+                attendeesCount = 12,
+                organizer = "Producto"
+            )
+        )
+        return (baseEvents + extra).sortedByStartDate()
     }
 }

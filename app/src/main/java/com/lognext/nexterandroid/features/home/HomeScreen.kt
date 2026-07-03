@@ -10,6 +10,7 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -32,16 +33,18 @@ import androidx.compose.material.ButtonDefaults
 import androidx.compose.material.Card
 import androidx.compose.material.CircularProgressIndicator
 import androidx.compose.material.Divider
-import androidx.compose.material.Icon
-import androidx.compose.material.MaterialTheme
 import androidx.compose.material.OutlinedButton
+import androidx.compose.material.RadioButton
 import androidx.compose.material.Text
+import androidx.compose.material.TextField
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -51,6 +54,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
@@ -67,8 +71,6 @@ import com.lognext.nexterandroid.core.auth.AuthState
 import com.lognext.nexterandroid.ui.theme.NexterColors
 import com.lognext.nexterandroid.ui.theme.isNexterDarkTheme
 import kotlinx.coroutines.launch
-import java.text.SimpleDateFormat
-import java.util.Date
 import java.util.Locale
 
 @Composable
@@ -96,8 +98,7 @@ fun HomeScreen() {
         )
         is AuthState.Authenticated -> {
             AuthenticatedHome(
-                authState = state,
-                onSignOut = { scope.launch { authRepository.signOut() } }
+                authState = state
             )
         }
         is AuthState.Error -> LoginScreen(
@@ -232,8 +233,7 @@ private fun LoginClaimLine(red: String, navy: String) {
 
 @Composable
 private fun AuthenticatedHome(
-    authState: AuthState.Authenticated,
-    onSignOut: () -> Unit
+    authState: AuthState.Authenticated
 ) {
     val factory = remember {
         object : ViewModelProvider.Factory {
@@ -245,6 +245,8 @@ private fun AuthenticatedHome(
     }
     val viewModel: HomeViewModel = viewModel(factory = factory)
     val uiState by viewModel.uiState.collectAsState()
+    var showAgenda by remember { mutableStateOf(false) }
+    var showAddTask by remember { mutableStateOf(false) }
 
     LaunchedEffect(authState.user.username) {
         viewModel.loadIfNeeded()
@@ -255,8 +257,6 @@ private fun AuthenticatedHome(
             .fillMaxSize()
             .background(NexterColors.pageBackground())
     ) {
-        TopBar(authState.user.displayName, onSignOut)
-
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -269,62 +269,40 @@ private fun AuthenticatedHome(
                 ErrorCard(message = it, onRetry = viewModel::refresh)
                 Spacer(modifier = Modifier.height(10.dp))
             }
-            MeetingsCard(uiState)
-            TasksCard(uiState)
-        }
-    }
-}
-
-@Composable
-private fun TopBar(displayName: String, onSignOut: () -> Unit) {
-    val date = remember {
-        SimpleDateFormat("d MMM", Locale.getDefault()).format(Date()).replace(".", "")
-    }
-    val isDark = isNexterDarkTheme()
-    val logoRes = if (isDark) R.drawable.lognext_logo_negative else R.drawable.lognext_logo
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(if (isDark) NexterColors.cardBackground() else Color.Transparent)
-            .height(if (isDark) 70.dp else 54.dp)
-            .padding(horizontal = 24.dp, vertical = if (isDark) 8.dp else 0.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Image(
-            painter = painterResource(id = logoRes),
-            contentDescription = "Lognext",
-            modifier = Modifier
-                .height(30.dp)
-                .width(132.dp)
-                .weight(1f, fill = false)
-        )
-        Spacer(modifier = Modifier.weight(1f))
-        Text(text = date, color = if (isDark) Color.White.copy(alpha = 0.72f) else NexterColors.Navy.copy(alpha = 0.35f), fontSize = 22.sp)
-        Spacer(modifier = Modifier.width(10.dp))
-        Box(
-            modifier = Modifier
-                .size(35.dp)
-                .clip(RoundedCornerShape(12.dp))
-                .background(NexterColors.Red),
-            contentAlignment = Alignment.Center
-        ) {
-            Text(text = initials(displayName), color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.Bold)
-        }
-        Spacer(modifier = Modifier.width(10.dp))
-        OutlinedButton(
-            onClick = onSignOut,
-            shape = RoundedCornerShape(12.dp),
-            border = BorderStroke(1.5.dp, NexterColors.Red.copy(alpha = 0.7f)),
-            modifier = Modifier.size(35.dp),
-            contentPadding = androidx.compose.foundation.layout.PaddingValues(0.dp)
-        ) {
-            Icon(
-                painter = painterResource(id = R.drawable.ic_logout),
-                contentDescription = "Cerrar sesión",
-                tint = NexterColors.Red,
-                modifier = Modifier.size(20.dp)
+            MeetingsCard(
+                uiState = uiState,
+                onOpenAgenda = {
+                    viewModel.loadAgenda(AgendaScope.Today)
+                    showAgenda = true
+                }
+            )
+            TasksCard(
+                uiState = uiState,
+                onAddTask = { showAddTask = true },
+                onToggleCompleted = viewModel::toggleCompleted,
+                onDeleteTask = viewModel::deleteTask
             )
         }
+    }
+
+    if (showAgenda) {
+        AgendaDialog(
+            uiState = uiState,
+            onDismiss = { showAgenda = false },
+            onScopeSelected = { viewModel.loadAgenda(it, force = uiState.agendaScope != it) },
+            onRetry = { viewModel.loadAgenda(uiState.agendaScope, force = true) }
+        )
+    }
+
+    if (showAddTask) {
+        AddTaskDialog(
+            uiState = uiState,
+            onDismiss = { showAddTask = false },
+            onCreate = { title, description, priority, dueDate ->
+                viewModel.createTask(title, description, priority, dueDate)
+                if (uiState.createTaskErrorMessage == null) showAddTask = false
+            }
+        )
     }
 }
 
@@ -401,8 +379,8 @@ private fun GreetingDivider() {
 }
 
 @Composable
-private fun MeetingsCard(uiState: HomeUiState) {
-    HtmlCard(title = "📅", label = "Reuniones de hoy", action = "Ver agenda →") {
+private fun MeetingsCard(uiState: HomeUiState, onOpenAgenda: () -> Unit) {
+    HtmlCard(title = "📅", label = "Reuniones de hoy", action = "Ver agenda →", onAction = onOpenAgenda) {
         when {
             uiState.visibleMeetings.isEmpty() && !uiState.isLoading -> EmptyText("No tienes reuniones hoy")
             else -> uiState.visibleMeetings.forEachIndexed { index, meeting ->
@@ -452,33 +430,59 @@ private fun MeetingRow(meeting: HomeCalendarEvent, index: Int) {
 }
 
 @Composable
-private fun TasksCard(uiState: HomeUiState) {
-    HtmlCard(title = "📝", label = "Tareas pendientes", action = "Añadir") {
+private fun TasksCard(
+    uiState: HomeUiState,
+    onAddTask: () -> Unit,
+    onToggleCompleted: (HomeTask) -> Unit,
+    onDeleteTask: (HomeTask) -> Unit
+) {
+    HtmlCard(title = "📝", label = "Tareas pendientes", action = "Añadir", onAction = onAddTask) {
         val pendingTasks = uiState.tasks.filter { !it.isCompleted }.take(6)
         if (pendingTasks.isEmpty() && !uiState.isLoading) {
             EmptyText("No tienes tareas pendientes")
         } else {
             pendingTasks.forEachIndexed { index, task ->
                 if (index > 0) Divider(color = NexterColors.border())
-                TaskRow(task)
+                TaskRow(
+                    task = task,
+                    isCompleted = task.id in uiState.completedTaskIds,
+                    onToggleCompleted = { onToggleCompleted(task) },
+                    onDelete = { onDeleteTask(task) }
+                )
             }
         }
     }
 }
 
 @Composable
-private fun TaskRow(task: HomeTask) {
+private fun TaskRow(
+    task: HomeTask,
+    isCompleted: Boolean,
+    onToggleCompleted: () -> Unit,
+    onDelete: () -> Unit
+) {
     Row(modifier = Modifier.padding(vertical = 9.dp), verticalAlignment = Alignment.Top) {
         Box(
             modifier = Modifier
                 .padding(top = 1.dp)
-                .size(18.dp)
+                .size(22.dp)
                 .clip(CircleShape)
-                .border(BorderStroke(2.dp, NexterColors.tertiaryText()), CircleShape)
-        )
+                .background(if (isCompleted) NexterColors.Green else Color.Transparent)
+                .border(BorderStroke(2.dp, if (isCompleted) NexterColors.Green else NexterColors.tertiaryText()), CircleShape)
+                .clickable(onClick = onToggleCompleted),
+            contentAlignment = Alignment.Center
+        ) {
+            if (isCompleted) Text("✓", color = NexterColors.Navy, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+        }
         Spacer(modifier = Modifier.width(10.dp))
         Column(modifier = Modifier.weight(1f)) {
-            Text(task.title, color = NexterColors.primaryText(), fontSize = 12.sp, fontWeight = FontWeight.Medium, maxLines = 2)
+            Text(
+                task.title,
+                color = if (isCompleted) NexterColors.secondaryText() else NexterColors.primaryText(),
+                fontSize = 12.sp,
+                fontWeight = FontWeight.Medium,
+                maxLines = 2
+            )
             Row(modifier = Modifier.padding(top = 3.dp), verticalAlignment = Alignment.CenterVertically) {
                 PriorityChip(task.importance, task.priorityLabel)
                 task.dueDateText?.let {
@@ -486,6 +490,19 @@ private fun TaskRow(task: HomeTask) {
                     Text(it, color = NexterColors.tertiaryText(), fontSize = 10.sp)
                 }
             }
+        }
+        if (isCompleted) {
+            Text(
+                text = "Borrar",
+                color = NexterColors.Red,
+                fontSize = 11.sp,
+                fontWeight = FontWeight.SemiBold,
+                modifier = Modifier
+                    .clip(RoundedCornerShape(10.dp))
+                    .background(NexterColors.Red.copy(alpha = 0.10f))
+                    .clickable(onClick = onDelete)
+                    .padding(horizontal = 8.dp, vertical = 5.dp)
+            )
         }
     }
 }
@@ -510,6 +527,7 @@ private fun HtmlCard(
     title: String,
     label: String,
     action: String? = null,
+    onAction: (() -> Unit)? = null,
     content: @Composable ColumnScope.() -> Unit
 ) {
     Card(
@@ -532,7 +550,16 @@ private fun HtmlCard(
                 Spacer(modifier = Modifier.width(6.dp))
                 Text(label, color = NexterColors.primaryText(), fontSize = 12.sp, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
                 action?.let {
-                    Text(it, color = NexterColors.Red, fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
+                    Text(
+                        it,
+                        color = NexterColors.Red,
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(12.dp))
+                            .clickable(enabled = onAction != null) { onAction?.invoke() }
+                            .padding(horizontal = 4.dp, vertical = 2.dp)
+                    )
                 }
             }
             Divider(color = NexterColors.border())
@@ -580,6 +607,230 @@ private fun EmptyText(text: String) {
 }
 
 @Composable
+private fun AgendaDialog(
+    uiState: HomeUiState,
+    onDismiss: () -> Unit,
+    onScopeSelected: (AgendaScope) -> Unit,
+    onRetry: () -> Unit
+) {
+    Dialog(onDismissRequest = onDismiss) {
+        Card(
+            backgroundColor = NexterColors.pageBackground(),
+            shape = RoundedCornerShape(18.dp),
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Column(modifier = Modifier.padding(bottom = 12.dp)) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(NexterColors.cardBackground())
+                        .padding(16.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        "⌄",
+                        color = NexterColors.Red,
+                        fontSize = 26.sp,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier
+                            .size(38.dp)
+                            .clip(CircleShape)
+                            .background(NexterColors.Red.copy(alpha = 0.10f))
+                            .clickable(onClick = onDismiss)
+                            .padding(start = 11.dp)
+                    )
+                    Spacer(modifier = Modifier.width(12.dp))
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text("Agenda", color = NexterColors.primaryText(), fontSize = 22.sp, fontWeight = FontWeight.Bold)
+                        Text("Tus reuniones y próximos eventos", color = NexterColors.secondaryText(), fontSize = 12.sp)
+                    }
+                }
+
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 12.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    AgendaScope.values().forEach { scope ->
+                        val selected = uiState.agendaScope == scope
+                        Text(
+                            text = scope.title,
+                            color = if (selected) NexterColors.cardBackground() else NexterColors.secondaryText(),
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            modifier = Modifier
+                                .weight(1f)
+                                .clip(RoundedCornerShape(10.dp))
+                                .background(if (selected) NexterColors.primaryText() else NexterColors.cardBackground())
+                                .border(BorderStroke(1.dp, NexterColors.border()), RoundedCornerShape(10.dp))
+                                .clickable { onScopeSelected(scope) }
+                                .padding(vertical = 12.dp),
+                        )
+                    }
+                }
+
+                when {
+                    uiState.isLoadingAgenda || !uiState.hasLoadedAgenda -> {
+                        DialogStateMessage("Cargando agenda…", showProgress = true)
+                    }
+                    uiState.agendaErrorMessage != null -> {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(24.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Text("No se pudo cargar la agenda", color = NexterColors.primaryText(), fontSize = 15.sp, fontWeight = FontWeight.Bold)
+                            Text(uiState.agendaErrorMessage, color = NexterColors.secondaryText(), fontSize = 12.sp, modifier = Modifier.padding(top = 8.dp))
+                            Button(
+                                onClick = onRetry,
+                                colors = ButtonDefaults.buttonColors(backgroundColor = NexterColors.Red, contentColor = Color.White),
+                                modifier = Modifier.padding(top = 12.dp)
+                            ) {
+                                Text("Reintentar")
+                            }
+                        }
+                    }
+                    uiState.visibleAgendaEvents.isEmpty() -> {
+                        DialogStateMessage(uiState.agendaScope.emptyTitle, subtitle = "Cuando tengas reuniones programadas aparecerán aquí.")
+                    }
+                    else -> {
+                        Column(
+                            modifier = Modifier
+                                .height(420.dp)
+                                .verticalScroll(rememberScrollState())
+                                .padding(horizontal = 16.dp)
+                        ) {
+                            uiState.visibleAgendaEvents.groupedByDay().forEach { group ->
+                                AgendaDaySection(group)
+                                Spacer(modifier = Modifier.height(10.dp))
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun AgendaDaySection(group: AgendaEventGroup) {
+    Card(
+        backgroundColor = NexterColors.cardBackground(),
+        elevation = 0.dp,
+        shape = RoundedCornerShape(14.dp),
+        border = BorderStroke(1.dp, NexterColors.border()),
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Column {
+            Text(
+                group.title,
+                color = NexterColors.tertiaryText(),
+                fontSize = 11.sp,
+                fontWeight = FontWeight.SemiBold,
+                modifier = Modifier.padding(start = 14.dp, top = 14.dp, bottom = 6.dp)
+            )
+            group.events.forEachIndexed { index, event ->
+                if (index > 0) Divider(color = NexterColors.border(), modifier = Modifier.padding(start = 86.dp))
+                MeetingRow(event, index)
+            }
+        }
+    }
+}
+
+@Composable
+private fun DialogStateMessage(
+    title: String,
+    subtitle: String? = null,
+    showProgress: Boolean = false
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 28.dp, vertical = 42.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(10.dp)
+    ) {
+        if (showProgress) CircularProgressIndicator(color = NexterColors.Red, modifier = Modifier.size(24.dp))
+        Text(title, color = NexterColors.secondaryText(), fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
+        subtitle?.let {
+            Text(it, color = NexterColors.tertiaryText(), fontSize = 12.sp)
+        }
+    }
+}
+
+@Composable
+private fun AddTaskDialog(
+    uiState: HomeUiState,
+    onDismiss: () -> Unit,
+    onCreate: (String, String, String, String?) -> Unit
+) {
+    var title by remember { mutableStateOf("") }
+    var description by remember { mutableStateOf("") }
+    var priority by remember { mutableStateOf("normal") }
+    var dueDate by remember { mutableStateOf("") }
+
+    Dialog(onDismissRequest = onDismiss) {
+        Card(
+            backgroundColor = NexterColors.cardBackground(),
+            shape = RoundedCornerShape(18.dp),
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Column(modifier = Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Text("Añadir tarea", color = NexterColors.primaryText(), fontSize = 22.sp, fontWeight = FontWeight.Bold)
+                TextField(value = title, onValueChange = { title = it }, label = { Text("Título") }, modifier = Modifier.fillMaxWidth())
+                TextField(value = description, onValueChange = { description = it }, label = { Text("Descripción") }, modifier = Modifier.fillMaxWidth())
+                TextField(
+                    value = dueDate,
+                    onValueChange = { dueDate = it },
+                    label = { Text("Fecha límite opcional") },
+                    placeholder = { Text("2099-01-05T09:00:00Z") },
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                Column {
+                    Text("Prioridad", color = NexterColors.secondaryText(), fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+                    listOf("high" to "Alta", "normal" to "Normal", "low" to "Baja").forEach { (value, label) ->
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable { priority = value },
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            RadioButton(selected = priority == value, onClick = { priority = value })
+                            Text(label, color = NexterColors.primaryText(), fontSize = 13.sp)
+                        }
+                    }
+                }
+
+                uiState.createTaskErrorMessage?.let {
+                    Text(it, color = NexterColors.Red, fontSize = 12.sp)
+                }
+
+                Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
+                    OutlinedButton(onClick = onDismiss, modifier = Modifier.weight(1f)) {
+                        Text("Cancelar")
+                    }
+                    Button(
+                        enabled = title.isNotBlank() && !uiState.isCreatingTask,
+                        onClick = { onCreate(title, description, priority, dueDate.ifBlank { null }) },
+                        colors = ButtonDefaults.buttonColors(backgroundColor = NexterColors.Red, contentColor = Color.White),
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        if (uiState.isCreatingTask) {
+                            CircularProgressIndicator(color = Color.White, strokeWidth = 2.dp, modifier = Modifier.size(18.dp))
+                        } else {
+                            Text("Guardar")
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
 private fun CenteredHomeShell(content: @Composable ColumnScope.() -> Unit) {
     Column(
         modifier = Modifier
@@ -597,14 +848,4 @@ private fun priorityColor(importance: String): Color {
         "low" -> Color(0xFF185FA5)
         else -> Color(0xFFE19A3B)
     }
-}
-
-private fun initials(displayName: String): String {
-    return displayName
-        .split(" ")
-        .filter { it.isNotBlank() }
-        .take(2)
-        .map { it.first().uppercaseChar() }
-        .joinToString("")
-        .ifBlank { "JA" }
 }
