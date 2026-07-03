@@ -96,7 +96,7 @@ class HomeViewModel(
             }.onFailure { error ->
                 mutableUiState.value = mutableUiState.value.copy(
                     isLoading = false,
-                    errorMessage = error.message ?: "No se pudo cargar Home."
+                    errorMessage = error.message ?: "Ha ocurrido un error inesperado."
                 )
             }
         }

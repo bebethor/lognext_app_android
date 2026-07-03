@@ -188,9 +188,9 @@ class MsalAuthRepository(
 
     private fun Throwable.authMessage(): String {
         return when (this) {
-            is AuthCancelledException -> "Inicio de sesion cancelado."
-            is MsalException -> "No se pudo completar la autenticacion."
-            else -> message ?: "No se pudo completar la autenticacion."
+            is AuthCancelledException -> "Inicio de sesión cancelado."
+            is MsalException -> "No se pudo completar la autenticación."
+            else -> message ?: "No se pudo completar la autenticación."
         }
     }
 }

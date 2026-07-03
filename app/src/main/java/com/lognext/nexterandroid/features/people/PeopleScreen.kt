@@ -6,7 +6,7 @@ import com.lognext.nexterandroid.features.common.FeaturePlaceholder
 @Composable
 fun PeopleScreen() {
     FeaturePlaceholder(
-        title = "Personas",
-        subtitle = "Punto de entrada para PeopleService, modelos y UI."
+        title = "People",
+        subtitle = ""
     )
 }

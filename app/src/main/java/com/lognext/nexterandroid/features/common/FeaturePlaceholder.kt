@@ -25,11 +25,13 @@ fun FeaturePlaceholder(
         verticalArrangement = Arrangement.Center
     ) {
         Text(text = title, color = NexterColors.primaryText(), style = MaterialTheme.typography.h4)
-        Text(
-            text = subtitle,
-            color = NexterColors.secondaryText(),
-            style = MaterialTheme.typography.body1,
-            modifier = Modifier.padding(top = 8.dp)
-        )
+        if (subtitle.isNotBlank()) {
+            Text(
+                text = subtitle,
+                color = NexterColors.secondaryText(),
+                style = MaterialTheme.typography.body1,
+                modifier = Modifier.padding(top = 8.dp)
+            )
+        }
     }
 }

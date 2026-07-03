@@ -20,7 +20,6 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -32,14 +31,11 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.Button
 import androidx.compose.material.ButtonDefaults
 import androidx.compose.material.Card
-import androidx.compose.material.AlertDialog
 import androidx.compose.material.CircularProgressIndicator
 import androidx.compose.material.Divider
 import androidx.compose.material.OutlinedButton
-import androidx.compose.material.RadioButton
 import androidx.compose.material.Text
 import androidx.compose.material.TextField
-import androidx.compose.material.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -49,6 +45,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.alpha
@@ -56,13 +53,16 @@ import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.withStyle
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.ViewModel
@@ -348,11 +348,11 @@ private fun GreetingCard(uiState: HomeUiState, displayName: String) {
             ) {
                 Box(modifier = Modifier.size(5.dp).clip(CircleShape).background(NexterColors.Red))
                 Spacer(modifier = Modifier.width(5.dp))
-                Text("ACTIVO", color = Color.White.copy(alpha = 0.80f), fontSize = 10.sp, fontWeight = FontWeight.SemiBold)
+                Text("Cargando...", color = Color.White.copy(alpha = 0.80f), fontSize = 10.sp, fontWeight = FontWeight.SemiBold)
             }
 
             Row(modifier = Modifier.padding(top = 14.dp), verticalAlignment = Alignment.CenterVertically) {
-                GreetingStat(uiState.formattedVacationDays, "Dias dispon.", Modifier.weight(1f))
+                GreetingStat(uiState.formattedVacationDays, "Días dispon.", Modifier.weight(1f))
                 GreetingDivider()
                 GreetingStat((uiState.meetingsTodayCount ?: uiState.todayMeetings.size).toString(), "Reuniones hoy", Modifier.weight(1f))
                 GreetingDivider()
@@ -385,7 +385,11 @@ private fun GreetingDivider() {
 private fun MeetingsCard(uiState: HomeUiState, onOpenAgenda: () -> Unit) {
     HtmlCard(title = "📅", label = "Reuniones de hoy", action = "Ver agenda →", onAction = onOpenAgenda) {
         when {
-            uiState.visibleMeetings.isEmpty() && !uiState.isLoading -> EmptyText("No tienes reuniones hoy")
+            uiState.isLoading -> CardStateMessage("Cargando reuniones…", showProgress = true)
+            uiState.visibleMeetings.isEmpty() -> EmptyText(
+                text = "No tienes reuniones hoy",
+                subtitle = "Cuando tengas reuniones programadas aparecerán aquí."
+            )
             else -> uiState.visibleMeetings.forEachIndexed { index, meeting ->
                 if (index > 0) Divider(color = NexterColors.border())
                 MeetingRow(meeting, index)
@@ -441,8 +445,13 @@ private fun TasksCard(
 ) {
     HtmlCard(title = "📝", label = "Tareas pendientes", action = "Añadir", onAction = onAddTask) {
         val pendingTasks = uiState.tasks.filter { !it.isCompleted }.take(6)
-        if (pendingTasks.isEmpty() && !uiState.isLoading) {
-            EmptyText("No tienes tareas pendientes")
+        if (uiState.isLoading) {
+            CardStateMessage("Cargando tareas…", showProgress = true)
+        } else if (pendingTasks.isEmpty()) {
+            EmptyText(
+                text = "No tienes tareas pendientes",
+                subtitle = "Cuando tengas tareas asignadas aparecerán aquí."
+            )
         } else {
             pendingTasks.forEachIndexed { index, task ->
                 if (index > 0) Divider(color = NexterColors.border())
@@ -577,7 +586,7 @@ private fun LoadingCard() {
         Row(modifier = Modifier.padding(vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {
             CircularProgressIndicator(color = NexterColors.Red, modifier = Modifier.size(24.dp))
             Spacer(modifier = Modifier.width(10.dp))
-            Text("Cargando tu inicio...", color = NexterColors.secondaryText(), fontSize = 12.sp)
+            Text("Cargando reuniones…", color = NexterColors.secondaryText(), fontSize = 12.sp)
         }
     }
 }
@@ -600,132 +609,204 @@ private fun ErrorCard(message: String, onRetry: () -> Unit) {
 }
 
 @Composable
-private fun EmptyText(text: String) {
-    Text(
-        text = text,
-        color = NexterColors.secondaryText(),
-        fontSize = 12.sp,
-        modifier = Modifier.padding(vertical = 20.dp)
-    )
+private fun EmptyText(text: String, subtitle: String? = null) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 20.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        Text(
+            text = text,
+            color = NexterColors.secondaryText(),
+            fontSize = 12.sp,
+            fontWeight = FontWeight.SemiBold
+        )
+        subtitle?.let {
+            Text(
+                text = it,
+                color = NexterColors.tertiaryText(),
+                fontSize = 11.sp
+            )
+        }
+    }
 }
 
 @Composable
+@OptIn(ExperimentalComposeUiApi::class)
 private fun AgendaDialog(
     uiState: HomeUiState,
     onDismiss: () -> Unit,
     onScopeSelected: (AgendaScope) -> Unit,
     onRetry: () -> Unit
 ) {
-    AlertDialog(
+    val topInset = systemBarHeight("status_bar_height") + 5.dp
+    val bottomInset = systemBarHeight("navigation_bar_height") + 5.dp
+
+    Dialog(
         onDismissRequest = onDismiss,
-        backgroundColor = NexterColors.cardBackground(),
-        contentColor = NexterColors.primaryText(),
-        shape = RoundedCornerShape(16.dp),
-        title = {
-            Column {
+        properties = DialogProperties(usePlatformDefaultWidth = false)
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(start = 10.dp, top = topInset, end = 10.dp, bottom = bottomInset),
+            contentAlignment = Alignment.Center
+        ) {
+            Card(
+                backgroundColor = NexterColors.cardBackground(),
+                shape = RoundedCornerShape(18.dp),
+                elevation = 12.dp,
+                modifier = Modifier.fillMaxSize()
+            ) {
+                AgendaDialogContent(
+                    uiState = uiState,
+                    onDismiss = onDismiss,
+                    onScopeSelected = onScopeSelected,
+                    onRetry = onRetry
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun AgendaDialogContent(
+    uiState: HomeUiState,
+    onDismiss: () -> Unit,
+    onScopeSelected: (AgendaScope) -> Unit,
+    onRetry: () -> Unit
+) {
+    Column(modifier = Modifier.fillMaxSize()) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(NexterColors.cardBackground())
+                .padding(start = 18.dp, top = 18.dp, end = 12.dp, bottom = 14.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .padding(end = 10.dp)
+            ) {
                 Text(
                     "Agenda",
                     color = NexterColors.primaryText(),
                     fontSize = 22.sp,
-                    fontWeight = FontWeight.Bold
+                    fontWeight = FontWeight.Bold,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
                 )
                 Text(
                     "Tus reuniones y próximos eventos",
                     color = NexterColors.secondaryText(),
                     fontSize = 12.sp,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.padding(top = 2.dp)
                 )
             }
-        },
-        text = {
-            Column(
+            Text(
+                "Cerrar",
+                color = NexterColors.Red,
+                fontSize = 12.sp,
+                fontWeight = FontWeight.SemiBold,
+                modifier = Modifier
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(NexterColors.Red.copy(alpha = 0.10f))
+                    .clickable(onClick = onDismiss)
+                    .padding(horizontal = 12.dp, vertical = 8.dp)
+            )
+        }
+
+        Divider(color = NexterColors.border())
+
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 12.dp)
+        ) {
+            Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .heightIn(max = 520.dp)
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(NexterColors.pageBackground())
+                    .padding(4.dp),
+                horizontalArrangement = Arrangement.spacedBy(4.dp)
             ) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(12.dp))
-                        .background(NexterColors.pageBackground())
-                        .padding(4.dp),
-                    horizontalArrangement = Arrangement.spacedBy(4.dp)
-                ) {
-                    AgendaScope.values().forEach { scope ->
-                        val selected = uiState.agendaScope == scope
-                        Box(
-                            modifier = Modifier
-                                .weight(1f)
-                                .clip(RoundedCornerShape(10.dp))
-                                .background(if (selected) NexterColors.cardBackground() else Color.Transparent)
-                                .clickable { onScopeSelected(scope) }
-                                .padding(vertical = 10.dp),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Text(
-                                text = scope.title,
-                                color = if (selected) NexterColors.Red else NexterColors.secondaryText(),
-                                fontSize = 12.sp,
-                                fontWeight = FontWeight.SemiBold
-                            )
-                        }
+                AgendaScope.values().forEach { scope ->
+                    val selected = uiState.agendaScope == scope
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .clip(RoundedCornerShape(10.dp))
+                            .background(if (selected) NexterColors.cardBackground() else Color.Transparent)
+                            .clickable { onScopeSelected(scope) }
+                            .padding(vertical = 10.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = scope.title,
+                            color = if (selected) NexterColors.Red else NexterColors.secondaryText(),
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
                     }
                 }
-
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(top = 14.dp)
-                ) {
-                    when {
-                        uiState.isLoadingAgenda || !uiState.hasLoadedAgenda -> {
-                            DialogStateMessage("Cargando agenda…", showProgress = true)
-                        }
-                        uiState.agendaErrorMessage != null -> {
-                            Column(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(vertical = 24.dp),
-                                horizontalAlignment = Alignment.CenterHorizontally
-                            ) {
-                                Text("No se pudo cargar la agenda", color = NexterColors.primaryText(), fontSize = 15.sp, fontWeight = FontWeight.Bold)
-                                Text(uiState.agendaErrorMessage, color = NexterColors.secondaryText(), fontSize = 12.sp, modifier = Modifier.padding(top = 8.dp))
-                                Button(
-                                    onClick = onRetry,
-                                    colors = ButtonDefaults.buttonColors(backgroundColor = NexterColors.Red, contentColor = Color.White),
-                                    modifier = Modifier.padding(top = 12.dp)
-                                ) {
-                                    Text("Reintentar")
-                                }
-                            }
-                        }
-                        uiState.visibleAgendaEvents.isEmpty() -> {
-                            DialogStateMessage(uiState.agendaScope.emptyTitle, subtitle = "Cuando tengas reuniones programadas aparecerán aquí.")
-                        }
-                        else -> {
-                            val scrollState = rememberScrollState()
-                            Column(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .heightIn(max = 360.dp)
-                                    .verticalScroll(scrollState)
-                            ) {
-                                uiState.visibleAgendaEvents.groupedByDay().forEach { group ->
-                                    AgendaDaySection(group)
-                                    Spacer(modifier = Modifier.height(10.dp))
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        },
-        confirmButton = {
-            TextButton(onClick = onDismiss) {
-                Text("Cerrar", color = NexterColors.Red, fontWeight = FontWeight.SemiBold)
             }
         }
-    )
+
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .weight(1f)
+                .padding(start = 16.dp, end = 16.dp, bottom = 16.dp)
+        ) {
+            when {
+                uiState.isLoadingAgenda || !uiState.hasLoadedAgenda -> {
+                    DialogStateMessage("Cargando agenda…", showProgress = true)
+                }
+                uiState.agendaErrorMessage != null -> {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 24.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Text("No se pudo cargar la agenda", color = NexterColors.primaryText(), fontSize = 15.sp, fontWeight = FontWeight.Bold)
+                        Text(uiState.agendaErrorMessage, color = NexterColors.secondaryText(), fontSize = 12.sp, modifier = Modifier.padding(top = 8.dp))
+                        Button(
+                            onClick = onRetry,
+                            colors = ButtonDefaults.buttonColors(backgroundColor = NexterColors.Red, contentColor = Color.White),
+                            modifier = Modifier.padding(top = 12.dp)
+                        ) {
+                            Text("Reintentar")
+                        }
+                    }
+                }
+                uiState.visibleAgendaEvents.isEmpty() -> {
+                    DialogStateMessage(uiState.agendaScope.emptyTitle, subtitle = "Cuando tengas reuniones programadas aparecerán aquí.")
+                }
+                else -> {
+                    val scrollState = rememberScrollState()
+                    Column(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .verticalScroll(scrollState)
+                    ) {
+                        uiState.visibleAgendaEvents.groupedByDay().forEach { group ->
+                            AgendaDaySection(group)
+                            Spacer(modifier = Modifier.height(10.dp))
+                        }
+                    }
+                }
+            }
+        }
+    }
 }
 
 @Composable
@@ -775,67 +856,202 @@ private fun DialogStateMessage(
 }
 
 @Composable
+private fun CardStateMessage(
+    title: String,
+    showProgress: Boolean = false
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 24.dp),
+        horizontalArrangement = Arrangement.Center,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        if (showProgress) {
+            CircularProgressIndicator(color = NexterColors.Red, modifier = Modifier.size(24.dp))
+            Spacer(modifier = Modifier.width(10.dp))
+        }
+        Text(title, color = NexterColors.secondaryText(), fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+    }
+}
+
+@Composable
+private fun systemBarHeight(resourceName: String): Dp {
+    val context = LocalContext.current
+    val density = LocalDensity.current
+    val resourceId = context.resources.getIdentifier(resourceName, "dimen", "android")
+    val heightPx = if (resourceId > 0) context.resources.getDimensionPixelSize(resourceId) else 0
+    return with(density) { heightPx.toDp() }
+}
+
+@Composable
+@OptIn(ExperimentalComposeUiApi::class)
 private fun AddTaskDialog(
     uiState: HomeUiState,
     onDismiss: () -> Unit,
     onCreate: (String, String, String, String?) -> Unit
 ) {
+    val topInset = systemBarHeight("status_bar_height") + 5.dp
+    val bottomInset = systemBarHeight("navigation_bar_height") + 5.dp
     var title by remember { mutableStateOf("") }
     var description by remember { mutableStateOf("") }
     var priority by remember { mutableStateOf("normal") }
     var dueDate by remember { mutableStateOf("") }
 
-    Dialog(onDismissRequest = onDismiss) {
-        Card(
-            backgroundColor = NexterColors.cardBackground(),
-            shape = RoundedCornerShape(18.dp),
-            modifier = Modifier.fillMaxWidth()
+    Dialog(
+        onDismissRequest = onDismiss,
+        properties = DialogProperties(usePlatformDefaultWidth = false)
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(start = 10.dp, top = topInset, end = 10.dp, bottom = bottomInset),
+            contentAlignment = Alignment.Center
         ) {
-            Column(modifier = Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                Text("Añadir tarea", color = NexterColors.primaryText(), fontSize = 22.sp, fontWeight = FontWeight.Bold)
-                TextField(value = title, onValueChange = { title = it }, label = { Text("Título") }, modifier = Modifier.fillMaxWidth())
-                TextField(value = description, onValueChange = { description = it }, label = { Text("Descripción") }, modifier = Modifier.fillMaxWidth())
-                TextField(
-                    value = dueDate,
-                    onValueChange = { dueDate = it },
-                    label = { Text("Fecha límite opcional") },
-                    placeholder = { Text("2099-01-05T09:00:00Z") },
-                    modifier = Modifier.fillMaxWidth()
-                )
+            Card(
+                backgroundColor = NexterColors.cardBackground(),
+                shape = RoundedCornerShape(18.dp),
+                elevation = 12.dp,
+                modifier = Modifier.fillMaxSize()
+            ) {
+                Column(modifier = Modifier.fillMaxSize()) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(NexterColors.cardBackground())
+                            .padding(start = 18.dp, top = 18.dp, end = 12.dp, bottom = 14.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(
+                            modifier = Modifier
+                                .weight(1f)
+                                .padding(end = 10.dp)
+                        ) {
+                            Text(
+                                "Añadir tarea",
+                                color = NexterColors.primaryText(),
+                                fontSize = 22.sp,
+                                fontWeight = FontWeight.Bold,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                        }
+                        Text(
+                            "Cerrar",
+                            color = NexterColors.Red,
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(12.dp))
+                                .background(NexterColors.Red.copy(alpha = 0.10f))
+                                .clickable(onClick = onDismiss)
+                                .padding(horizontal = 12.dp, vertical = 8.dp)
+                        )
+                    }
 
-                Column {
-                    Text("Prioridad", color = NexterColors.secondaryText(), fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
-                    listOf("high" to "Alta", "normal" to "Normal", "low" to "Baja").forEach { (value, label) ->
-                        Row(
+                    Divider(color = NexterColors.border())
+
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .weight(1f)
+                            .verticalScroll(rememberScrollState())
+                            .padding(horizontal = 18.dp, vertical = 16.dp),
+                        verticalArrangement = Arrangement.spacedBy(14.dp)
+                    ) {
+                        TextField(
+                            value = title,
+                            onValueChange = { title = it },
+                            label = { Text("Título") },
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                        TextField(
+                            value = description,
+                            onValueChange = { description = it },
+                            label = { Text("Descripción") },
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .clickable { priority = value },
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            RadioButton(selected = priority == value, onClick = { priority = value })
-                            Text(label, color = NexterColors.primaryText(), fontSize = 13.sp)
+                                .height(112.dp)
+                        )
+                        TextField(
+                            value = dueDate,
+                            onValueChange = { dueDate = it },
+                            label = { Text("Vence") },
+                            placeholder = { Text("2099-01-05T09:00:00Z") },
+                            modifier = Modifier.fillMaxWidth()
+                        )
+
+                        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Text("Prioridad", color = NexterColors.secondaryText(), fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clip(RoundedCornerShape(12.dp))
+                                    .background(NexterColors.pageBackground())
+                                    .padding(4.dp),
+                                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                            ) {
+                                listOf("high" to "Alta", "normal" to "Normal", "low" to "Baja").forEach { (value, label) ->
+                                    val selected = priority == value
+                                    Box(
+                                        modifier = Modifier
+                                            .weight(1f)
+                                            .clip(RoundedCornerShape(10.dp))
+                                            .background(if (selected) NexterColors.cardBackground() else Color.Transparent)
+                                            .clickable { priority = value }
+                                            .padding(vertical = 10.dp),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Text(
+                                            label,
+                                            color = if (selected) priorityColor(value) else NexterColors.secondaryText(),
+                                            fontSize = 12.sp,
+                                            fontWeight = FontWeight.SemiBold,
+                                            maxLines = 1,
+                                            overflow = TextOverflow.Ellipsis
+                                        )
+                                    }
+                                }
+                            }
+                        }
+
+                        uiState.createTaskErrorMessage?.let {
+                            Text(
+                                it,
+                                color = NexterColors.Red,
+                                fontSize = 12.sp,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clip(RoundedCornerShape(12.dp))
+                                    .background(NexterColors.Red.copy(alpha = 0.08f))
+                                    .padding(12.dp)
+                            )
                         }
                     }
-                }
 
-                uiState.createTaskErrorMessage?.let {
-                    Text(it, color = NexterColors.Red, fontSize = 12.sp)
-                }
+                    Divider(color = NexterColors.border())
 
-                Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
-                    OutlinedButton(onClick = onDismiss, modifier = Modifier.weight(1f)) {
-                        Text("Cancelar")
-                    }
-                    Button(
-                        enabled = title.isNotBlank() && !uiState.isCreatingTask,
-                        onClick = { onCreate(title, description, priority, dueDate.ifBlank { null }) },
-                        colors = ButtonDefaults.buttonColors(backgroundColor = NexterColors.Red, contentColor = Color.White),
-                        modifier = Modifier.weight(1f)
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(10.dp),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(NexterColors.cardBackground())
+                            .padding(18.dp)
                     ) {
-                        if (uiState.isCreatingTask) {
-                            CircularProgressIndicator(color = Color.White, strokeWidth = 2.dp, modifier = Modifier.size(18.dp))
-                        } else {
-                            Text("Guardar")
+                        OutlinedButton(onClick = onDismiss, modifier = Modifier.weight(1f)) {
+                            Text("Cancelar")
+                        }
+                        Button(
+                            enabled = title.isNotBlank() && !uiState.isCreatingTask,
+                            onClick = { onCreate(title, description, priority, dueDate.ifBlank { null }) },
+                            colors = ButtonDefaults.buttonColors(backgroundColor = NexterColors.Red, contentColor = Color.White),
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            if (uiState.isCreatingTask) {
+                                CircularProgressIndicator(color = Color.White, strokeWidth = 2.dp, modifier = Modifier.size(18.dp))
+                            } else {
+                                Text("Guardar")
+                            }
                         }
                     }
                 }

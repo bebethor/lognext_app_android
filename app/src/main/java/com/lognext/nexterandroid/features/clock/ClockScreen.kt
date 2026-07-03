@@ -7,6 +7,6 @@ import com.lognext.nexterandroid.features.common.FeaturePlaceholder
 fun ClockScreen() {
     FeaturePlaceholder(
         title = "Jornada",
-        subtitle = "Equivalente Android de Clock/Day."
+        subtitle = ""
     )
 }

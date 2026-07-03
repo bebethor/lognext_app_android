@@ -81,7 +81,7 @@ data class HomeCalendarEvent(
                 !location.isNullOrBlank() -> parts.add(location.trim())
             }
             attendeesCount?.takeIf { it > 0 }?.let { parts.add("$it asistentes") }
-            return if (parts.isEmpty()) "Reunion" else parts.joinToString(" · ")
+            return if (parts.isEmpty()) "Reunión" else parts.joinToString(" · ")
         }
 
     val tagText: String?
