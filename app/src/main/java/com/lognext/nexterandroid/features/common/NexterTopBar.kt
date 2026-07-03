@@ -29,9 +29,9 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.lognext.nexterandroid.R
 import com.lognext.nexterandroid.ui.theme.NexterColors
+import com.lognext.nexterandroid.ui.theme.NexterTypography
 import com.lognext.nexterandroid.ui.theme.isNexterDarkTheme
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -75,7 +75,7 @@ fun NexterTopBar(
             Text(
                 text = date,
                 color = if (isDark) Color.White.copy(alpha = 0.72f) else NexterColors.Navy.copy(alpha = 0.35f),
-                fontSize = 22.sp
+                fontSize = NexterTypography.TopBarDate
             )
             Spacer(modifier = Modifier.width(10.dp))
             Box(
@@ -88,7 +88,7 @@ fun NexterTopBar(
                 Text(
                     text = initials(displayName),
                     color = Color.White,
-                    fontSize = 18.sp,
+                    fontSize = NexterTypography.Avatar,
                     fontWeight = FontWeight.Bold
                 )
             }

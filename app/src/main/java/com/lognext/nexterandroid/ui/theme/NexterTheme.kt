@@ -8,6 +8,7 @@ import androidx.compose.material.lightColors
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.unit.sp
 
 object NexterColors {
     val Navy = Color(0xFF000029)
@@ -40,6 +41,28 @@ object NexterColors {
 
     @Composable
     fun border(): Color = if (isNexterDarkTheme()) White.copy(alpha = 0.10f) else Navy.copy(alpha = 0.08f)
+}
+
+object NexterTypography {
+    val TopBarDate = 22.sp
+    val Avatar = 18.sp
+    val IconButton = 19.sp
+
+    val ScreenTitle = 26.sp
+    val ScreenSubtitle = 17.sp
+    val CardTitle = 22.sp
+    val SectionTitle = 20.sp
+
+    val Body = 18.sp
+    val Callout = 17.sp
+    val Footnote = 15.sp
+    val Caption = 14.sp
+
+    val Button = 18.sp
+    val SmallButton = 17.sp
+    val Badge = 14.sp
+    val Metric = 32.sp
+    val Clock = 44.sp
 }
 
 private val NexterLightColorScheme = lightColors(

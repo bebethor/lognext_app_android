@@ -123,7 +123,7 @@ fun NexterApp() {
                             },
                             selectedContentColor = NexterColors.Red,
                             unselectedContentColor = NexterColors.tertiaryText(),
-                            label = { Text(destination.label, fontSize = 8.sp) },
+                            label = { Text(destination.label, fontSize = 10.sp) },
                             icon = {
                                 Icon(
                                     painter = painterResource(id = destination.iconRes()),

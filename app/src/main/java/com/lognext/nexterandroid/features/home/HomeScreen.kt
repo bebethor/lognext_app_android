@@ -72,6 +72,7 @@ import com.lognext.nexterandroid.R
 import com.lognext.nexterandroid.core.AppDependencies
 import com.lognext.nexterandroid.core.auth.AuthState
 import com.lognext.nexterandroid.ui.theme.NexterColors
+import com.lognext.nexterandroid.ui.theme.NexterTypography
 import com.lognext.nexterandroid.ui.theme.isNexterDarkTheme
 import kotlinx.coroutines.launch
 import java.util.Locale
@@ -191,7 +192,7 @@ private fun LoginScreen(
                     Text(
                         text = "INICIAR SESIÓN",
                         color = NexterColors.primaryText(),
-                        fontSize = 18.sp,
+                        fontSize = NexterTypography.Button,
                         fontWeight = FontWeight.Black
                     )
                 }
@@ -201,7 +202,7 @@ private fun LoginScreen(
                 Text(
                     text = errorMessage,
                     color = NexterColors.Red,
-                    fontSize = 12.sp,
+                    fontSize = NexterTypography.Caption,
                     modifier = Modifier.padding(top = 14.dp)
                 )
             }
@@ -229,7 +230,7 @@ private fun LoginClaimLine(red: String, navy: String) {
             withStyle(SpanStyle(color = NexterColors.Red)) { append(red) }
             withStyle(SpanStyle(color = NexterColors.primaryText())) { append(navy) }
         },
-        fontSize = 22.sp,
+        fontSize = NexterTypography.CardTitle,
         fontWeight = FontWeight.Black
     )
 }
@@ -328,11 +329,11 @@ private fun GreetingCard(uiState: HomeUiState, displayName: String) {
         )
 
         Column {
-            Text("Bienvenido de nuevo,", color = Color.White.copy(alpha = 0.55f), fontSize = 11.sp)
+            Text("Bienvenido de nuevo,", color = Color.White.copy(alpha = 0.70f), fontSize = NexterTypography.Callout, fontWeight = FontWeight.SemiBold)
             Text(
                 text = uiState.firstName.ifBlank { displayName },
                 color = Color.White,
-                fontSize = 20.sp,
+                fontSize = NexterTypography.CardTitle,
                 fontWeight = FontWeight.Bold,
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
@@ -348,7 +349,7 @@ private fun GreetingCard(uiState: HomeUiState, displayName: String) {
             ) {
                 Box(modifier = Modifier.size(5.dp).clip(CircleShape).background(NexterColors.Red))
                 Spacer(modifier = Modifier.width(5.dp))
-                Text("Cargando...", color = Color.White.copy(alpha = 0.80f), fontSize = 10.sp, fontWeight = FontWeight.SemiBold)
+                Text("Cargando...", color = Color.White.copy(alpha = 0.80f), fontSize = NexterTypography.Badge, fontWeight = FontWeight.SemiBold)
             }
 
             Row(modifier = Modifier.padding(top = 14.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -366,8 +367,8 @@ private fun GreetingCard(uiState: HomeUiState, displayName: String) {
 @Composable
 private fun GreetingStat(number: String, label: String, modifier: Modifier) {
     Column(modifier = modifier, horizontalAlignment = Alignment.CenterHorizontally) {
-        Text(number, color = Color.White, fontSize = 22.sp, fontWeight = FontWeight.Bold)
-        Text(label, color = Color.White.copy(alpha = 0.45f), fontSize = 10.sp)
+        Text(number, color = Color.White, fontSize = NexterTypography.Metric, fontWeight = FontWeight.Bold)
+        Text(label, color = Color.White.copy(alpha = 0.70f), fontSize = NexterTypography.Caption, fontWeight = FontWeight.Bold)
     }
 }
 
@@ -405,7 +406,7 @@ private fun MeetingRow(meeting: HomeCalendarEvent, index: Int) {
         Text(
             text = meeting.startTimeText,
             color = NexterColors.tertiaryText(),
-            fontSize = 11.sp,
+            fontSize = NexterTypography.Footnote,
             fontWeight = FontWeight.SemiBold,
             modifier = Modifier.width(40.dp)
         )
@@ -418,14 +419,14 @@ private fun MeetingRow(meeting: HomeCalendarEvent, index: Int) {
         )
         Spacer(modifier = Modifier.width(10.dp))
         Column(modifier = Modifier.weight(1f)) {
-            Text(meeting.subject, color = NexterColors.primaryText(), fontSize = 12.sp, fontWeight = FontWeight.SemiBold, maxLines = 2)
-            Text(meeting.subtitle, color = NexterColors.tertiaryText(), fontSize = 10.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Text(meeting.subject, color = NexterColors.primaryText(), fontSize = NexterTypography.Callout, fontWeight = FontWeight.SemiBold, maxLines = 2)
+            Text(meeting.subtitle, color = NexterColors.tertiaryText(), fontSize = NexterTypography.Footnote, maxLines = 1, overflow = TextOverflow.Ellipsis)
         }
         meeting.tagText?.let {
             Text(
                 text = it,
                 color = if (meeting.isOnlineMeeting) Color(0xFF0E7070) else Color(0xFF2A8B3A),
-                fontSize = 9.sp,
+                fontSize = NexterTypography.Badge,
                 fontWeight = FontWeight.SemiBold,
                 modifier = Modifier
                     .clip(RoundedCornerShape(20.dp))
@@ -484,14 +485,14 @@ private fun TaskRow(
                 .clickable(onClick = onToggleCompleted),
             contentAlignment = Alignment.Center
         ) {
-            if (isCompleted) Text("✓", color = NexterColors.Navy, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+            if (isCompleted) Text("✓", color = NexterColors.Navy, fontSize = NexterTypography.Caption, fontWeight = FontWeight.Bold)
         }
         Spacer(modifier = Modifier.width(10.dp))
         Column(modifier = Modifier.weight(1f)) {
             Text(
                 task.title,
                 color = if (isCompleted) NexterColors.secondaryText() else NexterColors.primaryText(),
-                fontSize = 12.sp,
+                fontSize = NexterTypography.Callout,
                 fontWeight = FontWeight.Medium,
                 maxLines = 2
             )
@@ -499,7 +500,7 @@ private fun TaskRow(
                 PriorityChip(task.importance, task.priorityLabel)
                 task.dueDateText?.let {
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text(it, color = NexterColors.tertiaryText(), fontSize = 10.sp)
+                    Text(it, color = NexterColors.tertiaryText(), fontSize = NexterTypography.Footnote)
                 }
             }
         }
@@ -507,7 +508,7 @@ private fun TaskRow(
             Text(
                 text = "Borrar",
                 color = NexterColors.Red,
-                fontSize = 11.sp,
+                fontSize = NexterTypography.SmallButton,
                 fontWeight = FontWeight.SemiBold,
                 modifier = Modifier
                     .clip(RoundedCornerShape(10.dp))
@@ -525,7 +526,7 @@ private fun PriorityChip(importance: String, label: String) {
     Text(
         text = label,
         color = color,
-        fontSize = 9.sp,
+        fontSize = NexterTypography.Badge,
         fontWeight = FontWeight.SemiBold,
         modifier = Modifier
             .clip(RoundedCornerShape(20.dp))
@@ -558,14 +559,14 @@ private fun HtmlCard(
                     .padding(horizontal = 14.dp, vertical = 12.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(title, fontSize = 13.sp)
+                Text(title, fontSize = NexterTypography.CardTitle)
                 Spacer(modifier = Modifier.width(6.dp))
-                Text(label, color = NexterColors.primaryText(), fontSize = 12.sp, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
+                Text(label, color = NexterColors.primaryText(), fontSize = NexterTypography.CardTitle, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
                 action?.let {
                     Text(
                         it,
                         color = NexterColors.Red,
-                        fontSize = 11.sp,
+                        fontSize = NexterTypography.SmallButton,
                         fontWeight = FontWeight.SemiBold,
                         modifier = Modifier
                             .clip(RoundedCornerShape(12.dp))
@@ -586,7 +587,7 @@ private fun LoadingCard() {
         Row(modifier = Modifier.padding(vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {
             CircularProgressIndicator(color = NexterColors.Red, modifier = Modifier.size(24.dp))
             Spacer(modifier = Modifier.width(10.dp))
-            Text("Cargando reuniones…", color = NexterColors.secondaryText(), fontSize = 12.sp)
+            Text("Cargando reuniones…", color = NexterColors.secondaryText(), fontSize = NexterTypography.Callout, fontWeight = FontWeight.SemiBold)
         }
     }
 }
@@ -594,7 +595,7 @@ private fun LoadingCard() {
 @Composable
 private fun ErrorCard(message: String, onRetry: () -> Unit) {
     HtmlCard(title = "!", label = "No se pudo cargar") {
-        Text(message, color = NexterColors.secondaryText(), fontSize = 12.sp, modifier = Modifier.padding(top = 10.dp))
+        Text(message, color = NexterColors.secondaryText(), fontSize = NexterTypography.Callout, modifier = Modifier.padding(top = 10.dp))
         Button(
             onClick = onRetry,
             colors = ButtonDefaults.buttonColors(backgroundColor = NexterColors.Navy, contentColor = Color.White),
@@ -620,14 +621,14 @@ private fun EmptyText(text: String, subtitle: String? = null) {
         Text(
             text = text,
             color = NexterColors.secondaryText(),
-            fontSize = 12.sp,
+            fontSize = NexterTypography.Callout,
             fontWeight = FontWeight.SemiBold
         )
         subtitle?.let {
             Text(
                 text = it,
                 color = NexterColors.tertiaryText(),
-                fontSize = 11.sp
+                fontSize = NexterTypography.Footnote
             )
         }
     }
@@ -694,7 +695,7 @@ private fun AgendaDialogContent(
                 Text(
                     "Agenda",
                     color = NexterColors.primaryText(),
-                    fontSize = 22.sp,
+                    fontSize = NexterTypography.ScreenTitle,
                     fontWeight = FontWeight.Bold,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
@@ -702,7 +703,7 @@ private fun AgendaDialogContent(
                 Text(
                     "Tus reuniones y próximos eventos",
                     color = NexterColors.secondaryText(),
-                    fontSize = 12.sp,
+                    fontSize = NexterTypography.ScreenSubtitle,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.padding(top = 2.dp)
@@ -711,7 +712,7 @@ private fun AgendaDialogContent(
             Text(
                 "Cerrar",
                 color = NexterColors.Red,
-                fontSize = 12.sp,
+                fontSize = NexterTypography.SmallButton,
                 fontWeight = FontWeight.SemiBold,
                 modifier = Modifier
                     .clip(RoundedCornerShape(12.dp))
@@ -750,7 +751,7 @@ private fun AgendaDialogContent(
                         Text(
                             text = scope.title,
                             color = if (selected) NexterColors.Red else NexterColors.secondaryText(),
-                            fontSize = 12.sp,
+                            fontSize = NexterTypography.SmallButton,
                             fontWeight = FontWeight.SemiBold,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis
@@ -777,8 +778,8 @@ private fun AgendaDialogContent(
                             .padding(vertical = 24.dp),
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
-                        Text("No se pudo cargar la agenda", color = NexterColors.primaryText(), fontSize = 15.sp, fontWeight = FontWeight.Bold)
-                        Text(uiState.agendaErrorMessage, color = NexterColors.secondaryText(), fontSize = 12.sp, modifier = Modifier.padding(top = 8.dp))
+                        Text("No se pudo cargar la agenda", color = NexterColors.primaryText(), fontSize = NexterTypography.Body, fontWeight = FontWeight.Bold)
+                        Text(uiState.agendaErrorMessage, color = NexterColors.secondaryText(), fontSize = NexterTypography.Callout, modifier = Modifier.padding(top = 8.dp))
                         Button(
                             onClick = onRetry,
                             colors = ButtonDefaults.buttonColors(backgroundColor = NexterColors.Red, contentColor = Color.White),
@@ -822,7 +823,7 @@ private fun AgendaDaySection(group: AgendaEventGroup) {
             Text(
                 group.title,
                 color = NexterColors.tertiaryText(),
-                fontSize = 11.sp,
+                fontSize = NexterTypography.Footnote,
                 fontWeight = FontWeight.SemiBold,
                 modifier = Modifier.padding(start = 14.dp, top = 14.dp, bottom = 6.dp)
             )
@@ -848,9 +849,9 @@ private fun DialogStateMessage(
         verticalArrangement = Arrangement.spacedBy(10.dp)
     ) {
         if (showProgress) CircularProgressIndicator(color = NexterColors.Red, modifier = Modifier.size(24.dp))
-        Text(title, color = NexterColors.secondaryText(), fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
+        Text(title, color = NexterColors.secondaryText(), fontSize = NexterTypography.Body, fontWeight = FontWeight.SemiBold)
         subtitle?.let {
-            Text(it, color = NexterColors.tertiaryText(), fontSize = 12.sp)
+            Text(it, color = NexterColors.tertiaryText(), fontSize = NexterTypography.Body)
         }
     }
 }
@@ -871,7 +872,7 @@ private fun CardStateMessage(
             CircularProgressIndicator(color = NexterColors.Red, modifier = Modifier.size(24.dp))
             Spacer(modifier = Modifier.width(10.dp))
         }
-        Text(title, color = NexterColors.secondaryText(), fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+        Text(title, color = NexterColors.secondaryText(), fontSize = NexterTypography.Callout, fontWeight = FontWeight.SemiBold)
     }
 }
 
@@ -930,7 +931,7 @@ private fun AddTaskDialog(
                             Text(
                                 "Añadir tarea",
                                 color = NexterColors.primaryText(),
-                                fontSize = 22.sp,
+                                fontSize = NexterTypography.ScreenTitle,
                                 fontWeight = FontWeight.Bold,
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis
@@ -939,7 +940,7 @@ private fun AddTaskDialog(
                         Text(
                             "Cerrar",
                             color = NexterColors.Red,
-                            fontSize = 12.sp,
+                            fontSize = NexterTypography.SmallButton,
                             fontWeight = FontWeight.SemiBold,
                             modifier = Modifier
                                 .clip(RoundedCornerShape(12.dp))
@@ -982,7 +983,7 @@ private fun AddTaskDialog(
                         )
 
                         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                            Text("Prioridad", color = NexterColors.secondaryText(), fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+                            Text("Prioridad", color = NexterColors.secondaryText(), fontSize = NexterTypography.Footnote, fontWeight = FontWeight.SemiBold)
                             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                                 listOf("high" to "Alta", "normal" to "Normal", "low" to "Baja").forEach { (value, label) ->
                                     val selected = priority == value
@@ -1013,7 +1014,7 @@ private fun AddTaskDialog(
                                         Text(
                                             text = label,
                                             color = NexterColors.primaryText(),
-                                            fontSize = 14.sp,
+                                            fontSize = NexterTypography.Body,
                                             fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
                                             maxLines = 1,
                                             overflow = TextOverflow.Ellipsis,
@@ -1023,7 +1024,7 @@ private fun AddTaskDialog(
                                             Text(
                                                 text = "Seleccionada",
                                                 color = accent,
-                                                fontSize = 11.sp,
+                                                fontSize = NexterTypography.Badge,
                                                 fontWeight = FontWeight.SemiBold,
                                                 maxLines = 1,
                                                 overflow = TextOverflow.Ellipsis
@@ -1038,7 +1039,7 @@ private fun AddTaskDialog(
                             Text(
                                 it,
                                 color = NexterColors.Red,
-                                fontSize = 12.sp,
+                                fontSize = NexterTypography.Callout,
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .clip(RoundedCornerShape(12.dp))
