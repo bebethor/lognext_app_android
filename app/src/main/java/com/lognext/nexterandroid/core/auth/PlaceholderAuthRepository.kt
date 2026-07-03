@@ -1,18 +1,22 @@
 package com.lognext.nexterandroid.core.auth
 
-class PlaceholderAuthRepository : AuthRepository {
-    override var authState: AuthState = AuthState.Unauthenticated
-        private set
+import android.app.Activity
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 
-    override var isLoggingIn: Boolean = false
-        private set
+class PlaceholderAuthRepository : AuthRepository {
+    private val mutableAuthState = MutableStateFlow<AuthState>(AuthState.Unauthenticated)
+    override val authState: StateFlow<AuthState> = mutableAuthState
+
+    private val mutableIsLoggingIn = MutableStateFlow(false)
+    override val isLoggingIn: StateFlow<Boolean> = mutableIsLoggingIn
 
     override suspend fun restoreSession() {
-        authState = AuthState.Unauthenticated
+        mutableAuthState.value = AuthState.Unauthenticated
     }
 
-    override suspend fun signIn() {
-        authState = AuthState.Authenticated(
+    override suspend fun signIn(activity: Activity) {
+        mutableAuthState.value = AuthState.Authenticated(
             AuthUser(
                 displayName = "Usuario",
                 username = "Mi SharePoint"
@@ -21,7 +25,7 @@ class PlaceholderAuthRepository : AuthRepository {
     }
 
     override suspend fun signOut() {
-        authState = AuthState.Unauthenticated
+        mutableAuthState.value = AuthState.Unauthenticated
     }
 
     override suspend fun currentBffToken(): String? = null
