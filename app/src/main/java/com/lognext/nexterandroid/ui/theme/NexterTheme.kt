@@ -1,10 +1,12 @@
 package com.lognext.nexterandroid.ui.theme
 
+import android.content.res.Configuration
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material.MaterialTheme
 import androidx.compose.material.darkColors
 import androidx.compose.material.lightColors
 import androidx.compose.runtime.Composable
-import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.graphics.Color
 
 object NexterColors {
@@ -22,22 +24,22 @@ object NexterColors {
     val Violet = Color(0xFFC896FF)
 
     @Composable
-    fun pageBackground(): Color = if (isSystemInDarkTheme()) DarkPageBackground else PageBackground
+    fun pageBackground(): Color = if (isNexterDarkTheme()) DarkPageBackground else PageBackground
 
     @Composable
-    fun cardBackground(): Color = if (isSystemInDarkTheme()) DarkCardBackground else White
+    fun cardBackground(): Color = if (isNexterDarkTheme()) DarkCardBackground else White
 
     @Composable
-    fun primaryText(): Color = if (isSystemInDarkTheme()) White else Navy
+    fun primaryText(): Color = if (isNexterDarkTheme()) White else Navy
 
     @Composable
-    fun secondaryText(): Color = if (isSystemInDarkTheme()) White.copy(alpha = 0.68f) else Navy.copy(alpha = 0.55f)
+    fun secondaryText(): Color = if (isNexterDarkTheme()) White.copy(alpha = 0.68f) else Navy.copy(alpha = 0.55f)
 
     @Composable
-    fun tertiaryText(): Color = if (isSystemInDarkTheme()) White.copy(alpha = 0.42f) else Navy.copy(alpha = 0.35f)
+    fun tertiaryText(): Color = if (isNexterDarkTheme()) White.copy(alpha = 0.42f) else Navy.copy(alpha = 0.35f)
 
     @Composable
-    fun border(): Color = if (isSystemInDarkTheme()) White.copy(alpha = 0.10f) else Navy.copy(alpha = 0.08f)
+    fun border(): Color = if (isNexterDarkTheme()) White.copy(alpha = 0.10f) else Navy.copy(alpha = 0.08f)
 }
 
 private val NexterLightColorScheme = lightColors(
@@ -67,7 +69,14 @@ private val NexterDarkColorScheme = darkColors(
 @Composable
 fun NexterTheme(content: @Composable () -> Unit) {
     MaterialTheme(
-        colors = if (isSystemInDarkTheme()) NexterDarkColorScheme else NexterLightColorScheme,
+        colors = if (isNexterDarkTheme()) NexterDarkColorScheme else NexterLightColorScheme,
         content = content
     )
+}
+
+@Composable
+fun isNexterDarkTheme(): Boolean {
+    val configuration = LocalConfiguration.current
+    val uiModeNight = configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK
+    return uiModeNight == Configuration.UI_MODE_NIGHT_YES || isSystemInDarkTheme()
 }

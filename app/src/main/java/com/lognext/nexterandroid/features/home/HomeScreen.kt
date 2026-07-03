@@ -10,7 +10,6 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -66,6 +65,7 @@ import com.lognext.nexterandroid.R
 import com.lognext.nexterandroid.core.AppDependencies
 import com.lognext.nexterandroid.core.auth.AuthState
 import com.lognext.nexterandroid.ui.theme.NexterColors
+import com.lognext.nexterandroid.ui.theme.isNexterDarkTheme
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -117,7 +117,7 @@ private fun LoginScreen(
     onSignIn: () -> Unit
 ) {
     val transition = rememberInfiniteTransition()
-    val isDark = isSystemInDarkTheme()
+    val isDark = isNexterDarkTheme()
     val logoRes = if (isDark) R.drawable.lognext_logo_negative else R.drawable.lognext_logo
     val textAlpha by transition.animateFloat(
         initialValue = 0.45f,
@@ -280,7 +280,7 @@ private fun TopBar(displayName: String, onSignOut: () -> Unit) {
     val date = remember {
         SimpleDateFormat("d MMM", Locale.getDefault()).format(Date()).replace(".", "")
     }
-    val isDark = isSystemInDarkTheme()
+    val isDark = isNexterDarkTheme()
     val logoRes = if (isDark) R.drawable.lognext_logo_negative else R.drawable.lognext_logo
     Row(
         modifier = Modifier
