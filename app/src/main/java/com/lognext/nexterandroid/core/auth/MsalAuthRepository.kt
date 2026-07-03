@@ -34,6 +34,11 @@ class MsalAuthRepository(
     private var bffAccessToken: String? = null
 
     override suspend fun restoreSession() {
+        if (AppConfig.UseFakeLogin) {
+            mutableAuthState.value = AuthState.Unauthenticated
+            return
+        }
+
         mutableAuthState.value = AuthState.Loading
 
         runCatching {
@@ -54,6 +59,16 @@ class MsalAuthRepository(
 
         mutableIsLoggingIn.value = true
         try {
+            if (AppConfig.UseFakeLogin) {
+                mutableAuthState.value = AuthState.Authenticated(
+                    AuthUser(
+                        displayName = "Jose Alberto",
+                        username = "jose.alberto@lognext.com"
+                    )
+                )
+                return
+            }
+
             val app = getApplication()
             val result = app.signInAwait(activity, AppConfig.graphScopes)
             account = result.account
@@ -69,6 +84,13 @@ class MsalAuthRepository(
     }
 
     override suspend fun signOut() {
+        if (AppConfig.UseFakeLogin) {
+            account = null
+            bffAccessToken = null
+            mutableAuthState.value = AuthState.Unauthenticated
+            return
+        }
+
         runCatching {
             getApplication().signOut()
             account = null
@@ -80,6 +102,8 @@ class MsalAuthRepository(
     }
 
     override suspend fun currentBffToken(): String? {
+        if (AppConfig.UseFakeLogin) return null
+
         bffAccessToken?.let { return it }
 
         val resolvedAccount = account ?: return null
@@ -165,10 +189,7 @@ class MsalAuthRepository(
     private fun Throwable.authMessage(): String {
         return when (this) {
             is AuthCancelledException -> "Inicio de sesion cancelado."
-            is MsalException -> {
-                val details = message
-                if (details.isNullOrBlank()) errorCode else details
-            }
+            is MsalException -> "No se pudo completar la autenticacion."
             else -> message ?: "No se pudo completar la autenticacion."
         }
     }

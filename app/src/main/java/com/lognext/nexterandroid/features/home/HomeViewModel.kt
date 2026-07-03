@@ -2,6 +2,7 @@ package com.lognext.nexterandroid.features.home
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.lognext.nexterandroid.core.AppConfig
 import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -50,6 +51,12 @@ class HomeViewModel(
     }
 
     fun refresh() {
+        if (AppConfig.UseFakeLogin) {
+            hasLoaded = true
+            mutableUiState.value = mockHomeState()
+            return
+        }
+
         viewModelScope.launch {
             mutableUiState.value = mutableUiState.value.copy(isLoading = true, errorMessage = null)
 
@@ -78,5 +85,77 @@ class HomeViewModel(
                 )
             }
         }
+    }
+
+    private fun mockHomeState(): HomeUiState {
+        return HomeUiState(
+            isLoading = false,
+            firstName = "Jose",
+            vacationDaysRemaining = 18.5,
+            meetingsTodayCount = 3,
+            pendingTasksCount = 4,
+            urgentTasksCount = 1,
+            todayMeetings = listOf(
+                HomeCalendarEvent(
+                    id = "mock-meeting-1",
+                    subject = "Daily equipo Nexter",
+                    start = "2099-01-01T09:30:00Z",
+                    end = "2099-01-01T10:00:00Z",
+                    location = null,
+                    isOnlineMeeting = true,
+                    joinUrl = null,
+                    attendeesCount = 6,
+                    organizer = "Lognext"
+                ),
+                HomeCalendarEvent(
+                    id = "mock-meeting-2",
+                    subject = "Revision de diseño Android",
+                    start = "2099-01-01T11:00:00Z",
+                    end = "2099-01-01T12:00:00Z",
+                    location = "Sala Norte",
+                    isOnlineMeeting = false,
+                    joinUrl = null,
+                    attendeesCount = 4,
+                    organizer = "Producto"
+                ),
+                HomeCalendarEvent(
+                    id = "mock-meeting-3",
+                    subject = "Planificacion sprint",
+                    start = "2099-01-01T16:00:00Z",
+                    end = "2099-01-01T17:00:00Z",
+                    location = null,
+                    isOnlineMeeting = true,
+                    joinUrl = null,
+                    attendeesCount = 9,
+                    organizer = "Equipo"
+                )
+            ).sortedByStartDate(),
+            tasks = listOf(
+                HomeTask(
+                    id = "mock-task-1",
+                    title = "Pulir pantalla Home en Android",
+                    description = null,
+                    importance = "high",
+                    dueDate = "2099-01-01T18:00:00Z",
+                    isCompleted = false
+                ),
+                HomeTask(
+                    id = "mock-task-2",
+                    title = "Revisar navegacion inferior",
+                    description = null,
+                    importance = "normal",
+                    dueDate = "2099-01-02T10:00:00Z",
+                    isCompleted = false
+                ),
+                HomeTask(
+                    id = "mock-task-3",
+                    title = "Preparar People",
+                    description = null,
+                    importance = "low",
+                    dueDate = null,
+                    isCompleted = false
+                )
+            ).sortedByDueDate()
+        )
     }
 }

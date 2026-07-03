@@ -1,7 +1,13 @@
 package com.lognext.nexterandroid.features.home
 
 import android.app.Activity
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -21,7 +27,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.foundation.Image
 import androidx.compose.material.Button
 import androidx.compose.material.ButtonDefaults
 import androidx.compose.material.Card
@@ -39,12 +44,17 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.ViewModel
@@ -75,45 +85,143 @@ fun HomeScreen() {
         AuthState.Loading -> CenteredHomeShell {
             CircularProgressIndicator(color = NexterColors.Red)
         }
-        AuthState.Unauthenticated -> CenteredHomeShell {
-            Text(text = "Lognext", color = NexterColors.Navy, fontSize = 26.sp, fontWeight = FontWeight.Bold)
-            Spacer(modifier = Modifier.height(8.dp))
-            Text(
-                text = "Inicia sesion con Microsoft para acceder a Nexter.",
-                color = NexterColors.Navy.copy(alpha = 0.55f),
-                fontSize = 14.sp
-            )
-            Spacer(modifier = Modifier.height(18.dp))
-            Button(
-                enabled = !isLoggingIn && activity != null,
-                colors = ButtonDefaults.buttonColors(backgroundColor = NexterColors.Navy, contentColor = Color.White),
-                shape = RoundedCornerShape(10.dp),
-                onClick = { activity?.let { scope.launch { authRepository.signIn(it) } } }
-            ) {
-                Text(if (isLoggingIn) "Conectando..." else "Entrar con Microsoft", fontWeight = FontWeight.SemiBold)
+        AuthState.Unauthenticated -> LoginScreen(
+            isSigningIn = isLoggingIn,
+            errorMessage = null,
+            onSignIn = {
+                activity?.let { scope.launch { authRepository.signIn(it) } }
             }
-        }
+        )
         is AuthState.Authenticated -> {
             AuthenticatedHome(
                 authState = state,
                 onSignOut = { scope.launch { authRepository.signOut() } }
             )
         }
-        is AuthState.Error -> CenteredHomeShell {
-            Text(text = "Lognext", color = NexterColors.Navy, fontSize = 26.sp, fontWeight = FontWeight.Bold)
-            Spacer(modifier = Modifier.height(8.dp))
-            Text(text = state.message, color = NexterColors.Red, fontSize = 14.sp)
-            Spacer(modifier = Modifier.height(18.dp))
-            Button(
-                enabled = !isLoggingIn && activity != null,
-                colors = ButtonDefaults.buttonColors(backgroundColor = NexterColors.Navy, contentColor = Color.White),
-                shape = RoundedCornerShape(10.dp),
-                onClick = { activity?.let { scope.launch { authRepository.signIn(it) } } }
-            ) {
-                Text("Reintentar", fontWeight = FontWeight.SemiBold)
+        is AuthState.Error -> LoginScreen(
+            isSigningIn = isLoggingIn,
+            errorMessage = null,
+            onSignIn = {
+                activity?.let { scope.launch { authRepository.signIn(it) } }
             }
+        )
+    }
+}
+
+@Composable
+private fun LoginScreen(
+    isSigningIn: Boolean,
+    errorMessage: String?,
+    onSignIn: () -> Unit
+) {
+    val transition = rememberInfiniteTransition()
+    val textAlpha by transition.animateFloat(
+        initialValue = 0.45f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 2000),
+            repeatMode = RepeatMode.Reverse
+        )
+    )
+
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color.White)
+    ) {
+        Image(
+            painter = painterResource(id = R.drawable.login_bottom_wave),
+            contentDescription = null,
+            contentScale = ContentScale.Crop,
+            modifier = Modifier
+                .fillMaxSize()
+                .offset(y = 100.dp)
+        )
+
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = 24.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Spacer(modifier = Modifier.weight(1f))
+
+            Image(
+                painter = painterResource(id = R.drawable.lognext_logo),
+                contentDescription = "Lognext",
+                modifier = Modifier
+                    .width(235.dp)
+                    .height(54.dp)
+                    .offset(y = (-100).dp)
+            )
+
+            Spacer(modifier = Modifier.height(0.dp))
+
+            Button(
+                enabled = !isSigningIn,
+                onClick = onSignIn,
+                colors = ButtonDefaults.outlinedButtonColors(
+                    backgroundColor = Color.Transparent,
+                    contentColor = NexterColors.Navy
+                ),
+                elevation = null,
+                shape = RoundedCornerShape(28.dp),
+                border = BorderStroke(2.dp, NexterColors.Red),
+                modifier = Modifier
+                    .width(255.dp)
+                    .height(58.dp)
+            ) {
+                if (isSigningIn) {
+                    CircularProgressIndicator(
+                        color = NexterColors.Navy,
+                        strokeWidth = 2.dp,
+                        modifier = Modifier.size(24.dp)
+                    )
+                } else {
+                    Text(
+                        text = "INICIAR SESIÓN",
+                        color = NexterColors.Navy,
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Black
+                    )
+                }
+            }
+
+            if (!errorMessage.isNullOrBlank()) {
+                Text(
+                    text = errorMessage,
+                    color = NexterColors.Red,
+                    fontSize = 12.sp,
+                    modifier = Modifier.padding(top = 14.dp)
+                )
+            }
+
+            Spacer(modifier = Modifier.height(35.dp))
+
+            Column(
+                modifier = Modifier.alpha(textAlpha),
+                horizontalAlignment = Alignment.Start,
+                verticalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                LoginClaimLine(red = "Tecnología ", navy = "que construye.")
+                LoginClaimLine(red = "Compromiso ", navy = "que perdura.")
+            }
+
+            Spacer(modifier = Modifier.weight(1f))
         }
     }
+}
+
+@Composable
+private fun LoginClaimLine(red: String, navy: String) {
+    Text(
+        text = buildAnnotatedString {
+            withStyle(SpanStyle(color = NexterColors.Red)) { append(red) }
+            withStyle(SpanStyle(color = NexterColors.Navy)) { append(navy) }
+        },
+        fontSize = 22.sp,
+        fontWeight = FontWeight.Black
+    )
 }
 
 @Composable

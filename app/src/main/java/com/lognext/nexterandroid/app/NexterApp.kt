@@ -8,6 +8,8 @@ import androidx.compose.material.BottomNavigationItem
 import androidx.compose.material.Scaffold
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
@@ -16,6 +18,8 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import com.lognext.nexterandroid.core.AppDependencies
+import com.lognext.nexterandroid.core.auth.AuthState
 import com.lognext.nexterandroid.features.clock.ClockScreen
 import com.lognext.nexterandroid.features.home.HomeScreen
 import com.lognext.nexterandroid.features.more.MoreScreen
@@ -25,6 +29,8 @@ import com.lognext.nexterandroid.ui.theme.NexterColors
 @Composable
 fun NexterApp() {
     val navController = rememberNavController()
+    val authState by AppDependencies.authRepository.authState.collectAsState()
+    val showBottomBar = authState is AuthState.Authenticated
     val destinations = listOf(
         AppDestination.Home,
         AppDestination.Clock,
@@ -34,6 +40,8 @@ fun NexterApp() {
 
     Scaffold(
         bottomBar = {
+            if (!showBottomBar) return@Scaffold
+
             val backStackEntry = navController.currentBackStackEntryAsState().value
             val currentRoute = backStackEntry?.destination?.route
 
