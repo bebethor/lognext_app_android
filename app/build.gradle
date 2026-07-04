@@ -6,7 +6,6 @@ plugins {
 android {
     namespace "com.lognext.nexterandroid"
     compileSdk 31
-    buildToolsVersion '31.0.0'
 
     defaultConfig {
         applicationId "com.lognext.nexterandroid"
@@ -36,6 +35,7 @@ android {
         ]
     }
     buildFeatures {
+        buildConfig true
         compose true
     }
     composeOptions {
