@@ -9,6 +9,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import java.util.Date
+import java.util.Locale
 
 data class HomeUiState(
     val isLoading: Boolean = false,
@@ -32,7 +33,7 @@ data class HomeUiState(
     val formattedVacationDays: String
         get() {
             val days = vacationDaysRemaining ?: return "0"
-            return if (days % 1.0 == 0.0) days.toInt().toString() else String.format("%.1f", days)
+            return if (days % 1.0 == 0.0) days.toInt().toString() else String.format(Locale.getDefault(), "%.1f", days)
         }
 
     val displayedPendingTasksCount: Int

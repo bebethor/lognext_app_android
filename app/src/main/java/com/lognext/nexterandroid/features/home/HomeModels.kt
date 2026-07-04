@@ -170,17 +170,23 @@ private fun Calendar.sameDay(other: Calendar): Boolean {
 }
 
 private fun parseIsoDate(value: String): Date? {
+    val normalizedValue = value.normalizedIsoTimeZone()
     return isoParsers.firstNotNullOfOrNull { parser ->
-        runCatching { parser.parse(value) }.getOrNull()
+        runCatching { parser.parse(normalizedValue) }.getOrNull()
     }
 }
 
 private val isoParsers: List<SimpleDateFormat>
     get() = listOf(
-        SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSX", Locale.US),
-        SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssX", Locale.US),
+        SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSZ", Locale.US),
+        SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssZ", Locale.US),
         SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.US),
         SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", Locale.US)
     ).onEach {
         it.timeZone = TimeZone.getTimeZone("UTC")
     }
+
+private fun String.normalizedIsoTimeZone(): String {
+    if (endsWith("Z")) return this
+    return replace(Regex("([+-]\\d{2}):(\\d{2})$"), "$1$2")
+}
