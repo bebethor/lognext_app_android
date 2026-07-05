@@ -1,11 +1,16 @@
+@file:Suppress("DEPRECATION")
+
 package com.lognext.nexterandroid.app
 
 import android.app.Activity
 import android.os.Build
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.BottomNavigation
 import androidx.compose.material.BottomNavigationItem
@@ -22,10 +27,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.view.WindowCompat
@@ -52,7 +55,7 @@ fun NexterApp() {
     val isDark = isNexterDarkTheme()
     val view = LocalView.current
     val activity = LocalContext.current as? Activity
-    val navigationBarHeight = systemBarHeight("navigation_bar_height")
+    val navigationBarHeight = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
     val authState by AppDependencies.authRepository.authState.collectAsState()
     val authenticatedState = authState as? AuthState.Authenticated
     val showAuthenticatedChrome = authenticatedState != null
@@ -72,8 +75,8 @@ fun NexterApp() {
             window.isNavigationBarContrastEnforced = false
         }
         val insetsController = WindowCompat.getInsetsController(window, view)
-        insetsController?.isAppearanceLightStatusBars = !isDark
-        insetsController?.isAppearanceLightNavigationBars = !isDark
+        insetsController.isAppearanceLightStatusBars = !isDark
+        insetsController.isAppearanceLightNavigationBars = !isDark
     }
 
     Scaffold(
@@ -148,15 +151,6 @@ fun NexterApp() {
             composable(AppDestination.More.route) { MoreScreen() }
         }
     }
-}
-
-@Composable
-private fun systemBarHeight(resourceName: String): Dp {
-    val context = LocalContext.current
-    val density = LocalDensity.current
-    val resourceId = context.resources.getIdentifier(resourceName, "dimen", "android")
-    val heightPx = if (resourceId > 0) context.resources.getDimensionPixelSize(resourceId) else 0
-    return with(density) { heightPx.toDp() }
 }
 
 private fun AppDestination.iconRes(): Int {

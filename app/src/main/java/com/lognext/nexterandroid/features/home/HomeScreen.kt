@@ -17,12 +17,16 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
@@ -53,7 +57,6 @@ import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
@@ -62,7 +65,6 @@ import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.withStyle
-import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.ViewModel
@@ -642,8 +644,8 @@ private fun AgendaDialog(
     onScopeSelected: (AgendaScope) -> Unit,
     onRetry: () -> Unit
 ) {
-    val topInset = systemBarHeight("status_bar_height") + 5.dp
-    val bottomInset = systemBarHeight("navigation_bar_height") + 5.dp
+    val topInset = WindowInsets.statusBars.asPaddingValues().calculateTopPadding() + 5.dp
+    val bottomInset = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding() + 5.dp
 
     Dialog(
         onDismissRequest = onDismiss,
@@ -877,23 +879,14 @@ private fun CardStateMessage(
 }
 
 @Composable
-private fun systemBarHeight(resourceName: String): Dp {
-    val context = LocalContext.current
-    val density = LocalDensity.current
-    val resourceId = context.resources.getIdentifier(resourceName, "dimen", "android")
-    val heightPx = if (resourceId > 0) context.resources.getDimensionPixelSize(resourceId) else 0
-    return with(density) { heightPx.toDp() }
-}
-
-@Composable
 @OptIn(ExperimentalComposeUiApi::class)
 private fun AddTaskDialog(
     uiState: HomeUiState,
     onDismiss: () -> Unit,
     onCreate: (String, String, String, String?) -> Unit
 ) {
-    val topInset = systemBarHeight("status_bar_height") + 5.dp
-    val bottomInset = systemBarHeight("navigation_bar_height") + 5.dp
+    val topInset = WindowInsets.statusBars.asPaddingValues().calculateTopPadding() + 5.dp
+    val bottomInset = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding() + 5.dp
     var title by remember { mutableStateOf("") }
     var description by remember { mutableStateOf("") }
     var priority by remember { mutableStateOf("normal") }
