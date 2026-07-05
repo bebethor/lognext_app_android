@@ -1,5 +1,10 @@
 package com.lognext.nexterandroid.features.more
 
+import android.Manifest
+import android.app.TimePickerDialog
+import android.content.Context
+import android.content.pm.PackageManager
+import android.os.Build
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -27,17 +32,25 @@ import androidx.compose.material.OutlinedTextField
 import androidx.compose.material.Switch
 import androidx.compose.material.SwitchDefaults
 import androidx.compose.material.Text
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.lognext.nexterandroid.ui.theme.NexterColors
 import com.lognext.nexterandroid.ui.theme.NexterTypography
@@ -45,6 +58,29 @@ import java.util.Locale
 
 @Composable
 fun MoreScreen(viewModel: MoreViewModel = viewModel()) {
+    val context = LocalContext.current
+    var pendingNotificationId by remember { mutableStateOf<String?>(null) }
+    val notificationPermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        pendingNotificationId?.let { id ->
+            viewModel.notificationEnabled[id] = granted
+        }
+        pendingNotificationId = null
+    }
+    fun setNotificationEnabled(id: String, enabled: Boolean) {
+        if (!enabled) {
+            viewModel.notificationEnabled[id] = false
+            return
+        }
+        if (hasNotificationPermission(context)) {
+            viewModel.notificationEnabled[id] = true
+        } else {
+            pendingNotificationId = id
+            notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+        }
+    }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -55,7 +91,15 @@ fun MoreScreen(viewModel: MoreViewModel = viewModel()) {
     ) {
         VacationCard(viewModel)
         VacationHistoryCard(viewModel.historyItems)
-        ClockNotificationsCard(viewModel)
+        ClockNotificationsCard(
+            viewModel = viewModel,
+            onNotificationEnabledChange = { id, enabled -> setNotificationEnabled(id, enabled) },
+            onTimeClick = { settingId, currentMinutes ->
+                showTimePicker(context, currentMinutes) { selectedMinutes ->
+                    viewModel.notificationMinutes[settingId] = selectedMinutes
+                }
+            }
+        )
     }
 
     if (viewModel.showVacationRequest) {
@@ -232,18 +276,20 @@ private fun VacationHistoryRow(entry: VacationHistoryEntry) {
 }
 
 @Composable
-private fun ClockNotificationsCard(viewModel: MoreViewModel) {
+private fun ClockNotificationsCard(
+    viewModel: MoreViewModel,
+    onNotificationEnabledChange: (String, Boolean) -> Unit,
+    onTimeClick: (String, Int) -> Unit
+) {
     SectionCard(title = "Notificaciones de jornada") {
         viewModel.notificationSettings.forEachIndexed { index, setting ->
+            val currentMinutes = viewModel.notificationMinutes[setting.id] ?: setting.defaultMinutes
             ClockNotificationRow(
                 setting = setting,
                 enabled = viewModel.notificationEnabled[setting.id] == true,
-                minutes = viewModel.notificationMinutes[setting.id] ?: setting.defaultMinutes,
-                onEnabledChange = { viewModel.notificationEnabled[setting.id] = it },
-                onTimeClick = {
-                    val current = viewModel.notificationMinutes[setting.id] ?: setting.defaultMinutes
-                    viewModel.notificationMinutes[setting.id] = nextTime(current)
-                }
+                minutes = currentMinutes,
+                onEnabledChange = { onNotificationEnabledChange(setting.id, it) },
+                onTimeClick = { onTimeClick(setting.id, currentMinutes) }
             )
             if (index != viewModel.notificationSettings.lastIndex) Divider(color = NexterColors.border())
         }
@@ -595,12 +641,27 @@ private fun currentYearVacationPeriod(): String {
     return "01/01/$year a 31/12/$year"
 }
 
+private fun hasNotificationPermission(context: Context): Boolean {
+    return Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU ||
+        ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED
+}
+
+private fun showTimePicker(context: Context, minutes: Int, onTimeSelected: (Int) -> Unit) {
+    val hour = (minutes / 60).coerceIn(0, 23)
+    val minute = (minutes % 60).coerceIn(0, 59)
+    TimePickerDialog(
+        context,
+        { _, selectedHour, selectedMinute ->
+            onTimeSelected(selectedHour * 60 + selectedMinute)
+        },
+        hour,
+        minute,
+        true
+    ).show()
+}
+
 private fun minutesToTime(minutes: Int): String {
     val hour = (minutes / 60).coerceIn(0, 23)
     val minute = (minutes % 60).coerceIn(0, 59)
     return "%02d:%02d".format(hour, minute)
-}
-
-private fun nextTime(minutes: Int): Int {
-    return (minutes + 15).let { if (it >= 24 * 60) 0 else it }
 }

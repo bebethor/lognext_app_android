@@ -64,7 +64,7 @@ class MoreViewModel : ViewModel() {
     )
 
     val notificationEnabled = mutableStateMapOf<String, Boolean>().apply {
-        notificationSettings.forEach { put(it.id, true) }
+        notificationSettings.forEach { put(it.id, false) }
     }
     val notificationMinutes = mutableStateMapOf<String, Int>().apply {
         notificationSettings.forEach { put(it.id, it.defaultMinutes) }
