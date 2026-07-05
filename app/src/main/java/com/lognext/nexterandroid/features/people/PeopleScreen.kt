@@ -21,10 +21,12 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.Card
+import androidx.compose.material.CircularProgressIndicator
 import androidx.compose.material.Divider
 import androidx.compose.material.OutlinedTextField
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -36,12 +38,27 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.lognext.nexterandroid.core.AppDependencies
 import com.lognext.nexterandroid.ui.theme.NexterColors
 import com.lognext.nexterandroid.ui.theme.NexterTypography
 
 @Composable
-fun PeopleScreen(viewModel: PeopleViewModel = viewModel()) {
+fun PeopleScreen() {
+    val factory = object : ViewModelProvider.Factory {
+        @Suppress("UNCHECKED_CAST")
+        override fun <T : ViewModel> create(modelClass: Class<T>): T {
+            return PeopleViewModel(AppDependencies.peopleService) as T
+        }
+    }
+    val viewModel: PeopleViewModel = viewModel(factory = factory)
+
+    LaunchedEffect(viewModel) {
+        viewModel.loadIfNeeded()
+    }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -52,11 +69,13 @@ fun PeopleScreen(viewModel: PeopleViewModel = viewModel()) {
     ) {
         SearchCard(
             value = viewModel.searchText,
-            onValueChange = { viewModel.searchText = it },
-            onClear = { viewModel.searchText = "" }
+            onValueChange = viewModel::updateSearchText,
+            onClear = viewModel::clearSearch
         )
 
-        if (viewModel.hasSearchText) {
+        if (viewModel.isLoading) {
+            LoadingPeopleState()
+        } else if (viewModel.hasSearchText) {
             if (viewModel.searchResults.isEmpty()) {
                 EmptyPeopleState()
             } else {
@@ -107,6 +126,20 @@ fun PeopleScreen(viewModel: PeopleViewModel = viewModel()) {
             onPersonSelected = { viewModel.selectedPerson = it },
             onDismiss = { viewModel.selectedPerson = null }
         )
+    }
+}
+
+@Composable
+private fun LoadingPeopleState() {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 60.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        CircularProgressIndicator(color = NexterColors.Red)
+        Text("Cargando People…", color = NexterColors.secondaryText(), fontSize = NexterTypography.Body, fontWeight = FontWeight.SemiBold)
     }
 }
 

@@ -8,6 +8,7 @@ object AppConfig {
     const val Authority = "https://login.microsoftonline.com/$TenantId"
     const val BffScope = "api://$ClientId/access_as_user"
     const val BaseUrl = "https://nexter.lognext.com/"
+    const val DefaultPlannerPlanId = ""
     const val RedirectUri = "msauth://com.lognext.nexterandroid/254KWMWKtDuxHRVMIEJSTVi/tmE="
 
     val graphScopes = listOf(

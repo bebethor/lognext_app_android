@@ -16,6 +16,8 @@ data class PeopleRowData(
     val positionTitle: String = "",
     val hireDate: String = "",
     val company: String = "",
+    val managerPersonCode: String = "",
+    val managerName: String = "",
     val darkText: Boolean = false,
     val isCurrentUser: Boolean = false
 )

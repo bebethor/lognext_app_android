@@ -4,11 +4,16 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import com.lognext.nexterandroid.core.AppConfig
+import kotlinx.coroutines.launch
 import java.util.Calendar
 import java.util.Date
 import java.util.UUID
 
-class ClockViewModel : ViewModel() {
+class ClockViewModel(
+    private val service: ClockService
+) : ViewModel() {
     var isCheckedIn by mutableStateOf(false)
         private set
     var currentTime by mutableStateOf(Date())
@@ -32,6 +37,14 @@ class ClockViewModel : ViewModel() {
     var submittingClockIn by mutableStateOf(false)
         private set
 
+    private var hasLoaded = false
+
+    fun loadIfNeeded() {
+        if (hasLoaded || AppConfig.UseFakeLogin) return
+        hasLoaded = true
+        loadFromApi()
+    }
+
     fun tick(date: Date) {
         currentTime = date
         val day = dayString(date)
@@ -53,6 +66,10 @@ class ClockViewModel : ViewModel() {
     }
 
     private fun clockIn() {
+        if (!AppConfig.UseFakeLogin) {
+            clockInWithApi()
+            return
+        }
         val now = currentTime
         val entry = ClockEntry(clockIn = now, clockOut = null)
         submittingClockIn = true
@@ -67,6 +84,10 @@ class ClockViewModel : ViewModel() {
     }
 
     private fun clockOut() {
+        if (!AppConfig.UseFakeLogin) {
+            clockOutWithApi()
+            return
+        }
         val now = currentTime
         submittingClockIn = false
         isSubmittingAction = true
@@ -91,6 +112,70 @@ class ClockViewModel : ViewModel() {
         clockOutTime = null
         todayEntries = emptyList()
         hasLoadedTodayEntries = true
+    }
+
+    private fun loadFromApi() {
+        viewModelScope.launch {
+            isLoadingStatus = true
+            runCatching {
+                val status = service.status()
+                val history = service.history(dateFrom = weekStartString(), dateTo = dayString(currentTime))
+                status to history.toClockEntries()
+            }.onSuccess { (status, entries) ->
+                val lastEntry = status.lastEntry?.toClockEntry()
+                isCheckedIn = status.isClockedIn
+                clockInTime = lastEntry?.clockIn
+                clockOutTime = lastEntry?.clockOut
+                weekEntries = entries
+                todayEntries = entries.filter { dayString(it.clockIn ?: it.clockOut ?: Date(0)) == currentClockDay }
+                hasLoadedTodayEntries = true
+            }
+            isLoadingStatus = false
+        }
+    }
+
+    private fun clockInWithApi() {
+        submittingClockIn = true
+        isSubmittingAction = true
+        viewModelScope.launch {
+            runCatching { service.clockIn() }
+                .onSuccess { entry ->
+                    clockInTime = entry.clockIn ?: currentTime
+                    clockOutTime = null
+                    isCheckedIn = true
+                    todayEntries = todayEntries + entry
+                    weekEntries = upsertWeekEntry(entry)
+                }
+            isSubmittingAction = false
+            submittingClockIn = false
+        }
+    }
+
+    private fun clockOutWithApi() {
+        submittingClockIn = false
+        isSubmittingAction = true
+        viewModelScope.launch {
+            runCatching { service.clockOut() }
+                .onSuccess { entry ->
+                    val effectiveEntry = entry.takeIf { it.clockIn != null || it.clockOut != null }
+                        ?: ClockEntry(clockIn = clockInTime, clockOut = currentTime)
+                    clockOutTime = effectiveEntry.clockOut ?: currentTime
+                    isCheckedIn = false
+                    todayEntries = todayEntries.map { if (it.recordId == effectiveEntry.recordId) effectiveEntry else it }
+                        .ifEmpty { listOf(effectiveEntry) }
+                    weekEntries = upsertWeekEntry(effectiveEntry)
+                }
+            isSubmittingAction = false
+        }
+    }
+
+    private fun weekStartString(): String {
+        val calendar = Calendar.getInstance().apply {
+            time = currentTime
+            firstDayOfWeek = Calendar.MONDAY
+            set(Calendar.DAY_OF_WEEK, Calendar.MONDAY)
+        }
+        return dayString(calendar.time)
     }
 
     private fun upsertWeekEntry(entry: ClockEntry): List<ClockEntry> {

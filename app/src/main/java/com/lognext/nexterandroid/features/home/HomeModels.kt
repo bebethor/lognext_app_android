@@ -109,18 +109,24 @@ data class HomeTaskListResponse(
 data class HomeTask(
     val id: String,
     val title: String,
+    @SerializedName("plan_id") val planId: String = "",
     val description: String?,
-    val importance: String,
+    val importance: String = "",
+    val priority: Int = 5,
     @SerializedName("due_date") val dueDate: String?,
-    @SerializedName("is_completed") val isCompleted: Boolean
+    @SerializedName("is_completed") val isCompleted: Boolean = false,
+    @SerializedName("percent_complete") val percentComplete: Int = 0
 ) {
+    val isDone: Boolean
+        get() = isCompleted || percentComplete >= 100
+
     val sortDueDate: Date?
         get() = dueDate?.takeIf { it.isNotBlank() }?.let(::parseIsoDate)
 
     val priorityLabel: String
-        get() = when (importance.lowercase(Locale.ROOT)) {
-            "high" -> "Urgente"
-            "low" -> "Baja"
+        get() = when {
+            importance.equals("high", ignoreCase = true) || priority >= 8 -> "Urgente"
+            importance.equals("low", ignoreCase = true) || priority <= 3 -> "Baja"
             else -> "Media"
         }
 
@@ -132,8 +138,9 @@ data class HomeTask(
 
 data class HomeTaskCreateRequest(
     val title: String,
+    @SerializedName("plan_id") val planId: String,
     val description: String?,
-    val importance: String,
+    val priority: Int,
     @SerializedName("due_date") val dueDate: String?,
     @SerializedName("start_date") val startDate: String? = null
 )

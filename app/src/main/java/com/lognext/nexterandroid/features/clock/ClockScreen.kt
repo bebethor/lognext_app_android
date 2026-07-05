@@ -26,6 +26,8 @@ import androidx.compose.material.Divider
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.ViewModelProvider
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -38,6 +40,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.lognext.nexterandroid.core.AppDependencies
 import com.lognext.nexterandroid.ui.theme.NexterColors
 import com.lognext.nexterandroid.ui.theme.NexterTypography
 import kotlinx.coroutines.delay
@@ -47,7 +50,19 @@ import java.util.Date
 import java.util.Locale
 
 @Composable
-fun ClockScreen(viewModel: ClockViewModel = viewModel()) {
+fun ClockScreen() {
+    val factory = object : ViewModelProvider.Factory {
+        @Suppress("UNCHECKED_CAST")
+        override fun <T : ViewModel> create(modelClass: Class<T>): T {
+            return ClockViewModel(AppDependencies.clockService) as T
+        }
+    }
+    val viewModel: ClockViewModel = viewModel(factory = factory)
+
+    LaunchedEffect(viewModel) {
+        viewModel.loadIfNeeded()
+    }
+
     LaunchedEffect(viewModel) {
         while (true) {
             viewModel.tick(Date())

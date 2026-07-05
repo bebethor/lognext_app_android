@@ -4,14 +4,28 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import com.lognext.nexterandroid.core.AppConfig
 import com.lognext.nexterandroid.ui.theme.NexterColors
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
-class PeopleViewModel : ViewModel() {
+class PeopleViewModel(
+    private val service: PeopleService
+) : ViewModel() {
     var searchText by mutableStateOf("")
+        private set
     var selectedPerson by mutableStateOf<PeopleRowData?>(null)
+    var isLoading by mutableStateOf(false)
+        private set
+    var errorMessage by mutableStateOf<String?>(null)
+        private set
 
-    val teamPeople = sampleTeam()
-    val leadershipPeople = listOf(
+    var teamPeople by mutableStateOf(sampleTeam())
+        private set
+    var leadershipPeople by mutableStateOf(
+        listOf(
         PeopleRowData(
             id = "leadership-pp",
             personCode = "PP",
@@ -58,14 +72,23 @@ class PeopleViewModel : ViewModel() {
             company = "Lognext",
             darkText = true
         )
+        )
     )
+        private set
 
-    val projectCatalog = listOf(
+    var projectCatalog by mutableStateOf(
+        listOf(
         PeopleProject("LOGNEXT", "Lognext", "Consultoría tecnológica y servicios de transformación digital."),
         PeopleProject("SACYR", "Sacyr", "Cliente estratégico con servicios gestionados."),
         PeopleProject("PROY-APP", "Proyecto Nexter", "Producto interno para operaciones y personas."),
         PeopleProject("PROY-DATA", "Proyecto Data Platform", "Evolución de arquitectura de datos corporativa.")
+        )
     )
+        private set
+
+    private var apiSearchResults by mutableStateOf<List<PeopleRowData>>(emptyList())
+    private var searchJob: Job? = null
+    private var hasLoaded = false
 
     val companies: List<PeopleProject>
         get() = projectCatalog.filter { it.isCompany }
@@ -80,6 +103,7 @@ class PeopleViewModel : ViewModel() {
         get() {
             val query = searchText.trim().lowercase()
             if (query.length < 2) return emptyList()
+            if (!AppConfig.UseFakeLogin) return apiSearchResults
             return allPeople().filter {
                 it.name.lowercase().contains(query) ||
                     it.role.lowercase().contains(query) ||
@@ -90,7 +114,71 @@ class PeopleViewModel : ViewModel() {
     val teamSectionTitle: String
         get() = teamPeople.firstOrNull()?.orgUnitName?.takeIf { it.isNotBlank() } ?: "Mi equipo"
 
+    fun loadIfNeeded() {
+        if (hasLoaded || AppConfig.UseFakeLogin) return
+        hasLoaded = true
+        viewModelScope.launch {
+            isLoading = true
+            errorMessage = null
+            runCatching {
+                val me = service.me()
+                val meRow = me.toPeopleRow(isCurrentUser = true)
+                val team = service.team(me.personCode).members.map { member ->
+                    member.toPeopleRow(isCurrentUser = member.personCode == me.personCode)
+                }
+                val projects = service.projects().projects.map { it.toPeopleProject() }
+                Triple(meRow, team, projects)
+            }.onSuccess { (me, team, projects) ->
+                teamPeople = (listOf(me) + team.filter { it.personCode != me.personCode }).distinctBy { it.personCode.ifBlank { it.id } }
+                leadershipPeople = emptyList()
+                projectCatalog = projects
+            }.onFailure {
+                errorMessage = "No se pudo cargar People."
+            }
+            isLoading = false
+        }
+    }
+
+    fun updateSearchText(value: String) {
+        searchText = value
+        if (AppConfig.UseFakeLogin) return
+
+        searchJob?.cancel()
+        val query = value.trim()
+        if (query.length < 2) {
+            apiSearchResults = emptyList()
+            return
+        }
+        searchJob = viewModelScope.launch {
+            delay(300)
+            runCatching {
+                service.searchStaff(query).people.map { it.toPeopleRow() }
+            }.onSuccess { people ->
+                apiSearchResults = people
+            }.onFailure {
+                apiSearchResults = emptyList()
+            }
+        }
+    }
+
+    fun clearSearch() {
+        updateSearchText("")
+    }
+
     fun managerFor(person: PeopleRowData): PeopleRowData? {
+        if (!AppConfig.UseFakeLogin) {
+            return allPeople().firstOrNull { it.personCode.isNotBlank() && it.personCode == person.managerPersonCode }
+                ?: person.managerName.takeIf { it.isNotBlank() }?.let { managerName ->
+                    PeopleRowData(
+                        id = "manager-${person.personCode}",
+                        personCode = person.managerPersonCode,
+                        initials = peopleInitials(managerName),
+                        name = managerName,
+                        role = "Manager",
+                        color = peopleColor(managerName)
+                    )
+                }
+        }
         return when {
             person.isCurrentUser -> teamPeople.firstOrNull { it.personCode == "MS" } ?: leadershipPeople.lastOrNull()
             person.personCode == "MS" -> leadershipPeople.firstOrNull()
@@ -100,6 +188,9 @@ class PeopleViewModel : ViewModel() {
     }
 
     fun reportsFor(person: PeopleRowData): List<PeopleRowData> {
+        if (!AppConfig.UseFakeLogin) {
+            return allPeople().filter { it.managerPersonCode.isNotBlank() && it.managerPersonCode == person.personCode }
+        }
         return when {
             person.personCode == "MS" -> teamPeople.filter { !it.isCurrentUser }
             person.isCurrentUser -> emptyList()

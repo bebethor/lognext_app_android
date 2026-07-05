@@ -1,66 +1,53 @@
 package com.lognext.nexterandroid.features.home
 
-import com.google.gson.Gson
-import com.lognext.nexterandroid.core.AppConfig
 import com.lognext.nexterandroid.core.network.APIClient
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
-import okhttp3.MediaType.Companion.toMediaType
-import okhttp3.Request
-import okhttp3.RequestBody.Companion.toRequestBody
+import com.lognext.nexterandroid.core.network.RestService
 
 class HomeService(
-    private val apiClient: APIClient,
-    private val gson: Gson = Gson()
-) {
-    suspend fun getSummary(): HomeSummary = get("/api/v1/home/summary", HomeSummary::class.java)
+    apiClient: APIClient
+) : RestService(apiClient) {
+    suspend fun getSummary(): HomeSummary {
+        val me = get("/api/v1/staff/me", StaffMeResponse::class.java)
+        val tasks = listTasks().tasks
+        return HomeSummary(
+            firstName = me.firstName.ifBlank { me.fullName.substringBefore(" ").ifBlank { "Lognext" } },
+            vacationDaysRemaining = null,
+            meetingsTodayCount = null,
+            pendingTasksCount = tasks.count { !it.isDone },
+            urgentTasksCount = tasks.count { !it.isDone && it.priorityLabel == "Urgente" }
+        )
+    }
 
     suspend fun getTodayEvents(): HomeCalendarTodayResponse {
-        return get("/api/v1/calendar/today", HomeCalendarTodayResponse::class.java)
+        return HomeCalendarTodayResponse(emptyList())
     }
 
     suspend fun listTasks(): HomeTaskListResponse = get("/api/v1/tasks/me", HomeTaskListResponse::class.java)
 
-    suspend fun getEvents(scope: AgendaScope): HomeCalendarTodayResponse {
-        return get(scope.endpoint, HomeCalendarTodayResponse::class.java)
+    suspend fun getEvents(@Suppress("UNUSED_PARAMETER") scope: AgendaScope): HomeCalendarTodayResponse {
+        return HomeCalendarTodayResponse(emptyList())
     }
 
     suspend fun createTask(request: HomeTaskCreateRequest): HomeTask {
-        return withContext(Dispatchers.IO) {
-            val body = gson.toJson(request)
-                .toRequestBody("application/json; charset=utf-8".toMediaType())
-            val httpRequest = Request.Builder()
-                .url(AppConfig.BaseUrl.trimEnd('/') + "/api/v1/tasks")
-                .header("Accept", "application/json")
-                .header("Content-Type", "application/json")
-                .post(body)
-                .build()
+        return post("/api/v1/tasks", request, HomeTask::class.java, 201..201)
+    }
 
-            gson.fromJson(apiClient.execute(httpRequest, 201..201), HomeTask::class.java)
-        }
+    suspend fun updateTask(taskId: String, request: HomeTaskUpdateRequest) {
+        patch("/api/v1/tasks/$taskId", request, 204..204)
     }
 
     suspend fun deleteTask(taskId: String) {
-        withContext(Dispatchers.IO) {
-            val request = Request.Builder()
-                .url(AppConfig.BaseUrl.trimEnd('/') + "/api/v1/tasks/$taskId")
-                .header("Accept", "application/json")
-                .delete()
-                .build()
-
-            apiClient.execute(request, 204..204)
-        }
+        delete("/api/v1/tasks/$taskId", 204..204)
     }
 
-    private suspend fun <T> get(path: String, type: Class<T>): T {
-        return withContext(Dispatchers.IO) {
-            val request = Request.Builder()
-                .url(AppConfig.BaseUrl.trimEnd('/') + path)
-                .header("Accept", "application/json")
-                .get()
-                .build()
-
-            gson.fromJson(apiClient.execute(request), type)
-        }
-    }
+    private data class StaffMeResponse(
+        @com.google.gson.annotations.SerializedName("full_name") val fullName: String = "",
+        @com.google.gson.annotations.SerializedName("first_name") val firstName: String = ""
+    )
 }
+
+data class HomeTaskUpdateRequest(
+    @com.google.gson.annotations.SerializedName("percent_complete") val percentComplete: Int? = null,
+    val priority: Int? = null,
+    val description: String? = null
+)
