@@ -143,7 +143,6 @@ fun NexterApp() {
                     modifier = Modifier
                         .fillMaxWidth()
                         .widthIn(max = 360.dp)
-                        .height(64.dp)
                         .clip(RoundedCornerShape(100.dp))
                         .border(BorderStroke(1.dp, NexterColors.border()), RoundedCornerShape(100.dp))
                 ) {
