@@ -29,6 +29,8 @@ import androidx.compose.material.Card
 import androidx.compose.material.Divider
 import androidx.compose.material.OutlinedButton
 import androidx.compose.material.OutlinedTextField
+import androidx.compose.material.RadioButton
+import androidx.compose.material.RadioButtonDefaults
 import androidx.compose.material.Switch
 import androidx.compose.material.SwitchDefaults
 import androidx.compose.material.Text
@@ -357,6 +359,10 @@ private fun ClockNotificationRow(
 
 @Composable
 private fun VacationRequestDialog(viewModel: MoreViewModel, onDismiss: () -> Unit, onSubmit: () -> Unit) {
+    var showTypePicker by remember { mutableStateOf(false) }
+    val selectedType = viewModel.requestTypes.firstOrNull { it.id == viewModel.selectedTypeId }
+        ?: viewModel.requestTypes.first()
+
     Dialog(
         onDismissRequest = onDismiss,
         properties = DialogProperties(usePlatformDefaultWidth = false)
@@ -435,42 +441,10 @@ private fun VacationRequestDialog(viewModel: MoreViewModel, onDismiss: () -> Uni
                     )
 
                     RequestSectionTitle("Tipo")
-                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        viewModel.requestTypes.forEach { type ->
-                            val selected = viewModel.selectedTypeId == type.id
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .clip(RoundedCornerShape(12.dp))
-                                    .background(if (selected) NexterColors.Red.copy(alpha = 0.10f) else subtleBackground())
-                                    .border(
-                                        BorderStroke(1.dp, if (selected) NexterColors.Red.copy(alpha = 0.65f) else NexterColors.border()),
-                                        RoundedCornerShape(12.dp)
-                                    )
-                                    .clickable { viewModel.selectedTypeId = type.id }
-                                    .padding(horizontal = 12.dp, vertical = 12.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Box(
-                                    modifier = Modifier
-                                        .size(10.dp)
-                                        .clip(RoundedCornerShape(100.dp))
-                                        .background(Color(type.colorHex))
-                                )
-                                Spacer(modifier = Modifier.width(10.dp))
-                                Text(
-                                    type.displayName,
-                                    color = NexterColors.primaryText(),
-                                    fontSize = NexterTypography.Body,
-                                    fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
-                                    modifier = Modifier.weight(1f)
-                                )
-                                if (type.timeUnits.isNotBlank()) {
-                                    Text("(${type.timeUnits})", color = NexterColors.secondaryText(), fontSize = NexterTypography.Footnote)
-                                }
-                            }
-                        }
-                    }
+                    VacationTypeSelectorRow(
+                        selectedType = selectedType,
+                        onClick = { showTypePicker = true }
+                    )
 
                     RequestSectionTitle(if (viewModel.balance.requiresReason) "Motivo *" else "Motivo")
                     OutlinedTextField(
@@ -508,6 +482,136 @@ private fun VacationRequestDialog(viewModel: MoreViewModel, onDismiss: () -> Uni
                 ) {
                     Text("Enviar", fontSize = NexterTypography.Button, fontWeight = FontWeight.SemiBold)
                 }
+            }
+        }
+    }
+
+    if (showTypePicker) {
+        VacationTypePickerDialog(
+            types = viewModel.requestTypes,
+            selectedTypeId = viewModel.selectedTypeId,
+            onSelected = { type ->
+                viewModel.selectedTypeId = type.id
+                showTypePicker = false
+            },
+            onDismiss = { showTypePicker = false }
+        )
+    }
+}
+
+@Composable
+private fun VacationTypeSelectorRow(
+    selectedType: VacationRequestType,
+    onClick: () -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(12.dp))
+            .background(subtleBackground())
+            .border(BorderStroke(1.dp, NexterColors.border()), RoundedCornerShape(12.dp))
+            .clickable(onClick = onClick)
+            .padding(horizontal = 12.dp, vertical = 13.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Box(
+            modifier = Modifier
+                .size(10.dp)
+                .clip(RoundedCornerShape(100.dp))
+                .background(Color(selectedType.colorHex))
+        )
+        Spacer(modifier = Modifier.width(10.dp))
+        Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+            Text(
+                "Tipo de ausencia",
+                color = NexterColors.secondaryText(),
+                fontSize = NexterTypography.Footnote,
+                fontWeight = FontWeight.Medium
+            )
+            Text(
+                selectedType.displayName,
+                color = NexterColors.primaryText(),
+                fontSize = NexterTypography.Body,
+                fontWeight = FontWeight.SemiBold
+            )
+        }
+        Text("›", color = NexterColors.tertiaryText(), fontSize = NexterTypography.Body, fontWeight = FontWeight.Bold)
+    }
+}
+
+@Composable
+private fun VacationTypePickerDialog(
+    types: List<VacationRequestType>,
+    selectedTypeId: String,
+    onSelected: (VacationRequestType) -> Unit,
+    onDismiss: () -> Unit
+) {
+    Dialog(onDismissRequest = onDismiss) {
+        Card(
+            backgroundColor = NexterColors.cardBackground(),
+            shape = RoundedCornerShape(14.dp),
+            elevation = 18.dp,
+            border = BorderStroke(1.dp, NexterColors.border()),
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Column {
+                Text(
+                    "Tipo de vacaciones",
+                    color = NexterColors.primaryText(),
+                    fontSize = NexterTypography.CardTitle,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 18.dp, vertical = 16.dp)
+                )
+                Divider(color = NexterColors.border())
+                types.forEachIndexed { index, type ->
+                    val selected = type.id == selectedTypeId
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { onSelected(type) }
+                            .padding(horizontal = 14.dp, vertical = 10.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        RadioButton(
+                            selected = selected,
+                            onClick = { onSelected(type) },
+                            colors = RadioButtonDefaults.colors(
+                                selectedColor = NexterColors.Red,
+                                unselectedColor = NexterColors.tertiaryText()
+                            )
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Box(
+                            modifier = Modifier
+                                .size(10.dp)
+                                .clip(RoundedCornerShape(100.dp))
+                                .background(Color(type.colorHex))
+                        )
+                        Spacer(modifier = Modifier.width(10.dp))
+                        Text(
+                            type.displayName,
+                            color = NexterColors.primaryText(),
+                            fontSize = NexterTypography.Body,
+                            fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
+                    if (index != types.lastIndex) Divider(color = NexterColors.border(), modifier = Modifier.padding(start = 58.dp))
+                }
+                Divider(color = NexterColors.border())
+                Text(
+                    "Cancelar",
+                    color = NexterColors.Red,
+                    fontSize = NexterTypography.Button,
+                    fontWeight = FontWeight.SemiBold,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable(onClick = onDismiss)
+                        .padding(vertical = 14.dp)
+                )
             }
         }
     }
