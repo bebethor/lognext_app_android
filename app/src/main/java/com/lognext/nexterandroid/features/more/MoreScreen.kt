@@ -1,6 +1,7 @@
 package com.lognext.nexterandroid.features.more
 
 import android.Manifest
+import android.app.DatePickerDialog
 import android.app.TimePickerDialog
 import android.content.Context
 import android.content.pm.PackageManager
@@ -58,6 +59,8 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.lognext.nexterandroid.R
 import com.lognext.nexterandroid.ui.theme.NexterColors
 import com.lognext.nexterandroid.ui.theme.NexterTypography
+import java.text.SimpleDateFormat
+import java.util.Calendar
 import java.util.Locale
 
 @Composable
@@ -126,35 +129,32 @@ fun MoreScreen(viewModel: MoreViewModel = viewModel()) {
 @Composable
 private fun VacationCard(viewModel: MoreViewModel) {
     SectionCard(title = stringResource(R.string.more_vacations)) {
-        Row(
-            modifier = Modifier.padding(start = 14.dp, top = 14.dp, end = 14.dp, bottom = 12.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        Column(
+            modifier = Modifier.padding(horizontal = 14.dp, vertical = 14.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
-            VacationBox(
-                number = formattedVacationNumber(viewModel.balance.totalEntitlement),
-                label = stringResource(R.string.more_total_year),
-                background = subtleBackground(),
-                numberColor = NexterColors.primaryText(),
-                modifier = Modifier.weight(1f)
-            )
-            VacationBox(
-                number = formattedVacationNumber(viewModel.balance.totalTaken),
-                label = stringResource(R.string.more_used),
-                background = NexterColors.Red.copy(alpha = 0.08f),
-                numberColor = NexterColors.Red,
-                modifier = Modifier.weight(1f)
-            )
-            VacationBox(
-                number = formattedVacationNumber(viewModel.balance.totalRemaining),
-                label = stringResource(R.string.more_available),
-                background = NexterColors.Green.copy(alpha = 0.12f),
-                numberColor = Color(0xFF2A8B3A),
-                modifier = Modifier.weight(1f)
-            )
+            PaidVacationSummaryCard(viewModel)
+
+            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                CompactAbsenceSummaryCard(
+                    title = stringResource(R.string.more_permissions_fallback),
+                    usedValue = "0",
+                    usedUnit = "",
+                    episodes = "0",
+                    modifier = Modifier.weight(1f)
+                )
+                CompactAbsenceSummaryCard(
+                    title = stringResource(R.string.more_sickness_fallback),
+                    usedValue = "0",
+                    usedUnit = "",
+                    episodes = "0",
+                    modifier = Modifier.weight(1f)
+                )
+            }
         }
 
         Column(
-            modifier = Modifier.padding(horizontal = 14.dp),
+            modifier = Modifier.padding(start = 14.dp, end = 14.dp, bottom = 10.dp),
             verticalArrangement = Arrangement.spacedBy(6.dp)
         ) {
             Text(
@@ -170,45 +170,169 @@ private fun VacationCard(viewModel: MoreViewModel) {
             )
         }
 
-        Button(
-            onClick = { viewModel.showVacationRequest = true },
-            colors = ButtonDefaults.buttonColors(backgroundColor = NexterColors.primaryText(), contentColor = requestButtonTextColor()),
-            shape = RoundedCornerShape(10.dp),
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(start = 14.dp, top = 12.dp, end = 14.dp, bottom = 14.dp)
-                .height(46.dp)
-        ) {
-            Text(stringResource(R.string.more_request_vacation), fontSize = NexterTypography.Button, fontWeight = FontWeight.SemiBold)
+        if (viewModel.balance.canRequest) {
+            Button(
+                onClick = { viewModel.showVacationRequest = true },
+                colors = ButtonDefaults.buttonColors(backgroundColor = NexterColors.primaryText(), contentColor = requestButtonTextColor()),
+                shape = RoundedCornerShape(10.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(start = 14.dp, end = 14.dp, bottom = 14.dp)
+                    .height(46.dp)
+            ) {
+                Text(stringResource(R.string.more_request_vacation), fontSize = NexterTypography.Button, fontWeight = FontWeight.SemiBold)
+            }
         }
     }
 }
 
 @Composable
-private fun VacationBox(number: String, label: String, background: Color, numberColor: Color, modifier: Modifier) {
+private fun PaidVacationSummaryCard(viewModel: MoreViewModel) {
+    val remainingRatio = vacationRemainingRatio(viewModel.balance)
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(10.dp))
+            .background(absenceSummaryBackground())
+            .border(BorderStroke(1.dp, NexterColors.border()), RoundedCornerShape(10.dp))
+            .padding(12.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        Row(verticalAlignment = Alignment.Top) {
+            Text(
+                text = vacationPlanName(viewModel.balance.planName),
+                color = NexterColors.primaryText(),
+                fontSize = NexterTypography.Body,
+                fontWeight = FontWeight.SemiBold,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.weight(1f)
+            )
+            Spacer(modifier = Modifier.width(12.dp))
+            Text(
+                text = stringResource(R.string.more_annual_right, formattedVacationNumber(viewModel.balance.totalEntitlement)),
+                color = NexterColors.secondaryText(),
+                fontSize = NexterTypography.Footnote,
+                fontWeight = FontWeight.Medium,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+        }
+
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(10.dp)
+                .clip(RoundedCornerShape(100.dp))
+                .background(vacationProgressTrackColor())
+        ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth(remainingRatio)
+                    .height(10.dp)
+                    .clip(RoundedCornerShape(100.dp))
+                    .background(Color(0xFF188052))
+            )
+        }
+
+        Row(verticalAlignment = Alignment.Top) {
+            MetricStack(
+                title = stringResource(R.string.more_used_single),
+                value = formattedVacationNumber(viewModel.balance.totalTaken),
+                unit = stringResource(R.string.more_days_unit_cap),
+                alignEnd = false,
+                valueColor = NexterColors.primaryText(),
+                modifier = Modifier.weight(1f)
+            )
+            MetricStack(
+                title = stringResource(R.string.more_remaining),
+                value = formattedVacationNumber(viewModel.balance.totalRemaining),
+                unit = stringResource(R.string.more_days_unit_cap),
+                alignEnd = true,
+                valueColor = Color(0xFF188052),
+                modifier = Modifier.weight(1f)
+            )
+        }
+    }
+}
+
+@Composable
+private fun CompactAbsenceSummaryCard(
+    title: String,
+    usedValue: String,
+    usedUnit: String,
+    episodes: String,
+    modifier: Modifier
+) {
     Column(
         modifier = modifier
             .clip(RoundedCornerShape(10.dp))
-            .background(background)
-            .padding(vertical = 12.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(3.dp)
+            .background(absenceSummaryBackground())
+            .border(BorderStroke(1.dp, NexterColors.border()), RoundedCornerShape(10.dp))
+            .padding(12.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp)
     ) {
-        Text(number, color = numberColor, fontSize = NexterTypography.Metric, fontWeight = FontWeight.Bold)
         Text(
-            label,
-            color = NexterColors.secondaryText(),
-            fontSize = NexterTypography.Footnote,
-            fontWeight = FontWeight.Medium,
-            maxLines = 1,
+            text = title,
+            color = NexterColors.primaryText(),
+            fontSize = NexterTypography.Callout,
+            fontWeight = FontWeight.SemiBold,
+            minLines = 2,
+            maxLines = 2,
             overflow = TextOverflow.Ellipsis
         )
+        Row(verticalAlignment = Alignment.Top) {
+            MetricStack(
+                title = stringResource(R.string.more_used_single),
+                value = usedValue,
+                unit = usedUnit,
+                alignEnd = false,
+                valueColor = NexterColors.primaryText(),
+                modifier = Modifier.weight(1f)
+            )
+            MetricStack(
+                title = stringResource(R.string.more_episodes),
+                value = episodes,
+                unit = "",
+                alignEnd = false,
+                valueColor = NexterColors.primaryText(),
+                modifier = Modifier.weight(1f)
+            )
+        }
+    }
+}
+
+@Composable
+private fun MetricStack(
+    title: String,
+    value: String,
+    unit: String,
+    alignEnd: Boolean,
+    valueColor: Color,
+    modifier: Modifier
+) {
+    Column(
+        modifier = modifier,
+        horizontalAlignment = if (alignEnd) Alignment.End else Alignment.Start,
+        verticalArrangement = Arrangement.spacedBy(2.dp)
+    ) {
+        Text(title, color = NexterColors.secondaryText(), fontSize = NexterTypography.Caption)
+        Text(value, color = valueColor, fontSize = NexterTypography.Body, fontWeight = FontWeight.SemiBold)
+        if (unit.isNotEmpty()) {
+            Text(
+                unit,
+                color = NexterColors.secondaryText(),
+                fontSize = NexterTypography.Caption,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+        }
     }
 }
 
 @Composable
 private fun VacationHistoryCard(items: List<VacationHistoryEntry>) {
-    SectionCard(title = stringResource(R.string.more_vacation_history)) {
+    SectionCard(title = stringResource(R.string.more_absence_history)) {
         if (items.isEmpty()) {
             Text(
                 stringResource(R.string.more_no_vacation_requests),
@@ -364,6 +488,7 @@ private fun VacationRequestDialog(viewModel: MoreViewModel, onDismiss: () -> Uni
     var showTypePicker by remember { mutableStateOf(false) }
     val selectedType = viewModel.requestTypes.firstOrNull { it.id == viewModel.selectedTypeId }
         ?: viewModel.requestTypes.first()
+    val context = LocalContext.current
 
     Dialog(
         onDismissRequest = onDismiss,
@@ -385,22 +510,37 @@ private fun VacationRequestDialog(viewModel: MoreViewModel, onDismiss: () -> Uni
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        stringResource(R.string.more_request_vacation_title),
-                        color = NexterColors.primaryText(),
-                        fontSize = NexterTypography.ScreenTitle,
-                        fontWeight = FontWeight.Bold,
-                        modifier = Modifier.weight(1f)
-                    )
-                    Text(
                         stringResource(R.string.cancel),
                         color = NexterColors.Red,
                         fontSize = NexterTypography.SmallButton,
                         fontWeight = FontWeight.SemiBold,
+                        maxLines = 1,
                         modifier = Modifier
+                            .width(88.dp)
                             .clip(RoundedCornerShape(12.dp))
-                            .background(NexterColors.Red.copy(alpha = 0.10f))
                             .clickable(onClick = onDismiss)
-                            .padding(horizontal = 12.dp, vertical = 8.dp)
+                            .padding(top = 8.dp, bottom = 8.dp)
+                    )
+                    Text(
+                        stringResource(R.string.more_request_vacation_title),
+                        color = NexterColors.primaryText(),
+                        fontSize = NexterTypography.SectionTitle,
+                        fontWeight = FontWeight.Bold,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.weight(1f)
+                    )
+                    Text(
+                        stringResource(R.string.more_send),
+                        color = if (viewModel.canSubmit) NexterColors.Red else NexterColors.tertiaryText(),
+                        fontSize = NexterTypography.SmallButton,
+                        fontWeight = FontWeight.SemiBold,
+                        textAlign = TextAlign.End,
+                        maxLines = 1,
+                        modifier = Modifier
+                            .width(88.dp)
+                            .clip(RoundedCornerShape(12.dp))
+                            .clickable(enabled = viewModel.canSubmit, onClick = onSubmit)
+                            .padding(top = 8.dp, bottom = 8.dp)
                     )
                 }
                 Divider(color = NexterColors.border())
@@ -413,76 +553,62 @@ private fun VacationRequestDialog(viewModel: MoreViewModel, onDismiss: () -> Uni
                         .padding(18.dp),
                     verticalArrangement = Arrangement.spacedBy(14.dp)
                 ) {
-                    RequestSectionTitle(stringResource(R.string.more_vacation_plan))
-                    RequestInfoRow(stringResource(R.string.more_plan), viewModel.balance.planName)
-                    if (!viewModel.balance.hideRemainingOnRequest) {
-                        RequestInfoRow(stringResource(R.string.more_available_single), formattedVacationNumber(viewModel.balance.totalRemaining))
-                    }
-                    if (!viewModel.balance.allowOverbooking) {
-                        Text(
-                            stringResource(R.string.more_overbooking_not_allowed),
-                            color = NexterColors.secondaryText(),
-                            fontSize = NexterTypography.Footnote
+                    VacationFormSection(title = stringResource(R.string.more_dates)) {
+                        VacationDateSelectorRow(
+                            label = stringResource(R.string.more_start_date),
+                            value = formatRequestDateDisplay(viewModel.startDate),
+                            onClick = {
+                                showVacationDatePicker(context, viewModel.startDate) { selected ->
+                                    viewModel.startDate = selected
+                                    viewModel.ensureEndDateAfterStart()
+                                }
+                            }
+                        )
+                        Divider(color = NexterColors.border())
+                        VacationDateSelectorRow(
+                            label = stringResource(R.string.more_end_date),
+                            value = formatRequestDateDisplay(viewModel.endDate),
+                            onClick = {
+                                showVacationDatePicker(context, viewModel.endDate) { selected ->
+                                    viewModel.endDate = selected
+                                }
+                            }
                         )
                     }
 
-                    RequestSectionTitle(stringResource(R.string.more_dates))
-                    OutlinedTextField(
-                        value = viewModel.startDate,
-                        onValueChange = { viewModel.startDate = it },
-                        label = { Text(stringResource(R.string.more_start_date)) },
-                        singleLine = true,
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                    OutlinedTextField(
-                        value = viewModel.endDate,
-                        onValueChange = { viewModel.endDate = it },
-                        label = { Text(stringResource(R.string.more_end_date)) },
-                        singleLine = true,
-                        modifier = Modifier.fillMaxWidth()
-                    )
+                    VacationFormSection(title = stringResource(R.string.more_type)) {
+                        VacationTypeSelectorRow(
+                            selectedType = selectedType,
+                            onClick = { showTypePicker = true },
+                            showContainer = false
+                        )
+                    }
 
-                    RequestSectionTitle(stringResource(R.string.more_type))
-                    VacationTypeSelectorRow(
-                        selectedType = selectedType,
-                        onClick = { showTypePicker = true }
-                    )
+                    VacationFormSection(title = if (viewModel.balance.requiresReason) stringResource(R.string.more_reason_required) else stringResource(R.string.more_reason)) {
+                        OutlinedTextField(
+                            value = viewModel.reason,
+                            onValueChange = { if (it.length <= 200) viewModel.reason = it },
+                            label = { Text(stringResource(R.string.more_reason)) },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(104.dp)
+                                .padding(horizontal = 12.dp, vertical = 8.dp)
+                        )
+                        Text("${viewModel.reason.length}/200", color = NexterColors.secondaryText(), fontSize = NexterTypography.Caption, modifier = Modifier.fillMaxWidth().padding(end = 12.dp, bottom = 10.dp), textAlign = TextAlign.End)
+                    }
 
-                    RequestSectionTitle(if (viewModel.balance.requiresReason) stringResource(R.string.more_reason_required) else stringResource(R.string.more_reason))
-                    OutlinedTextField(
-                        value = viewModel.reason,
-                        onValueChange = { if (it.length <= 200) viewModel.reason = it },
-                        label = { Text(stringResource(R.string.more_reason)) },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(92.dp)
-                    )
-                    Text("${viewModel.reason.length}/200", color = NexterColors.secondaryText(), fontSize = NexterTypography.Caption, modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.End)
-
-                    RequestSectionTitle(if (viewModel.balance.requiresNotes) stringResource(R.string.more_notes_required) else stringResource(R.string.more_notes))
-                    OutlinedTextField(
-                        value = viewModel.notes,
-                        onValueChange = { if (it.length <= 500) viewModel.notes = it },
-                        label = { Text(stringResource(R.string.more_notes)) },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(118.dp)
-                    )
-                    Text("${viewModel.notes.length}/500", color = NexterColors.secondaryText(), fontSize = NexterTypography.Caption, modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.End)
-                }
-
-                Divider(color = NexterColors.border())
-                Button(
-                    enabled = viewModel.canSubmit,
-                    onClick = onSubmit,
-                    colors = ButtonDefaults.buttonColors(backgroundColor = NexterColors.Red, contentColor = Color.White),
-                    shape = RoundedCornerShape(10.dp),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(18.dp)
-                        .height(46.dp)
-                ) {
-                    Text(stringResource(R.string.more_send), fontSize = NexterTypography.Button, fontWeight = FontWeight.SemiBold)
+                    VacationFormSection(title = if (viewModel.balance.requiresNotes) stringResource(R.string.more_notes_required) else stringResource(R.string.more_notes)) {
+                        OutlinedTextField(
+                            value = viewModel.notes,
+                            onValueChange = { if (it.length <= 500) viewModel.notes = it },
+                            label = { Text(stringResource(R.string.more_notes)) },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(136.dp)
+                                .padding(horizontal = 12.dp, vertical = 8.dp)
+                        )
+                        Text("${viewModel.notes.length}/500", color = NexterColors.secondaryText(), fontSize = NexterTypography.Caption, modifier = Modifier.fillMaxWidth().padding(end = 12.dp, bottom = 10.dp), textAlign = TextAlign.End)
+                    }
                 }
             }
         }
@@ -504,14 +630,20 @@ private fun VacationRequestDialog(viewModel: MoreViewModel, onDismiss: () -> Uni
 @Composable
 private fun VacationTypeSelectorRow(
     selectedType: VacationRequestType,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    showContainer: Boolean = true
 ) {
-    Row(
-        modifier = Modifier
+    val rowModifier = if (showContainer) {
+        Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(12.dp))
             .background(subtleBackground())
             .border(BorderStroke(1.dp, NexterColors.border()), RoundedCornerShape(12.dp))
+    } else {
+        Modifier.fillMaxWidth()
+    }
+    Row(
+        modifier = rowModifier
             .clickable(onClick = onClick)
             .padding(horizontal = 12.dp, vertical = 13.dp),
         verticalAlignment = Alignment.CenterVertically
@@ -538,6 +670,59 @@ private fun VacationTypeSelectorRow(
             )
         }
         Text("›", color = NexterColors.tertiaryText(), fontSize = NexterTypography.Body, fontWeight = FontWeight.Bold)
+    }
+}
+
+@Composable
+private fun VacationFormSection(
+    title: String,
+    content: @Composable () -> Unit
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text(
+            title,
+            color = NexterColors.primaryText(),
+            fontSize = NexterTypography.Body,
+            fontWeight = FontWeight.SemiBold
+        )
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(12.dp))
+                .background(NexterColors.cardBackground())
+                .border(BorderStroke(1.dp, NexterColors.border()), RoundedCornerShape(12.dp))
+        ) {
+            content()
+        }
+    }
+}
+
+@Composable
+private fun VacationDateSelectorRow(
+    label: String,
+    value: String,
+    onClick: () -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+            .padding(horizontal = 12.dp, vertical = 14.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            label,
+            color = NexterColors.primaryText(),
+            fontSize = NexterTypography.Body,
+            fontWeight = FontWeight.SemiBold,
+            modifier = Modifier.weight(1f)
+        )
+        Text(
+            value,
+            color = NexterColors.secondaryText(),
+            fontSize = NexterTypography.Callout,
+            fontWeight = FontWeight.Medium
+        )
     }
 }
 
@@ -804,6 +989,29 @@ private fun notificationSubtitle(id: String): String {
 }
 
 @Composable
+private fun absenceSummaryBackground(): Color {
+    return if (com.lognext.nexterandroid.ui.theme.isNexterDarkTheme()) {
+        subtleBackground()
+    } else {
+        Color(0xFFF5FBFF)
+    }
+}
+
+@Composable
+private fun vacationProgressTrackColor(): Color {
+    return if (com.lognext.nexterandroid.ui.theme.isNexterDarkTheme()) {
+        Color.White.copy(alpha = 0.10f)
+    } else {
+        Color.Black.copy(alpha = 0.08f)
+    }
+}
+
+private fun vacationRemainingRatio(balance: MoreVacationBalance): Float {
+    if (balance.totalEntitlement <= 0.0) return 0f
+    return (balance.totalRemaining / balance.totalEntitlement).toFloat().coerceIn(0f, 1f)
+}
+
+@Composable
 private fun subtleBackground(): Color {
     return if (com.lognext.nexterandroid.ui.theme.isNexterDarkTheme()) {
         Color.White.copy(alpha = 0.06f)
@@ -820,7 +1028,7 @@ private fun requestButtonTextColor(): Color {
 private fun vacationStatusColor(status: String): Color {
     return when (status.lowercase()) {
         "approved", "aprobado", "accepted" -> NexterColors.Green
-        "rejected", "rechazado", "cancelled", "canceled", "cancelado" -> NexterColors.Red
+        "rejected", "rechazado", "cancelled", "canceled", "cancelado" -> Color.Red
         else -> NexterColors.Red
     }
 }
@@ -855,6 +1063,45 @@ private fun showTimePicker(context: Context, minutes: Int, onTimeSelected: (Int)
         minute,
         true
     ).show()
+}
+
+private fun showVacationDatePicker(context: Context, currentValue: String, onDateSelected: (String) -> Unit) {
+    val initial = parseRequestDate(currentValue) ?: Calendar.getInstance()
+    DatePickerDialog(
+        context,
+        { _, year, month, dayOfMonth ->
+            val selected = Calendar.getInstance().apply {
+                set(Calendar.YEAR, year)
+                set(Calendar.MONTH, month)
+                set(Calendar.DAY_OF_MONTH, dayOfMonth)
+                set(Calendar.HOUR_OF_DAY, 0)
+                set(Calendar.MINUTE, 0)
+                set(Calendar.SECOND, 0)
+                set(Calendar.MILLISECOND, 0)
+            }
+            onDateSelected(formatRequestDate(selected))
+        },
+        initial.get(Calendar.YEAR),
+        initial.get(Calendar.MONTH),
+        initial.get(Calendar.DAY_OF_MONTH)
+    ).show()
+}
+
+private fun formatRequestDateDisplay(value: String): String {
+    val calendar = parseRequestDate(value) ?: return value
+    return SimpleDateFormat("d MMM yyyy", Locale.getDefault())
+        .format(calendar.time)
+        .replace(".", "")
+}
+
+private fun formatRequestDate(calendar: Calendar): String {
+    return SimpleDateFormat("yyyy-MM-dd", Locale.US).format(calendar.time)
+}
+
+private fun parseRequestDate(value: String): Calendar? {
+    if (value.isBlank()) return null
+    val date = runCatching { SimpleDateFormat("yyyy-MM-dd", Locale.US).parse(value) }.getOrNull() ?: return null
+    return Calendar.getInstance().apply { time = date }
 }
 
 private fun minutesToTime(minutes: Int): String {

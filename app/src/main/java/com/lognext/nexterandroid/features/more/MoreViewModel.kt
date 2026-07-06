@@ -83,6 +83,12 @@ class MoreViewModel : ViewModel() {
     val canSubmit: Boolean
         get() = selectedTypeId.isNotBlank() && startDate.isNotBlank() && endDate.isNotBlank()
 
+    fun ensureEndDateAfterStart() {
+        if (endDate < startDate) {
+            endDate = startDate
+        }
+    }
+
     fun submitVacationRequest() {
         showVacationRequest = false
         confirmationTitle = "Solicitud creada"
