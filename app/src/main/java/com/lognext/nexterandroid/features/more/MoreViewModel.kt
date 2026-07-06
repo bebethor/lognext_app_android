@@ -39,7 +39,7 @@ class MoreViewModel : ViewModel() {
         ),
         VacationHistoryEntry(
             id = "vac-3",
-            typeName = "Asuntos propios",
+            typeName = "Festivo",
             status = "approved",
             formattedPeriod = "3 jun 2026",
             totalDays = 1.0,

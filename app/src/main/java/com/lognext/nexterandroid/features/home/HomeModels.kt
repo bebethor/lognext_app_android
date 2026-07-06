@@ -1,6 +1,8 @@
 package com.lognext.nexterandroid.features.home
 
+import androidx.annotation.StringRes
 import com.google.gson.annotations.SerializedName
+import com.lognext.nexterandroid.R
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Locale
@@ -8,10 +10,10 @@ import java.util.TimeZone
 import java.util.Date
 import java.util.concurrent.TimeUnit
 
-enum class AgendaScope(val title: String, val endpoint: String, val emptyTitle: String) {
-    Today("Hoy", "/api/v1/calendar/today", "No tienes reuniones hoy"),
-    Week("Semana", "/api/v1/calendar/week", "No tienes reuniones esta semana"),
-    Upcoming("Próximas", "/api/v1/calendar/upcoming", "No tienes próximas reuniones")
+enum class AgendaScope(@StringRes val titleRes: Int, val endpoint: String, @StringRes val emptyTitleRes: Int) {
+    Today(R.string.agenda_scope_today, "/api/v1/calendar/today", R.string.agenda_empty_today),
+    Week(R.string.agenda_scope_week, "/api/v1/calendar/week", R.string.agenda_empty_week),
+    Upcoming(R.string.agenda_scope_upcoming, "/api/v1/calendar/upcoming", R.string.agenda_empty_upcoming)
 }
 
 data class AgendaEventGroup(

@@ -32,6 +32,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -41,6 +42,7 @@ import androidx.compose.ui.window.DialogProperties
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.lognext.nexterandroid.R
 import com.lognext.nexterandroid.core.AppDependencies
 import com.lognext.nexterandroid.ui.theme.NexterColors
 import com.lognext.nexterandroid.ui.theme.NexterTypography
@@ -80,7 +82,7 @@ fun PeopleScreen() {
                 EmptyPeopleState()
             } else {
                 PeopleSectionCard(
-                    title = "Resultados",
+                    title = stringResource(R.string.people_results),
                     badge = null,
                     highlighted = true,
                     people = viewModel.searchResults,
@@ -90,14 +92,14 @@ fun PeopleScreen() {
         } else {
             PeopleSectionCard(
                 title = viewModel.teamSectionTitle,
-                badge = "Mi equipo",
+                badge = stringResource(R.string.people_my_team),
                 highlighted = true,
                 people = viewModel.teamPeople,
                 onPersonSelected = { viewModel.selectedPerson = it }
             )
 
             PeopleSectionCard(
-                title = "COMITÉ DE DIRECCIÓN",
+                title = stringResource(R.string.people_leadership),
                 badge = null,
                 highlighted = false,
                 people = viewModel.leadershipPeople,
@@ -105,14 +107,14 @@ fun PeopleScreen() {
             )
 
             ProjectCatalogCard(
-                title = "Empresas",
+                title = stringResource(R.string.people_companies),
                 projects = viewModel.companies,
-                emptyMessage = "No hay empresas disponibles."
+                emptyMessage = stringResource(R.string.people_no_companies)
             )
             ProjectCatalogCard(
-                title = "Proyectos",
+                title = stringResource(R.string.people_projects),
                 projects = viewModel.projects,
-                emptyMessage = "No hay proyectos disponibles."
+                emptyMessage = stringResource(R.string.people_no_projects)
             )
         }
     }
@@ -139,7 +141,7 @@ private fun LoadingPeopleState() {
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         CircularProgressIndicator(color = NexterColors.Red)
-        Text("Cargando People…", color = NexterColors.secondaryText(), fontSize = NexterTypography.Body, fontWeight = FontWeight.SemiBold)
+        Text(stringResource(R.string.people_loading), color = NexterColors.secondaryText(), fontSize = NexterTypography.Body, fontWeight = FontWeight.SemiBold)
     }
 }
 
@@ -159,7 +161,7 @@ private fun SearchCard(value: String, onValueChange: (String) -> Unit, onClear: 
             OutlinedTextField(
                 value = value,
                 onValueChange = onValueChange,
-                placeholder = { Text("Buscar persona…", fontSize = NexterTypography.Body) },
+                placeholder = { Text(stringResource(R.string.people_search_hint), fontSize = NexterTypography.Body) },
                 singleLine = true,
                 leadingIcon = {
                     Text("⌕", color = NexterColors.tertiaryText(), fontSize = NexterTypography.Caption, fontWeight = FontWeight.Bold)
@@ -363,8 +365,8 @@ private fun EmptyPeopleState() {
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         Text("?", color = NexterColors.tertiaryText(), fontSize = NexterTypography.Clock, fontWeight = FontWeight.Bold)
-        Text("No se encontraron personas", color = NexterColors.secondaryText(), fontSize = NexterTypography.Body, fontWeight = FontWeight.SemiBold)
-        Text("Prueba con otro nombre o departamento.", color = NexterColors.tertiaryText(), fontSize = NexterTypography.Callout)
+        Text(stringResource(R.string.people_none_found), color = NexterColors.secondaryText(), fontSize = NexterTypography.Body, fontWeight = FontWeight.SemiBold)
+        Text(stringResource(R.string.people_try_other), color = NexterColors.tertiaryText(), fontSize = NexterTypography.Callout)
     }
 }
 
@@ -407,7 +409,7 @@ private fun PersonDetailDialog(
                             .padding(horizontal = 8.dp, vertical = 2.dp)
                     )
                     Text(
-                        text = "Perfil",
+                        text = stringResource(R.string.people_profile),
                         color = NexterColors.primaryText(),
                         fontSize = NexterTypography.SectionTitle,
                         fontWeight = FontWeight.Bold,
@@ -425,18 +427,18 @@ private fun PersonDetailDialog(
                 ) {
                     ProfileHero(person)
                     DetailInformationSection(
-                        title = "Contacto",
+                        title = stringResource(R.string.people_contact),
                         fields = listOf(
                             PeopleDetailField("Email", person.email),
-                            PeopleDetailField("Teléfono de trabajo", person.workPhone)
+                            PeopleDetailField(stringResource(R.string.people_work_phone), person.workPhone)
                         ).filter { it.value.isNotBlank() }
                     )
                     DetailInformationSection(
-                        title = "Información laboral",
+                        title = stringResource(R.string.people_work_info),
                         fields = listOf(
-                            PeopleDetailField("Posición", person.positionTitle.ifBlank { person.role }),
-                            PeopleDetailField("Empresa", person.company),
-                            PeopleDetailField("Fecha de incorporación", person.hireDate)
+                            PeopleDetailField(stringResource(R.string.people_position), person.positionTitle.ifBlank { person.role }),
+                            PeopleDetailField(stringResource(R.string.people_company), person.company),
+                            PeopleDetailField(stringResource(R.string.people_hire_date), person.hireDate)
                         ).filter { it.value.isNotBlank() }
                     )
                     ReportsToSection(manager, onPersonSelected)
@@ -515,9 +517,9 @@ private fun DetailInformationSection(title: String, fields: List<PeopleDetailFie
 @Composable
 private fun ReportsToSection(manager: PeopleRowData?, onPersonSelected: (PeopleRowData) -> Unit) {
     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-        Text("📤 Reporta a", color = NexterColors.tertiaryText(), fontSize = NexterTypography.SectionTitle, fontWeight = FontWeight.Bold)
+        Text(stringResource(R.string.people_reports_to), color = NexterColors.tertiaryText(), fontSize = NexterTypography.SectionTitle, fontWeight = FontWeight.Bold)
         if (manager == null) {
-            Text("Máximo nivel — no reporta a nadie", color = NexterColors.secondaryText(), fontSize = NexterTypography.Body)
+            Text(stringResource(R.string.people_top_level), color = NexterColors.secondaryText(), fontSize = NexterTypography.Body)
         } else {
             ProfilePersonRow(manager, onClick = { onPersonSelected(manager) })
         }
@@ -528,13 +530,13 @@ private fun ReportsToSection(manager: PeopleRowData?, onPersonSelected: (PeopleR
 private fun DirectReportsSection(reports: List<PeopleRowData>, onPersonSelected: (PeopleRowData) -> Unit) {
     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
         Text(
-            text = "📥 Le reportan (${if (reports.isEmpty()) "nadie" else reports.size.toString()})",
+            text = stringResource(R.string.people_reports_count, if (reports.isEmpty()) stringResource(R.string.people_nobody) else reports.size.toString()),
             color = NexterColors.tertiaryText(),
             fontSize = NexterTypography.SectionTitle,
             fontWeight = FontWeight.Bold
         )
         if (reports.isEmpty()) {
-            Text("Nadie reporta directamente", color = NexterColors.secondaryText(), fontSize = NexterTypography.Body)
+            Text(stringResource(R.string.people_no_direct_reports), color = NexterColors.secondaryText(), fontSize = NexterTypography.Body)
         } else {
             reports.forEach { report ->
                 ProfilePersonRow(report, onClick = { onPersonSelected(report) })
@@ -568,10 +570,10 @@ private fun ProfilePersonRow(person: PeopleRowData, onClick: () -> Unit) {
 @Composable
 private fun ProjectsSection(projects: List<PeopleProjectDetail>) {
     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-        Text("Proyectos", color = NexterColors.tertiaryText(), fontSize = NexterTypography.SectionTitle, fontWeight = FontWeight.Bold)
+        Text(stringResource(R.string.people_projects), color = NexterColors.tertiaryText(), fontSize = NexterTypography.SectionTitle, fontWeight = FontWeight.Bold)
         if (projects.isEmpty()) {
             Text(
-                "No hay proyectos asignados.",
+                stringResource(R.string.people_no_assigned_projects),
                 color = NexterColors.secondaryText(),
                 fontSize = NexterTypography.Callout,
                 modifier = Modifier
@@ -592,9 +594,9 @@ private fun ProjectsSection(projects: List<PeopleProjectDetail>) {
                     verticalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
                     Text(project.project.name, color = NexterColors.primaryText(), fontSize = NexterTypography.Body, fontWeight = FontWeight.SemiBold)
-                    ProjectDetailValue("Código", project.project.code)
-                    if (project.project.description.isNotEmpty()) ProjectDetailValue("Descripción", project.project.description)
-                    ProjectDetailValue("Personas asignadas", project.members.joinToString(", ") { it.name })
+                    ProjectDetailValue(stringResource(R.string.people_code), project.project.code)
+                    if (project.project.description.isNotEmpty()) ProjectDetailValue(stringResource(R.string.people_description), project.project.description)
+                    ProjectDetailValue(stringResource(R.string.people_assigned_people), project.members.joinToString(", ") { it.name })
                 }
             }
         }
@@ -630,7 +632,7 @@ private fun PeopleAvatar(person: PeopleRowData, size: Int) {
 @Composable
 private fun CurrentUserBadge() {
     Text(
-        text = "Tú",
+        text = stringResource(R.string.people_you),
         color = NexterColors.Red,
         fontSize = NexterTypography.Badge,
         fontWeight = FontWeight.SemiBold,

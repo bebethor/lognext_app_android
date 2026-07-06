@@ -44,6 +44,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -54,6 +55,7 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.lognext.nexterandroid.R
 import com.lognext.nexterandroid.ui.theme.NexterColors
 import com.lognext.nexterandroid.ui.theme.NexterTypography
 import java.util.Locale
@@ -123,28 +125,28 @@ fun MoreScreen(viewModel: MoreViewModel = viewModel()) {
 
 @Composable
 private fun VacationCard(viewModel: MoreViewModel) {
-    SectionCard(title = "🏖️ Vacaciones") {
+    SectionCard(title = stringResource(R.string.more_vacations)) {
         Row(
             modifier = Modifier.padding(start = 14.dp, top = 14.dp, end = 14.dp, bottom = 12.dp),
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             VacationBox(
                 number = formattedVacationNumber(viewModel.balance.totalEntitlement),
-                label = "Total año",
+                label = stringResource(R.string.more_total_year),
                 background = subtleBackground(),
                 numberColor = NexterColors.primaryText(),
                 modifier = Modifier.weight(1f)
             )
             VacationBox(
                 number = formattedVacationNumber(viewModel.balance.totalTaken),
-                label = "Usados",
+                label = stringResource(R.string.more_used),
                 background = NexterColors.Red.copy(alpha = 0.08f),
                 numberColor = NexterColors.Red,
                 modifier = Modifier.weight(1f)
             )
             VacationBox(
                 number = formattedVacationNumber(viewModel.balance.totalRemaining),
-                label = "Disponibles",
+                label = stringResource(R.string.more_available),
                 background = NexterColors.Green.copy(alpha = 0.12f),
                 numberColor = Color(0xFF2A8B3A),
                 modifier = Modifier.weight(1f)
@@ -156,13 +158,13 @@ private fun VacationCard(viewModel: MoreViewModel) {
             verticalArrangement = Arrangement.spacedBy(6.dp)
         ) {
             Text(
-                text = "${viewModel.balance.planName} · ${viewModel.balance.timeUnit} · ${currentYearVacationPeriod()}",
+                text = "${vacationPlanName(viewModel.balance.planName)} · ${vacationTimeUnit(viewModel.balance.timeUnit)} · ${currentYearVacationPeriod()}",
                 color = NexterColors.secondaryText(),
                 fontSize = NexterTypography.Footnote,
                 fontWeight = FontWeight.SemiBold
             )
             Text(
-                text = "Recuerda que para solicitar vacaciones, has de hacerlo con 15 días de antelación.",
+                text = stringResource(R.string.more_vacation_notice),
                 color = NexterColors.secondaryText(),
                 fontSize = NexterTypography.Footnote
             )
@@ -177,7 +179,7 @@ private fun VacationCard(viewModel: MoreViewModel) {
                 .padding(start = 14.dp, top = 12.dp, end = 14.dp, bottom = 14.dp)
                 .height(46.dp)
         ) {
-            Text("+ Solicitar vacaciones", fontSize = NexterTypography.Button, fontWeight = FontWeight.SemiBold)
+            Text(stringResource(R.string.more_request_vacation), fontSize = NexterTypography.Button, fontWeight = FontWeight.SemiBold)
         }
     }
 }
@@ -206,10 +208,10 @@ private fun VacationBox(number: String, label: String, background: Color, number
 
 @Composable
 private fun VacationHistoryCard(items: List<VacationHistoryEntry>) {
-    SectionCard(title = "Historial de vacaciones") {
+    SectionCard(title = stringResource(R.string.more_vacation_history)) {
         if (items.isEmpty()) {
             Text(
-                "No hay solicitudes de vacaciones.",
+                stringResource(R.string.more_no_vacation_requests),
                 color = NexterColors.secondaryText(),
                 fontSize = NexterTypography.Callout,
                 textAlign = TextAlign.Center,
@@ -235,14 +237,14 @@ private fun VacationHistoryRow(entry: VacationHistoryEntry) {
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(
-                text = entry.typeName,
+                text = vacationHistoryType(entry.typeName),
                 color = NexterColors.primaryText(),
                 fontSize = NexterTypography.Body,
                 fontWeight = FontWeight.SemiBold,
                 modifier = Modifier.weight(1f)
             )
             Text(
-                text = entry.localizedStatus,
+                text = vacationStatusText(entry.status),
                 color = statusColor,
                 fontSize = NexterTypography.Badge,
                 fontWeight = FontWeight.SemiBold,
@@ -261,7 +263,7 @@ private fun VacationHistoryRow(entry: VacationHistoryEntry) {
                 modifier = Modifier.weight(1f)
             )
             Text(
-                "${formattedVacationNumber(entry.totalDays)} días",
+                stringResource(R.string.more_days, formattedVacationNumber(entry.totalDays)),
                 color = NexterColors.secondaryText(),
                 fontSize = NexterTypography.Footnote,
                 fontWeight = FontWeight.Medium
@@ -269,7 +271,7 @@ private fun VacationHistoryRow(entry: VacationHistoryEntry) {
         }
         if (entry.approver.isNotBlank()) {
             Text(
-                "Aprobador: ${entry.approver}",
+                stringResource(R.string.more_approver, entry.approver),
                 color = NexterColors.secondaryText(),
                 fontSize = NexterTypography.Footnote
             )
@@ -283,7 +285,7 @@ private fun ClockNotificationsCard(
     onNotificationEnabledChange: (String, Boolean) -> Unit,
     onTimeClick: (String, Int) -> Unit
 ) {
-    SectionCard(title = "Notificaciones de jornada") {
+    SectionCard(title = stringResource(R.string.more_clock_notifications)) {
         viewModel.notificationSettings.forEachIndexed { index, setting ->
             val currentMinutes = viewModel.notificationMinutes[setting.id] ?: setting.defaultMinutes
             ClockNotificationRow(
@@ -313,13 +315,13 @@ private fun ClockNotificationRow(
         Row(verticalAlignment = Alignment.CenterVertically) {
             Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Text(
-                    setting.title,
+                    notificationTitle(setting.id),
                     color = NexterColors.primaryText(),
                     fontSize = NexterTypography.Body,
                     fontWeight = FontWeight.SemiBold
                 )
                 Text(
-                    setting.subtitle,
+                    notificationSubtitle(setting.id),
                     color = NexterColors.secondaryText(),
                     fontSize = NexterTypography.Footnote
                 )
@@ -341,7 +343,7 @@ private fun ClockNotificationRow(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    "Hora",
+                    stringResource(R.string.more_time),
                     color = NexterColors.secondaryText(),
                     fontSize = NexterTypography.Callout,
                     modifier = Modifier.weight(1f)
@@ -383,14 +385,14 @@ private fun VacationRequestDialog(viewModel: MoreViewModel, onDismiss: () -> Uni
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        "Solicitar vacaciones",
+                        stringResource(R.string.more_request_vacation_title),
                         color = NexterColors.primaryText(),
                         fontSize = NexterTypography.ScreenTitle,
                         fontWeight = FontWeight.Bold,
                         modifier = Modifier.weight(1f)
                     )
                     Text(
-                        "Cancelar",
+                        stringResource(R.string.cancel),
                         color = NexterColors.Red,
                         fontSize = NexterTypography.SmallButton,
                         fontWeight = FontWeight.SemiBold,
@@ -411,57 +413,57 @@ private fun VacationRequestDialog(viewModel: MoreViewModel, onDismiss: () -> Uni
                         .padding(18.dp),
                     verticalArrangement = Arrangement.spacedBy(14.dp)
                 ) {
-                    RequestSectionTitle("Plan de vacaciones")
-                    RequestInfoRow("Plan", viewModel.balance.planName)
+                    RequestSectionTitle(stringResource(R.string.more_vacation_plan))
+                    RequestInfoRow(stringResource(R.string.more_plan), viewModel.balance.planName)
                     if (!viewModel.balance.hideRemainingOnRequest) {
-                        RequestInfoRow("Disponible", formattedVacationNumber(viewModel.balance.totalRemaining))
+                        RequestInfoRow(stringResource(R.string.more_available_single), formattedVacationNumber(viewModel.balance.totalRemaining))
                     }
                     if (!viewModel.balance.allowOverbooking) {
                         Text(
-                            "Este plan no permite superar el saldo disponible.",
+                            stringResource(R.string.more_overbooking_not_allowed),
                             color = NexterColors.secondaryText(),
                             fontSize = NexterTypography.Footnote
                         )
                     }
 
-                    RequestSectionTitle("Fechas")
+                    RequestSectionTitle(stringResource(R.string.more_dates))
                     OutlinedTextField(
                         value = viewModel.startDate,
                         onValueChange = { viewModel.startDate = it },
-                        label = { Text("Fecha inicio") },
+                        label = { Text(stringResource(R.string.more_start_date)) },
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth()
                     )
                     OutlinedTextField(
                         value = viewModel.endDate,
                         onValueChange = { viewModel.endDate = it },
-                        label = { Text("Fecha fin") },
+                        label = { Text(stringResource(R.string.more_end_date)) },
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth()
                     )
 
-                    RequestSectionTitle("Tipo")
+                    RequestSectionTitle(stringResource(R.string.more_type))
                     VacationTypeSelectorRow(
                         selectedType = selectedType,
                         onClick = { showTypePicker = true }
                     )
 
-                    RequestSectionTitle(if (viewModel.balance.requiresReason) "Motivo *" else "Motivo")
+                    RequestSectionTitle(if (viewModel.balance.requiresReason) stringResource(R.string.more_reason_required) else stringResource(R.string.more_reason))
                     OutlinedTextField(
                         value = viewModel.reason,
                         onValueChange = { if (it.length <= 200) viewModel.reason = it },
-                        label = { Text("Motivo") },
+                        label = { Text(stringResource(R.string.more_reason)) },
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(92.dp)
                     )
                     Text("${viewModel.reason.length}/200", color = NexterColors.secondaryText(), fontSize = NexterTypography.Caption, modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.End)
 
-                    RequestSectionTitle(if (viewModel.balance.requiresNotes) "Notas *" else "Notas")
+                    RequestSectionTitle(if (viewModel.balance.requiresNotes) stringResource(R.string.more_notes_required) else stringResource(R.string.more_notes))
                     OutlinedTextField(
                         value = viewModel.notes,
                         onValueChange = { if (it.length <= 500) viewModel.notes = it },
-                        label = { Text("Notas") },
+                        label = { Text(stringResource(R.string.more_notes)) },
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(118.dp)
@@ -480,7 +482,7 @@ private fun VacationRequestDialog(viewModel: MoreViewModel, onDismiss: () -> Uni
                         .padding(18.dp)
                         .height(46.dp)
                 ) {
-                    Text("Enviar", fontSize = NexterTypography.Button, fontWeight = FontWeight.SemiBold)
+                    Text(stringResource(R.string.more_send), fontSize = NexterTypography.Button, fontWeight = FontWeight.SemiBold)
                 }
             }
         }
@@ -523,13 +525,13 @@ private fun VacationTypeSelectorRow(
         Spacer(modifier = Modifier.width(10.dp))
         Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
             Text(
-                "Tipo de ausencia",
+                stringResource(R.string.more_absence_type),
                 color = NexterColors.secondaryText(),
                 fontSize = NexterTypography.Footnote,
                 fontWeight = FontWeight.Medium
             )
             Text(
-                selectedType.displayName,
+                vacationTypeLabel(selectedType.id),
                 color = NexterColors.primaryText(),
                 fontSize = NexterTypography.Body,
                 fontWeight = FontWeight.SemiBold
@@ -556,7 +558,7 @@ private fun VacationTypePickerDialog(
         ) {
             Column {
                 Text(
-                    "Tipo de vacaciones",
+                    stringResource(R.string.more_vacation_type),
                     color = NexterColors.primaryText(),
                     fontSize = NexterTypography.CardTitle,
                     fontWeight = FontWeight.Bold,
@@ -591,7 +593,7 @@ private fun VacationTypePickerDialog(
                         )
                         Spacer(modifier = Modifier.width(10.dp))
                         Text(
-                            type.displayName,
+                            vacationTypeLabel(type.id),
                             color = NexterColors.primaryText(),
                             fontSize = NexterTypography.Body,
                             fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
@@ -602,7 +604,7 @@ private fun VacationTypePickerDialog(
                 }
                 Divider(color = NexterColors.border())
                 Text(
-                    "Cancelar",
+                    stringResource(R.string.cancel),
                     color = NexterColors.Red,
                     fontSize = NexterTypography.Button,
                     fontWeight = FontWeight.SemiBold,
@@ -629,7 +631,7 @@ private fun VacationConfirmationDialog(title: String, message: String, onDismiss
         ) {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 Text(
-                    title,
+                    vacationConfirmationTitle(title),
                     color = NexterColors.primaryText(),
                     fontSize = NexterTypography.CardTitle,
                     fontWeight = FontWeight.Bold,
@@ -640,7 +642,7 @@ private fun VacationConfirmationDialog(title: String, message: String, onDismiss
                 )
                 Divider(color = NexterColors.border())
                 Text(
-                    message,
+                    vacationConfirmationMessage(message),
                     color = NexterColors.secondaryText(),
                     fontSize = NexterTypography.Body,
                     textAlign = TextAlign.Center,
@@ -650,7 +652,7 @@ private fun VacationConfirmationDialog(title: String, message: String, onDismiss
                 )
                 Divider(color = NexterColors.border())
                 Text(
-                    "Aceptar",
+                    stringResource(R.string.accept),
                     color = NexterColors.Red,
                     fontSize = NexterTypography.Button,
                     fontWeight = FontWeight.SemiBold,
@@ -707,6 +709,97 @@ private fun SectionCard(title: String, content: @Composable () -> Unit) {
             Divider(color = NexterColors.border())
             content()
         }
+    }
+}
+
+@Composable
+private fun vacationTypeLabel(typeId: String): String {
+    return when (typeId) {
+        "type-holiday" -> stringResource(R.string.vacation_type_holiday)
+        "type-non-working" -> stringResource(R.string.vacation_type_non_working)
+        "type-festivity" -> stringResource(R.string.vacation_type_festivity)
+        "type-vacation" -> stringResource(R.string.vacation_type_vacation)
+        else -> typeId
+    }
+}
+
+@Composable
+private fun vacationHistoryType(typeName: String): String {
+    return when (typeName.lowercase(Locale.getDefault())) {
+        "festivo" -> stringResource(R.string.vacation_type_holiday)
+        "no laborable" -> stringResource(R.string.vacation_type_non_working)
+        "festividad" -> stringResource(R.string.vacation_type_festivity)
+        "vacaciones" -> stringResource(R.string.vacation_type_vacation)
+        else -> typeName
+    }
+}
+
+@Composable
+private fun vacationPlanName(planName: String): String {
+    return when (planName.lowercase(Locale.getDefault())) {
+        "vacaciones anuales" -> stringResource(R.string.vacation_annual_plan)
+        else -> planName
+    }
+}
+
+@Composable
+private fun vacationTimeUnit(unit: String): String {
+    return when (unit.lowercase(Locale.getDefault())) {
+        "días", "dias", "days", "jours" -> stringResource(R.string.vacation_days_unit)
+        else -> unit
+    }
+}
+
+@Composable
+private fun vacationConfirmationTitle(title: String): String {
+    return when (title.lowercase(Locale.getDefault())) {
+        "solicitud creada" -> stringResource(R.string.vacation_request_created)
+        else -> title
+    }
+}
+
+@Composable
+private fun vacationConfirmationMessage(message: String): String {
+    return when (message.lowercase(Locale.getDefault())) {
+        "solicitud enviada correctamente." -> stringResource(R.string.vacation_request_sent)
+        else -> message
+    }
+}
+
+@Composable
+private fun vacationStatusText(status: String): String {
+    return when (status.lowercase()) {
+        "approved", "aprobado", "accepted" -> stringResource(R.string.status_approved)
+        "rejected", "rechazado" -> stringResource(R.string.status_rejected)
+        "cancelled", "canceled", "cancelado" -> stringResource(R.string.status_cancelled)
+        "pending", "submitted", "approval pending", "pending approval", "aprobación pendiente" -> stringResource(R.string.status_pending)
+        else -> status
+    }
+}
+
+@Composable
+private fun notificationTitle(id: String): String {
+    return when (id) {
+        "workStart" -> stringResource(R.string.notification_work_start_title)
+        "lunchStart" -> stringResource(R.string.notification_lunch_start_title)
+        "lunchEnd" -> stringResource(R.string.notification_lunch_end_title)
+        "workEnd" -> stringResource(R.string.notification_work_end_title)
+        "longOpenEntry" -> stringResource(R.string.notification_long_open_entry_title)
+        "noRecordEndOfDay" -> stringResource(R.string.notification_no_record_title)
+        else -> id
+    }
+}
+
+@Composable
+private fun notificationSubtitle(id: String): String {
+    return when (id) {
+        "workStart" -> stringResource(R.string.notification_work_start_subtitle)
+        "lunchStart" -> stringResource(R.string.notification_lunch_start_subtitle)
+        "lunchEnd" -> stringResource(R.string.notification_lunch_end_subtitle)
+        "workEnd" -> stringResource(R.string.notification_work_end_subtitle)
+        "longOpenEntry" -> stringResource(R.string.notification_long_open_entry_subtitle)
+        "noRecordEndOfDay" -> stringResource(R.string.notification_no_record_subtitle)
+        else -> id
     }
 }
 

@@ -34,16 +34,19 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.lognext.nexterandroid.R
 import com.lognext.nexterandroid.core.AppDependencies
 import com.lognext.nexterandroid.ui.theme.NexterColors
 import com.lognext.nexterandroid.ui.theme.NexterTypography
 import kotlinx.coroutines.delay
+import java.text.DateFormatSymbols
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Date
@@ -108,7 +111,7 @@ private fun WorkdayCard(viewModel: ClockViewModel) {
             verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
             Text(
-                text = "REGISTRO DE JORNADA",
+                text = stringResource(R.string.clock_record_title),
                 color = Color.White.copy(alpha = 0.45f),
                 fontSize = NexterTypography.Callout,
                 fontWeight = FontWeight.SemiBold,
@@ -124,7 +127,7 @@ private fun WorkdayCard(viewModel: ClockViewModel) {
             )
 
             if (viewModel.isLoadingStatus && !viewModel.hasLoadedTodayEntries) {
-                LoadingInline("Cargando jornada…", light = true)
+                LoadingInline(stringResource(R.string.clock_loading_workday), light = true)
             } else {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     Box(
@@ -187,15 +190,15 @@ private fun ClockActionButton(viewModel: ClockViewModel) {
 
 @Composable
 private fun TodayRecordCard(viewModel: ClockViewModel) {
-    SectionCard(title = "📋 Registro de hoy") {
+    SectionCard(title = stringResource(R.string.clock_today_record)) {
         when {
             viewModel.isLoadingStatus || !viewModel.hasLoadedTodayEntries -> {
-                LoadingBlock("Cargando registros…")
+                LoadingBlock(stringResource(R.string.clock_loading_records))
             }
             todayTimelineRows(viewModel).isEmpty() -> {
                 EmptyBlock(
-                    title = "Sin registros todavía",
-                    subtitle = "Cuando fiches entrada o salida aparecerá aquí."
+                    title = stringResource(R.string.clock_no_records),
+                    subtitle = stringResource(R.string.clock_no_records_subtitle)
                 )
             }
             else -> {
@@ -241,13 +244,13 @@ private fun RecordRow(row: ClockTimelineRow) {
         Spacer(modifier = Modifier.width(10.dp))
         Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
             Text(
-                text = if (isEntry) "Entrada" else "Salida",
+                text = if (isEntry) stringResource(R.string.clock_entry) else stringResource(R.string.clock_exit),
                 color = NexterColors.primaryText(),
                 fontSize = NexterTypography.Body,
                 fontWeight = FontWeight.SemiBold
             )
             Text(
-                text = "Registrada correctamente",
+                text = stringResource(R.string.clock_registered_ok),
                 color = NexterColors.secondaryText(),
                 fontSize = NexterTypography.Callout
             )
@@ -267,13 +270,13 @@ private fun RecordRow(row: ClockTimelineRow) {
 
 @Composable
 private fun WeekSummaryCard(viewModel: ClockViewModel) {
-    SectionCard(title = "📊 Esta semana") {
+    SectionCard(title = stringResource(R.string.clock_week)) {
         Column(
             modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                listOf("Lun", "Mar", "Mié", "Jue", "Vie").forEachIndexed { index, label ->
+                shortWeekdayLabels().forEachIndexed { index, label ->
                     WeekDayView(viewModel, index, label, Modifier.weight(1f))
                 }
             }
@@ -287,7 +290,7 @@ private fun WeekSummaryCard(viewModel: ClockViewModel) {
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "Total semana",
+                    text = stringResource(R.string.clock_total_week),
                     color = NexterColors.primaryText(),
                     fontSize = NexterTypography.Callout,
                     fontWeight = FontWeight.SemiBold,
@@ -312,7 +315,7 @@ private fun WeekDayView(viewModel: ClockViewModel, dayOffset: Int, label: String
     val hasWorkedTime = seconds > 0L
     val value = if (hasWorkedTime) formattedHours(seconds) else "–"
     val text = when {
-        isToday -> "HOY"
+        isToday -> stringResource(R.string.clock_today)
         hasWorkedTime -> "✓"
         else -> "–"
     }
@@ -362,16 +365,16 @@ private fun WeekDayView(viewModel: ClockViewModel, dayOffset: Int, label: String
 
 @Composable
 private fun RecentHistoryCard(viewModel: ClockViewModel) {
-    SectionCard(title = "📅 Histórico reciente") {
+    SectionCard(title = stringResource(R.string.clock_recent_history)) {
         Column(modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp)) {
             HistoryHeaderRow()
             when {
                 viewModel.isLoadingStatus || !viewModel.hasLoadedTodayEntries -> {
-                    LoadingBlock("Cargando histórico…")
+                    LoadingBlock(stringResource(R.string.clock_loading_history))
                 }
                 recentHistoryRows(viewModel).isEmpty() -> {
                     Text(
-                        text = "Sin histórico reciente",
+                        text = stringResource(R.string.clock_no_recent_history),
                         color = NexterColors.secondaryText(),
                         fontSize = NexterTypography.Body,
                         fontWeight = FontWeight.SemiBold,
@@ -399,10 +402,10 @@ private fun HistoryHeaderRow() {
             .fillMaxWidth()
             .padding(vertical = 6.dp)
     ) {
-        HistoryHeaderText("Fecha", Modifier.weight(1f))
-        HistoryHeaderText("Entrada", Modifier.weight(1f))
-        HistoryHeaderText("Salida", Modifier.weight(1f))
-        HistoryHeaderText("Total", Modifier.weight(1f))
+        HistoryHeaderText(stringResource(R.string.clock_date), Modifier.weight(1f))
+        HistoryHeaderText(stringResource(R.string.clock_entry), Modifier.weight(1f))
+        HistoryHeaderText(stringResource(R.string.clock_exit), Modifier.weight(1f))
+        HistoryHeaderText(stringResource(R.string.clock_total), Modifier.weight(1f))
     }
     Divider(color = NexterColors.border())
 }
@@ -570,25 +573,41 @@ private fun recentHistoryRows(viewModel: ClockViewModel): List<RecentHistoryRow>
         .take(5)
 }
 
+@Composable
 private fun clockStatusText(viewModel: ClockViewModel): String {
-    if (viewModel.isLoadingStatus) return "Comprobando estado..."
+    if (viewModel.isLoadingStatus) return stringResource(R.string.clock_checking_status)
     if (viewModel.isSubmittingAction) {
-        return if (viewModel.submittingClockIn) "Registrando entrada..." else "Registrando salida..."
+        return if (viewModel.submittingClockIn) {
+            stringResource(R.string.clock_registering_entry)
+        } else {
+            stringResource(R.string.clock_registering_exit)
+        }
     }
     if (viewModel.isCheckedIn && viewModel.clockInTime != null) {
-        return "Fichado — Entrada a las ${formattedTime(viewModel.clockInTime!!)}"
+        return stringResource(R.string.clock_checked_in_at, formattedTime(viewModel.clockInTime!!))
     }
     if (viewModel.clockOutTime != null) {
-        return "Fuera de oficina — Salida a las ${formattedTime(viewModel.clockOutTime!!)}"
+        return stringResource(R.string.clock_out_at, formattedTime(viewModel.clockOutTime!!))
     }
-    return "Fuera de oficina"
+    return stringResource(R.string.clock_out)
 }
 
+@Composable
 private fun clockButtonTitle(viewModel: ClockViewModel): String {
     if (viewModel.isSubmittingAction) {
-        return if (viewModel.submittingClockIn) "Fichando entrada..." else "Fichando salida..."
+        return if (viewModel.submittingClockIn) {
+            stringResource(R.string.clock_punching_entry)
+        } else {
+            stringResource(R.string.clock_punching_exit)
+        }
     }
-    return if (viewModel.isCheckedIn) "Fichar salida" else "Fichar entrada"
+    return if (viewModel.isCheckedIn) stringResource(R.string.clock_punch_exit) else stringResource(R.string.clock_punch_entry)
+}
+
+private fun shortWeekdayLabels(): List<String> {
+    val weekdays = DateFormatSymbols.getInstance(Locale.getDefault()).shortWeekdays
+    return listOf(Calendar.MONDAY, Calendar.TUESDAY, Calendar.WEDNESDAY, Calendar.THURSDAY, Calendar.FRIDAY)
+        .map { weekdays[it].replace(".", "").replaceFirstChar { char -> char.uppercase(Locale.getDefault()) } }
 }
 
 private fun formattedWeeklyWorkedTime(viewModel: ClockViewModel): String {

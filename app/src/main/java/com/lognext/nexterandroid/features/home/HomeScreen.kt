@@ -63,6 +63,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.compose.ui.text.SpanStyle
@@ -148,16 +149,14 @@ private fun LoginScreen(
             .fillMaxSize()
             .background(if (isDark) NexterColors.DarkPageBackground else Color.White)
     ) {
-        if (!isDark) {
-            Image(
-                painter = painterResource(id = R.drawable.login_bottom_wave),
-                contentDescription = null,
-                contentScale = ContentScale.Crop,
-                modifier = Modifier
-                    .fillMaxSize()
-                    .offset(y = 100.dp)
-            )
-        }
+        Image(
+            painter = painterResource(id = R.drawable.login_bottom_wave),
+            contentDescription = null,
+            contentScale = ContentScale.Crop,
+            modifier = Modifier
+                .fillMaxSize()
+                .offset(y = 100.dp)
+        )
 
         Column(
             modifier = Modifier
@@ -200,7 +199,7 @@ private fun LoginScreen(
                     )
                 } else {
                     Text(
-                        text = "INICIAR SESIÓN",
+                        text = stringResource(R.string.login_button),
                         color = NexterColors.primaryText(),
                         fontSize = NexterTypography.Button,
                         fontWeight = FontWeight.Black
@@ -224,8 +223,14 @@ private fun LoginScreen(
                 horizontalAlignment = Alignment.Start,
                 verticalArrangement = Arrangement.spacedBy(6.dp)
             ) {
-                LoginClaimLine(red = "Tecnología ", navy = "que construye.")
-                LoginClaimLine(red = "Compromiso ", navy = "que perdura.")
+                LoginClaimLine(
+                    red = stringResource(R.string.login_claim_technology_red),
+                    navy = stringResource(R.string.login_claim_technology_text)
+                )
+                LoginClaimLine(
+                    red = stringResource(R.string.login_claim_commitment_red),
+                    navy = stringResource(R.string.login_claim_commitment_text)
+                )
             }
 
             Spacer(modifier = Modifier.weight(1f))
@@ -339,7 +344,7 @@ private fun GreetingCard(uiState: HomeUiState, displayName: String) {
         )
 
         Column {
-            Text("Bienvenido de nuevo,", color = Color.White.copy(alpha = 0.70f), fontSize = NexterTypography.Callout, fontWeight = FontWeight.SemiBold)
+            Text(stringResource(R.string.home_welcome), color = Color.White.copy(alpha = 0.70f), fontSize = NexterTypography.Callout, fontWeight = FontWeight.SemiBold)
             Text(
                 text = uiState.firstName.ifBlank { displayName },
                 color = Color.White,
@@ -359,15 +364,15 @@ private fun GreetingCard(uiState: HomeUiState, displayName: String) {
             ) {
                 Box(modifier = Modifier.size(5.dp).clip(CircleShape).background(NexterColors.Red))
                 Spacer(modifier = Modifier.width(5.dp))
-                Text("Cargando...", color = Color.White.copy(alpha = 0.80f), fontSize = NexterTypography.Badge, fontWeight = FontWeight.SemiBold)
+                Text(stringResource(R.string.home_loading), color = Color.White.copy(alpha = 0.80f), fontSize = NexterTypography.Badge, fontWeight = FontWeight.SemiBold)
             }
 
             Row(modifier = Modifier.padding(top = 14.dp), verticalAlignment = Alignment.CenterVertically) {
-                GreetingStat(uiState.formattedVacationDays, "Días dispon.", Modifier.weight(1f))
+                GreetingStat(uiState.formattedVacationDays, stringResource(R.string.home_available_days_short), Modifier.weight(1f))
                 GreetingDivider()
-                GreetingStat((uiState.meetingsTodayCount ?: uiState.todayMeetings.size).toString(), "Reuniones hoy", Modifier.weight(1f))
+                GreetingStat((uiState.meetingsTodayCount ?: uiState.todayMeetings.size).toString(), stringResource(R.string.home_meetings_today_short), Modifier.weight(1f))
                 GreetingDivider()
-                GreetingStat(uiState.displayedPendingTasksCount.toString(), "Tareas pend.", Modifier.weight(1f))
+                GreetingStat(uiState.displayedPendingTasksCount.toString(), stringResource(R.string.home_pending_tasks_short), Modifier.weight(1f))
             }
         }
     }
@@ -394,12 +399,12 @@ private fun GreetingDivider() {
 
 @Composable
 private fun MeetingsCard(uiState: HomeUiState, onOpenAgenda: () -> Unit) {
-    HtmlCard(title = "📅", label = "Reuniones de hoy", action = "Ver agenda", onAction = onOpenAgenda) {
+    HtmlCard(title = "📅", label = stringResource(R.string.home_today_meetings), action = stringResource(R.string.home_view_agenda), onAction = onOpenAgenda) {
         when {
-            uiState.isLoading -> CardStateMessage("Cargando reuniones…", showProgress = true)
+            uiState.isLoading -> CardStateMessage(stringResource(R.string.home_loading_meetings), showProgress = true)
             uiState.visibleMeetings.isEmpty() -> EmptyText(
-                text = "No tienes reuniones hoy",
-                subtitle = "Cuando tengas reuniones programadas aparecerán aquí."
+                text = stringResource(R.string.home_no_meetings_today),
+                subtitle = stringResource(R.string.home_no_meetings_subtitle)
             )
             else -> uiState.visibleMeetings.forEachIndexed { index, meeting ->
                 if (index > 0) Divider(color = NexterColors.border())
@@ -454,14 +459,14 @@ private fun TasksCard(
     onToggleCompleted: (HomeTask) -> Unit,
     onDeleteTask: (HomeTask) -> Unit
 ) {
-    HtmlCard(title = "📝", label = "Tareas pendientes", action = "Añadir", onAction = onAddTask) {
+    HtmlCard(title = "📝", label = stringResource(R.string.home_pending_tasks), action = stringResource(R.string.home_add), onAction = onAddTask) {
         val pendingTasks = uiState.tasks.filter { !it.isCompleted }.take(6)
         if (uiState.isLoading) {
-            CardStateMessage("Cargando tareas…", showProgress = true)
+            CardStateMessage(stringResource(R.string.home_loading_tasks), showProgress = true)
         } else if (pendingTasks.isEmpty()) {
             EmptyText(
-                text = "No tienes tareas pendientes",
-                subtitle = "Cuando tengas tareas asignadas aparecerán aquí."
+                text = stringResource(R.string.home_no_pending_tasks),
+                subtitle = stringResource(R.string.home_no_pending_tasks_subtitle)
             )
         } else {
             pendingTasks.forEachIndexed { index, task ->
@@ -507,7 +512,7 @@ private fun TaskRow(
                 maxLines = 2
             )
             Row(modifier = Modifier.padding(top = 3.dp), verticalAlignment = Alignment.CenterVertically) {
-                PriorityChip(task.importance, task.priorityLabel)
+                PriorityChip(task.importance)
                 task.dueDateText?.let {
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(it, color = NexterColors.tertiaryText(), fontSize = NexterTypography.Footnote)
@@ -516,7 +521,7 @@ private fun TaskRow(
         }
         if (isCompleted) {
             Text(
-                text = "Borrar",
+                text = stringResource(R.string.delete),
                 color = NexterColors.Red,
                 fontSize = NexterTypography.SmallButton,
                 fontWeight = FontWeight.SemiBold,
@@ -531,10 +536,10 @@ private fun TaskRow(
 }
 
 @Composable
-private fun PriorityChip(importance: String, label: String) {
+private fun PriorityChip(importance: String) {
     val color = priorityColor(importance)
     Text(
-        text = label,
+        text = priorityLabelText(importance),
         color = color,
         fontSize = NexterTypography.Badge,
         fontWeight = FontWeight.SemiBold,
@@ -593,18 +598,18 @@ private fun HtmlCard(
 
 @Composable
 private fun LoadingCard() {
-    HtmlCard(title = "⌛", label = "Cargando") {
+    HtmlCard(title = "⌛", label = stringResource(R.string.loading)) {
         Row(modifier = Modifier.padding(vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {
             CircularProgressIndicator(color = NexterColors.Red, modifier = Modifier.size(24.dp))
             Spacer(modifier = Modifier.width(10.dp))
-            Text("Cargando reuniones…", color = NexterColors.secondaryText(), fontSize = NexterTypography.Callout, fontWeight = FontWeight.SemiBold)
+            Text(stringResource(R.string.home_loading_meetings), color = NexterColors.secondaryText(), fontSize = NexterTypography.Callout, fontWeight = FontWeight.SemiBold)
         }
     }
 }
 
 @Composable
 private fun ErrorCard(message: String, onRetry: () -> Unit) {
-    HtmlCard(title = "!", label = "No se pudo cargar") {
+    HtmlCard(title = "!", label = stringResource(R.string.could_not_load)) {
         Text(message, color = NexterColors.secondaryText(), fontSize = NexterTypography.Callout, modifier = Modifier.padding(top = 10.dp))
         Button(
             onClick = onRetry,
@@ -614,7 +619,7 @@ private fun ErrorCard(message: String, onRetry: () -> Unit) {
                 .fillMaxWidth()
                 .padding(vertical = 10.dp)
         ) {
-            Text("Reintentar", fontWeight = FontWeight.SemiBold)
+            Text(stringResource(R.string.retry), fontWeight = FontWeight.SemiBold)
         }
     }
 }
@@ -703,7 +708,7 @@ private fun AgendaDialogContent(
                     .padding(end = 10.dp)
             ) {
                 Text(
-                    "Agenda",
+                    stringResource(R.string.agenda_title),
                     color = NexterColors.primaryText(),
                     fontSize = NexterTypography.ScreenTitle,
                     fontWeight = FontWeight.Bold,
@@ -711,7 +716,7 @@ private fun AgendaDialogContent(
                     overflow = TextOverflow.Ellipsis
                 )
                 Text(
-                    "Tus reuniones y próximos eventos",
+                    stringResource(R.string.agenda_subtitle),
                     color = NexterColors.secondaryText(),
                     fontSize = NexterTypography.ScreenSubtitle,
                     maxLines = 1,
@@ -720,7 +725,7 @@ private fun AgendaDialogContent(
                 )
             }
             Text(
-                "Cerrar",
+                stringResource(R.string.close),
                 color = NexterColors.Red,
                 fontSize = NexterTypography.SmallButton,
                 fontWeight = FontWeight.SemiBold,
@@ -759,7 +764,7 @@ private fun AgendaDialogContent(
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
-                            text = scope.title,
+                            text = stringResource(scope.titleRes),
                             color = if (selected) NexterColors.Red else NexterColors.secondaryText(),
                             fontSize = NexterTypography.SmallButton,
                             fontWeight = FontWeight.SemiBold,
@@ -779,7 +784,7 @@ private fun AgendaDialogContent(
         ) {
             when {
                 uiState.isLoadingAgenda || !uiState.hasLoadedAgenda -> {
-                    DialogStateMessage("Cargando agenda…", showProgress = true)
+                    DialogStateMessage(stringResource(R.string.agenda_loading), showProgress = true)
                 }
                 uiState.agendaErrorMessage != null -> {
                     Column(
@@ -788,19 +793,19 @@ private fun AgendaDialogContent(
                             .padding(vertical = 24.dp),
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
-                        Text("No se pudo cargar la agenda", color = NexterColors.primaryText(), fontSize = NexterTypography.Body, fontWeight = FontWeight.Bold)
+                        Text(stringResource(R.string.agenda_error), color = NexterColors.primaryText(), fontSize = NexterTypography.Body, fontWeight = FontWeight.Bold)
                         Text(uiState.agendaErrorMessage, color = NexterColors.secondaryText(), fontSize = NexterTypography.Callout, modifier = Modifier.padding(top = 8.dp))
                         Button(
                             onClick = onRetry,
                             colors = ButtonDefaults.buttonColors(backgroundColor = NexterColors.Red, contentColor = Color.White),
                             modifier = Modifier.padding(top = 12.dp)
                         ) {
-                            Text("Reintentar")
+                            Text(stringResource(R.string.retry))
                         }
                     }
                 }
                 uiState.visibleAgendaEvents.isEmpty() -> {
-                    DialogStateMessage(uiState.agendaScope.emptyTitle, subtitle = "Cuando tengas reuniones programadas aparecerán aquí.")
+                    DialogStateMessage(stringResource(uiState.agendaScope.emptyTitleRes), subtitle = stringResource(R.string.agenda_empty_subtitle))
                 }
                 else -> {
                     val scrollState = rememberScrollState()
@@ -935,7 +940,7 @@ private fun AddTaskDialog(
                             modifier = Modifier.weight(1f)
                         ) {
                             Text(
-                                "Añadir tarea",
+                                stringResource(R.string.add_task_title),
                                 color = NexterColors.primaryText(),
                                 fontSize = NexterTypography.ScreenTitle,
                                 fontWeight = FontWeight.Bold,
@@ -958,13 +963,13 @@ private fun AddTaskDialog(
                         TextField(
                             value = title,
                             onValueChange = { title = it },
-                            label = { Text("Título") },
+                            label = { Text(stringResource(R.string.title_label)) },
                             modifier = Modifier.fillMaxWidth()
                         )
                         TextField(
                             value = description,
                             onValueChange = { description = it },
-                            label = { Text("Descripción") },
+                            label = { Text(stringResource(R.string.description_label)) },
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .height(112.dp)
@@ -1008,7 +1013,7 @@ private fun AddTaskDialog(
                             .padding(18.dp)
                     ) {
                         OutlinedButton(onClick = closeDialog, modifier = Modifier.weight(1f)) {
-                            Text("Cancelar")
+                            Text(stringResource(R.string.cancel))
                         }
                         Button(
                             enabled = title.isNotBlank() && !uiState.isCreatingTask,
@@ -1019,7 +1024,7 @@ private fun AddTaskDialog(
                             if (uiState.isCreatingTask) {
                                 CircularProgressIndicator(color = Color.White, strokeWidth = 2.dp, modifier = Modifier.size(18.dp))
                             } else {
-                                Text("Guardar")
+                                Text(stringResource(R.string.save))
                             }
                         }
                     }
@@ -1057,13 +1062,13 @@ private fun DueDateSelectorRow(
     ) {
         Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
             Text(
-                "Vence",
+                stringResource(R.string.due_label),
                 color = NexterColors.secondaryText(),
                 fontSize = NexterTypography.Footnote,
                 fontWeight = FontWeight.Medium
             )
             Text(
-                dueDateText.ifBlank { "Sin fecha" },
+                dueDateText.ifBlank { stringResource(R.string.no_date) },
                 color = if (dueDateText.isBlank()) NexterColors.tertiaryText() else NexterColors.primaryText(),
                 fontSize = NexterTypography.Body,
                 fontWeight = FontWeight.SemiBold
@@ -1098,13 +1103,13 @@ private fun PrioritySelectorRow(
         Spacer(modifier = Modifier.width(10.dp))
         Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
             Text(
-                "Prioridad",
+                stringResource(R.string.priority),
                 color = NexterColors.secondaryText(),
                 fontSize = NexterTypography.Footnote,
                 fontWeight = FontWeight.Medium
             )
             Text(
-                priorityLabel(priority),
+                priorityLabelText(priority),
                 color = NexterColors.primaryText(),
                 fontSize = NexterTypography.Body,
                 fontWeight = FontWeight.SemiBold
@@ -1120,7 +1125,11 @@ private fun PriorityPickerDialog(
     onSelected: (String) -> Unit,
     onDismiss: () -> Unit
 ) {
-    val priorities = listOf("high" to "Alta", "normal" to "Normal", "low" to "Baja")
+    val priorities = listOf(
+        "high" to stringResource(R.string.priority_high),
+        "normal" to stringResource(R.string.priority_normal),
+        "low" to stringResource(R.string.priority_low)
+    )
     Dialog(onDismissRequest = onDismiss) {
         Card(
             backgroundColor = NexterColors.cardBackground(),
@@ -1131,7 +1140,7 @@ private fun PriorityPickerDialog(
         ) {
             Column {
                 Text(
-                    "Prioridad",
+                    stringResource(R.string.priority),
                     color = NexterColors.primaryText(),
                     fontSize = NexterTypography.CardTitle,
                     fontWeight = FontWeight.Bold,
@@ -1178,7 +1187,7 @@ private fun PriorityPickerDialog(
                 }
                 Divider(color = NexterColors.border())
                 Text(
-                    "Volver",
+                    stringResource(R.string.back),
                     color = NexterColors.Red,
                     fontSize = NexterTypography.Button,
                     fontWeight = FontWeight.SemiBold,
@@ -1218,6 +1227,15 @@ private fun priorityLabel(importance: String): String {
         "high" -> "Alta"
         "low" -> "Baja"
         else -> "Normal"
+    }
+}
+
+@Composable
+private fun priorityLabelText(importance: String): String {
+    return when (importance.lowercase(Locale.ROOT)) {
+        "high" -> stringResource(R.string.priority_high)
+        "low" -> stringResource(R.string.priority_low)
+        else -> stringResource(R.string.priority_normal)
     }
 }
 
