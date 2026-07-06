@@ -4,7 +4,9 @@ package com.lognext.nexterandroid.app
 
 import android.app.Activity
 import android.os.Build
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.asPaddingValues
@@ -12,9 +14,10 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.BottomNavigation
 import androidx.compose.material.BottomNavigationItem
-import androidx.compose.material.Divider
 import androidx.compose.material.Icon
 import androidx.compose.material.Scaffold
 import androidx.compose.material.Text
@@ -23,9 +26,11 @@ import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.painterResource
@@ -97,17 +102,25 @@ fun NexterApp() {
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(NexterColors.cardBackground())
-                    .padding(bottom = navigationBarHeight)
+                    .background(Color.Transparent)
+                    .padding(
+                        start = 26.dp,
+                        end = 26.dp,
+                        top = 8.dp,
+                        bottom = navigationBarHeight + 10.dp
+                    ),
+                horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Divider(color = NexterColors.border(), thickness = 1.dp)
                 BottomNavigation(
                     backgroundColor = NexterColors.cardBackground(),
                     contentColor = NexterColors.Red,
-                    elevation = 0.dp,
+                    elevation = 14.dp,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(62.dp)
+                        .widthIn(max = 360.dp)
+                        .height(64.dp)
+                        .clip(RoundedCornerShape(100.dp))
+                        .border(BorderStroke(1.dp, NexterColors.border()), RoundedCornerShape(100.dp))
                 ) {
                     destinations.forEach { destination ->
                         val selected = currentRoute == destination.route
