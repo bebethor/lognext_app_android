@@ -1,6 +1,9 @@
 package com.lognext.nexterandroid.features.home
 
 import android.app.Activity
+import android.app.DatePickerDialog
+import android.app.TimePickerDialog
+import android.content.Context
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
@@ -38,6 +41,8 @@ import androidx.compose.material.Card
 import androidx.compose.material.CircularProgressIndicator
 import androidx.compose.material.Divider
 import androidx.compose.material.OutlinedButton
+import androidx.compose.material.RadioButton
+import androidx.compose.material.RadioButtonDefaults
 import androidx.compose.material.Text
 import androidx.compose.material.TextField
 import androidx.compose.runtime.Composable
@@ -77,7 +82,10 @@ import com.lognext.nexterandroid.ui.theme.NexterColors
 import com.lognext.nexterandroid.ui.theme.NexterTypography
 import com.lognext.nexterandroid.ui.theme.isNexterDarkTheme
 import kotlinx.coroutines.launch
+import java.text.SimpleDateFormat
+import java.util.Calendar
 import java.util.Locale
+import java.util.TimeZone
 
 @Composable
 fun HomeScreen() {
@@ -386,7 +394,7 @@ private fun GreetingDivider() {
 
 @Composable
 private fun MeetingsCard(uiState: HomeUiState, onOpenAgenda: () -> Unit) {
-    HtmlCard(title = "📅", label = "Reuniones de hoy", action = "Ver agenda →", onAction = onOpenAgenda) {
+    HtmlCard(title = "📅", label = "Reuniones de hoy", action = "Ver agenda", onAction = onOpenAgenda) {
         when {
             uiState.isLoading -> CardStateMessage("Cargando reuniones…", showProgress = true)
             uiState.visibleMeetings.isEmpty() -> EmptyText(
@@ -891,9 +899,16 @@ private fun AddTaskDialog(
     var description by remember { mutableStateOf("") }
     var priority by remember { mutableStateOf("normal") }
     var dueDate by remember { mutableStateOf("") }
+    var dueDateText by remember { mutableStateOf("") }
+    var showPriorityPicker by remember { mutableStateOf(false) }
+    val context = LocalContext.current
+    val closeDialog = {
+        showPriorityPicker = false
+        onDismiss()
+    }
 
     Dialog(
-        onDismissRequest = onDismiss,
+        onDismissRequest = closeDialog,
         properties = DialogProperties(usePlatformDefaultWidth = false)
     ) {
         Box(
@@ -913,13 +928,11 @@ private fun AddTaskDialog(
                         modifier = Modifier
                             .fillMaxWidth()
                             .background(NexterColors.cardBackground())
-                            .padding(start = 18.dp, top = 18.dp, end = 12.dp, bottom = 14.dp),
+                            .padding(horizontal = 18.dp, vertical = 18.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Column(
-                            modifier = Modifier
-                                .weight(1f)
-                                .padding(end = 10.dp)
+                            modifier = Modifier.weight(1f)
                         ) {
                             Text(
                                 "Añadir tarea",
@@ -930,17 +943,6 @@ private fun AddTaskDialog(
                                 overflow = TextOverflow.Ellipsis
                             )
                         }
-                        Text(
-                            "Cerrar",
-                            color = NexterColors.Red,
-                            fontSize = NexterTypography.SmallButton,
-                            fontWeight = FontWeight.SemiBold,
-                            modifier = Modifier
-                                .clip(RoundedCornerShape(12.dp))
-                                .background(NexterColors.Red.copy(alpha = 0.10f))
-                                .clickable(onClick = onDismiss)
-                                .padding(horizontal = 12.dp, vertical = 8.dp)
-                        )
                     }
 
                     Divider(color = NexterColors.border())
@@ -967,66 +969,20 @@ private fun AddTaskDialog(
                                 .fillMaxWidth()
                                 .height(112.dp)
                         )
-                        TextField(
-                            value = dueDate,
-                            onValueChange = { dueDate = it },
-                            label = { Text("Vence") },
-                            placeholder = { Text("2099-01-05T09:00:00Z") },
-                            modifier = Modifier.fillMaxWidth()
-                        )
-
-                        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                            Text("Prioridad", color = NexterColors.secondaryText(), fontSize = NexterTypography.Footnote, fontWeight = FontWeight.SemiBold)
-                            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                                listOf("high" to "Alta", "normal" to "Normal", "low" to "Baja").forEach { (value, label) ->
-                                    val selected = priority == value
-                                    val accent = priorityColor(value)
-                                    Row(
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .clip(RoundedCornerShape(12.dp))
-                                            .background(if (selected) accent.copy(alpha = 0.10f) else NexterColors.pageBackground())
-                                            .border(
-                                                BorderStroke(
-                                                    1.dp,
-                                                    if (selected) accent.copy(alpha = 0.65f) else NexterColors.border()
-                                                ),
-                                                RoundedCornerShape(12.dp)
-                                            )
-                                            .clickable { priority = value }
-                                            .padding(horizontal = 12.dp, vertical = 12.dp),
-                                        verticalAlignment = Alignment.CenterVertically
-                                    ) {
-                                        Box(
-                                            modifier = Modifier
-                                                .size(if (selected) 14.dp else 10.dp)
-                                                .clip(CircleShape)
-                                                .background(accent)
-                                        )
-                                        Spacer(modifier = Modifier.width(10.dp))
-                                        Text(
-                                            text = label,
-                                            color = NexterColors.primaryText(),
-                                            fontSize = NexterTypography.Body,
-                                            fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
-                                            maxLines = 1,
-                                            overflow = TextOverflow.Ellipsis,
-                                            modifier = Modifier.weight(1f)
-                                        )
-                                        if (selected) {
-                                            Text(
-                                                text = "Seleccionada",
-                                                color = accent,
-                                                fontSize = NexterTypography.Badge,
-                                                fontWeight = FontWeight.SemiBold,
-                                                maxLines = 1,
-                                                overflow = TextOverflow.Ellipsis
-                                            )
-                                        }
-                                    }
+                        DueDateSelectorRow(
+                            dueDateText = dueDateText,
+                            onClick = {
+                                showDueDatePicker(context) { apiValue, displayValue ->
+                                    dueDate = apiValue
+                                    dueDateText = displayValue
                                 }
                             }
-                        }
+                        )
+
+                        PrioritySelectorRow(
+                            priority = priority,
+                            onClick = { showPriorityPicker = true }
+                        )
 
                         uiState.createTaskErrorMessage?.let {
                             Text(
@@ -1051,7 +1007,7 @@ private fun AddTaskDialog(
                             .background(NexterColors.cardBackground())
                             .padding(18.dp)
                     ) {
-                        OutlinedButton(onClick = onDismiss, modifier = Modifier.weight(1f)) {
+                        OutlinedButton(onClick = closeDialog, modifier = Modifier.weight(1f)) {
                             Text("Cancelar")
                         }
                         Button(
@@ -1068,6 +1024,170 @@ private fun AddTaskDialog(
                         }
                     }
                 }
+            }
+        }
+    }
+
+    if (showPriorityPicker) {
+        PriorityPickerDialog(
+            selectedPriority = priority,
+            onSelected = { selected ->
+                priority = selected
+                showPriorityPicker = false
+            },
+            onDismiss = { showPriorityPicker = false }
+        )
+    }
+}
+
+@Composable
+private fun DueDateSelectorRow(
+    dueDateText: String,
+    onClick: () -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(12.dp))
+            .background(NexterColors.pageBackground())
+            .border(BorderStroke(1.dp, NexterColors.border()), RoundedCornerShape(12.dp))
+            .clickable(onClick = onClick)
+            .padding(horizontal = 12.dp, vertical = 13.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+            Text(
+                "Vence",
+                color = NexterColors.secondaryText(),
+                fontSize = NexterTypography.Footnote,
+                fontWeight = FontWeight.Medium
+            )
+            Text(
+                dueDateText.ifBlank { "Sin fecha" },
+                color = if (dueDateText.isBlank()) NexterColors.tertiaryText() else NexterColors.primaryText(),
+                fontSize = NexterTypography.Body,
+                fontWeight = FontWeight.SemiBold
+            )
+        }
+        Text("›", color = NexterColors.tertiaryText(), fontSize = NexterTypography.Body, fontWeight = FontWeight.Bold)
+    }
+}
+
+@Composable
+private fun PrioritySelectorRow(
+    priority: String,
+    onClick: () -> Unit
+) {
+    val accent = priorityColor(priority)
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(12.dp))
+            .background(NexterColors.pageBackground())
+            .border(BorderStroke(1.dp, NexterColors.border()), RoundedCornerShape(12.dp))
+            .clickable(onClick = onClick)
+            .padding(horizontal = 12.dp, vertical = 13.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Box(
+            modifier = Modifier
+                .size(10.dp)
+                .clip(CircleShape)
+                .background(accent)
+        )
+        Spacer(modifier = Modifier.width(10.dp))
+        Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+            Text(
+                "Prioridad",
+                color = NexterColors.secondaryText(),
+                fontSize = NexterTypography.Footnote,
+                fontWeight = FontWeight.Medium
+            )
+            Text(
+                priorityLabel(priority),
+                color = NexterColors.primaryText(),
+                fontSize = NexterTypography.Body,
+                fontWeight = FontWeight.SemiBold
+            )
+        }
+        Text("›", color = NexterColors.tertiaryText(), fontSize = NexterTypography.Body, fontWeight = FontWeight.Bold)
+    }
+}
+
+@Composable
+private fun PriorityPickerDialog(
+    selectedPriority: String,
+    onSelected: (String) -> Unit,
+    onDismiss: () -> Unit
+) {
+    val priorities = listOf("high" to "Alta", "normal" to "Normal", "low" to "Baja")
+    Dialog(onDismissRequest = onDismiss) {
+        Card(
+            backgroundColor = NexterColors.cardBackground(),
+            shape = RoundedCornerShape(14.dp),
+            elevation = 18.dp,
+            border = BorderStroke(1.dp, NexterColors.border()),
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Column {
+                Text(
+                    "Prioridad",
+                    color = NexterColors.primaryText(),
+                    fontSize = NexterTypography.CardTitle,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 18.dp, vertical = 16.dp)
+                )
+                Divider(color = NexterColors.border())
+                priorities.forEachIndexed { index, (value, label) ->
+                    val selected = selectedPriority == value
+                    val accent = priorityColor(value)
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { onSelected(value) }
+                            .padding(horizontal = 14.dp, vertical = 10.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        RadioButton(
+                            selected = selected,
+                            onClick = { onSelected(value) },
+                            colors = RadioButtonDefaults.colors(
+                                selectedColor = accent,
+                                unselectedColor = NexterColors.tertiaryText()
+                            )
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Box(
+                            modifier = Modifier
+                                .size(10.dp)
+                                .clip(CircleShape)
+                                .background(accent)
+                        )
+                        Spacer(modifier = Modifier.width(10.dp))
+                        Text(
+                            label,
+                            color = NexterColors.primaryText(),
+                            fontSize = NexterTypography.Body,
+                            fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
+                    if (index != priorities.lastIndex) Divider(color = NexterColors.border(), modifier = Modifier.padding(start = 58.dp))
+                }
+                Divider(color = NexterColors.border())
+                Text(
+                    "Volver",
+                    color = NexterColors.Red,
+                    fontSize = NexterTypography.Button,
+                    fontWeight = FontWeight.SemiBold,
+                    textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable(onClick = onDismiss)
+                        .padding(vertical = 14.dp)
+                )
             }
         }
     }
@@ -1091,4 +1211,57 @@ private fun priorityColor(importance: String): Color {
         "low" -> Color(0xFF185FA5)
         else -> Color(0xFFE19A3B)
     }
+}
+
+private fun priorityLabel(importance: String): String {
+    return when (importance.lowercase(Locale.ROOT)) {
+        "high" -> "Alta"
+        "low" -> "Baja"
+        else -> "Normal"
+    }
+}
+
+private fun showDueDatePicker(
+    context: Context,
+    onSelected: (apiValue: String, displayValue: String) -> Unit
+) {
+    val initial = Calendar.getInstance()
+    DatePickerDialog(
+        context,
+        { _, year, month, dayOfMonth ->
+            val selected = Calendar.getInstance().apply {
+                set(Calendar.YEAR, year)
+                set(Calendar.MONTH, month)
+                set(Calendar.DAY_OF_MONTH, dayOfMonth)
+            }
+            TimePickerDialog(
+                context,
+                { _, hourOfDay, minute ->
+                    selected.set(Calendar.HOUR_OF_DAY, hourOfDay)
+                    selected.set(Calendar.MINUTE, minute)
+                    selected.set(Calendar.SECOND, 0)
+                    selected.set(Calendar.MILLISECOND, 0)
+                    onSelected(formatApiDate(selected), formatDisplayDate(selected))
+                },
+                selected.get(Calendar.HOUR_OF_DAY),
+                selected.get(Calendar.MINUTE),
+                true
+            ).show()
+        },
+        initial.get(Calendar.YEAR),
+        initial.get(Calendar.MONTH),
+        initial.get(Calendar.DAY_OF_MONTH)
+    ).show()
+}
+
+private fun formatDisplayDate(calendar: Calendar): String {
+    return SimpleDateFormat("d MMM yyyy HH:mm", Locale.getDefault())
+        .format(calendar.time)
+        .replace(".", "")
+}
+
+private fun formatApiDate(calendar: Calendar): String {
+    return SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", Locale.US).apply {
+        timeZone = TimeZone.getTimeZone("UTC")
+    }.format(calendar.time)
 }
