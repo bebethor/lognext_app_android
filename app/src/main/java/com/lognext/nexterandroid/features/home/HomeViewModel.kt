@@ -3,7 +3,7 @@ package com.lognext.nexterandroid.features.home
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.lognext.nexterandroid.core.AppConfig
-import kotlinx.coroutines.async
+import com.lognext.nexterandroid.core.network.APIError
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -75,13 +75,14 @@ class HomeViewModel(
         viewModelScope.launch {
             mutableUiState.value = mutableUiState.value.copy(isLoading = true, errorMessage = null)
 
-            runCatching {
-                val summary = async { service.getSummary() }
-                val meetings = async { service.getTodayEvents() }
-                val tasks = async { service.listTasks() }
+            val result = runCatching {
+                val summary = service.getSummary()
+                val meetings = service.getTodayEvents()
+                val tasks = service.listTasks()
+                Triple(summary, meetings, tasks)
+            }
 
-                Triple(summary.await(), meetings.await(), tasks.await())
-            }.onSuccess { (summary, meetings, tasks) ->
+            result.onSuccess { (summary, meetings, tasks) ->
                 hasLoaded = true
                 mutableUiState.value = HomeUiState(
                     isLoading = false,
@@ -97,7 +98,7 @@ class HomeViewModel(
             }.onFailure { error ->
                 mutableUiState.value = mutableUiState.value.copy(
                     isLoading = false,
-                    errorMessage = error.message ?: "Ha ocurrido un error inesperado."
+                    errorMessage = error.homeErrorMessage()
                 )
             }
         }
@@ -233,6 +234,17 @@ class HomeViewModel(
                     errorMessage = "No se pudo borrar la tarea. Inténtalo de nuevo."
                 )
             }
+        }
+    }
+
+    private fun Throwable.homeErrorMessage(): String {
+        return when (this) {
+            is APIError.Http -> if (statusCode == 401) {
+                "Login correcto, pero la API no ha aceptado el token. Falta configurar el scope del backend."
+            } else {
+                message ?: "No se pudo cargar la información."
+            }
+            else -> message ?: "Ha ocurrido un error inesperado."
         }
     }
 

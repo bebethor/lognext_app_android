@@ -118,7 +118,7 @@ fun HomeScreen() {
         }
         is AuthState.Error -> LoginScreen(
             isSigningIn = isLoggingIn,
-            errorMessage = null,
+            errorMessage = state.message,
             onSignIn = {
                 activity?.let { scope.launch { authRepository.signIn(it) } }
             }

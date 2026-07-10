@@ -1,6 +1,6 @@
 {
-  "client_id": "8cebd652-bfab-4e10-ae5a-c67214ac9d03",
-  "redirect_uri": "msauth://com.lognext.nexterandroid/254KWMWKtDuxHRVMIEJSTVi/tmE=",
+  "client_id": "02734a6d-c892-48c3-9388-b548ac422deb",
+  "redirect_uri": "msauth://com.lognext.nexterandroid/254KWMWKtDuxHRVMIEJSTVi%2FtmE%3D",
   "account_mode": "SINGLE",
   "authorization_user_agent": "DEFAULT",
   "authorities": [

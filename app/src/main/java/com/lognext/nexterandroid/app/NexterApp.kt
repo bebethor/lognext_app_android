@@ -5,39 +5,26 @@ package com.lognext.nexterandroid.app
 import android.app.Activity
 import android.os.Build
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.asPaddingValues
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.BottomNavigation
 import androidx.compose.material.BottomNavigationItem
-import androidx.compose.material.CircularProgressIndicator
 import androidx.compose.material.Icon
 import androidx.compose.material.Scaffold
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
@@ -64,7 +51,6 @@ import com.lognext.nexterandroid.features.more.MoreScreen
 import com.lognext.nexterandroid.features.people.PeopleScreen
 import com.lognext.nexterandroid.ui.theme.NexterColors
 import com.lognext.nexterandroid.ui.theme.isNexterDarkTheme
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 @Composable
@@ -78,18 +64,12 @@ fun NexterApp() {
     val authState by AppDependencies.authRepository.authState.collectAsState()
     val authenticatedState = authState as? AuthState.Authenticated
     val showAuthenticatedChrome = authenticatedState != null
-    var showStartupSplash by remember { mutableStateOf(true) }
     val destinations = listOf(
         AppDestination.Home,
         AppDestination.Clock,
         AppDestination.People,
         AppDestination.More
     )
-
-    LaunchedEffect(Unit) {
-        delay(900)
-        showStartupSplash = false
-    }
 
     SideEffect {
         val window = activity?.window ?: return@SideEffect
@@ -102,11 +82,6 @@ fun NexterApp() {
         val insetsController = WindowCompat.getInsetsController(window, view)
         insetsController.isAppearanceLightStatusBars = !isDark
         insetsController.isAppearanceLightNavigationBars = !isDark
-    }
-
-    if (showStartupSplash) {
-        StartupSplash(isDark = isDark)
-        return
     }
 
     Scaffold(
@@ -187,42 +162,6 @@ fun NexterApp() {
             composable(AppDestination.Clock.route) { ClockScreen() }
             composable(AppDestination.People.route) { PeopleScreen() }
             composable(AppDestination.More.route) { MoreScreen() }
-        }
-    }
-}
-
-@Composable
-private fun StartupSplash(isDark: Boolean) {
-    val logoRes = if (isDark) R.drawable.lognext_logo_negative else R.drawable.lognext_logo
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(if (isDark) NexterColors.DarkPageBackground else Color.White),
-        contentAlignment = Alignment.Center
-    ) {
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
-        ) {
-            Image(
-                painter = painterResource(id = logoRes),
-                contentDescription = "Lognext",
-                modifier = Modifier
-                    .width(180.dp)
-                    .height(42.dp)
-            )
-            Spacer(modifier = Modifier.height(26.dp))
-            CircularProgressIndicator(
-                color = NexterColors.Red,
-                strokeWidth = 2.dp,
-                modifier = Modifier.size(28.dp)
-            )
-            Spacer(modifier = Modifier.height(12.dp))
-            Text(
-                text = stringResource(R.string.splash_loading),
-                color = NexterColors.secondaryText(),
-                fontSize = 14.sp
-            )
         }
     }
 }

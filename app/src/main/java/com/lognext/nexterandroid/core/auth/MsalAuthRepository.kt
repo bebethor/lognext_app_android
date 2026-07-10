@@ -138,7 +138,9 @@ class MsalAuthRepository(
     private fun acquireBffToken(
         app: ISingleAccountPublicClientApplication,
         account: IAccount
-    ): String {
+    ): String? {
+        if (AppConfig.bffScopes.isEmpty()) return null
+
         val result = app.acquireTokenSilent(
             AppConfig.bffScopes.toTypedArray(),
             account.authority
@@ -151,10 +153,15 @@ class MsalAuthRepository(
         scopes: List<String>
     ): IAuthenticationResult {
         return suspendCancellableCoroutine { continuation ->
-            val parameters = AcquireTokenParameters.Builder()
+            val builder = AcquireTokenParameters.Builder()
                 .startAuthorizationFromActivity(activity)
                 .withScopes(scopes)
-                .withOtherScopesToAuthorize(AppConfig.bffScopes)
+
+            if (AppConfig.bffScopes.isNotEmpty()) {
+                builder.withOtherScopesToAuthorize(AppConfig.bffScopes)
+            }
+
+            val parameters = builder
                 .withCallback(
                     object : AuthenticationCallback {
                         override fun onSuccess(authenticationResult: IAuthenticationResult) {
@@ -189,7 +196,11 @@ class MsalAuthRepository(
     private fun Throwable.authMessage(): String {
         return when (this) {
             is AuthCancelledException -> "Inicio de sesión cancelado."
-            is MsalException -> "No se pudo completar la autenticación."
+            is MsalException -> listOfNotNull(
+                "No se pudo completar la autenticación.",
+                errorCode.takeIf { it.isNotBlank() }?.let { "Código: $it" },
+                message?.takeIf { it.isNotBlank() }
+            ).joinToString("\n")
             else -> message ?: "No se pudo completar la autenticación."
         }
     }
