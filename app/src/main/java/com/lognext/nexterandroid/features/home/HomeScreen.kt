@@ -101,9 +101,11 @@ fun HomeScreen() {
     }
 
     when (val state = authState) {
-        AuthState.Loading -> CenteredHomeShell {
-            CircularProgressIndicator(color = NexterColors.Red)
-        }
+        AuthState.Loading -> LoginScreen(
+            isSigningIn = true,
+            errorMessage = null,
+            onSignIn = {}
+        )
         AuthState.Unauthenticated -> LoginScreen(
             isSigningIn = isLoggingIn,
             errorMessage = null,
@@ -364,7 +366,14 @@ private fun GreetingCard(uiState: HomeUiState, displayName: String) {
             ) {
                 Box(modifier = Modifier.size(5.dp).clip(CircleShape).background(NexterColors.Red))
                 Spacer(modifier = Modifier.width(5.dp))
-                Text(stringResource(R.string.home_loading), color = Color.White.copy(alpha = 0.80f), fontSize = NexterTypography.Badge, fontWeight = FontWeight.SemiBold)
+                Text(
+                    text = uiState.positionTitle.ifBlank { stringResource(R.string.home_loading) },
+                    color = Color.White.copy(alpha = 0.80f),
+                    fontSize = NexterTypography.Badge,
+                    fontWeight = FontWeight.SemiBold,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
             }
 
             Row(modifier = Modifier.padding(top = 14.dp), verticalAlignment = Alignment.CenterVertically) {

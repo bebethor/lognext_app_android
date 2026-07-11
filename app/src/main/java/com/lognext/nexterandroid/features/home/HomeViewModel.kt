@@ -14,6 +14,7 @@ import java.util.Locale
 data class HomeUiState(
     val isLoading: Boolean = false,
     val firstName: String = "",
+    val positionTitle: String = "",
     val vacationDaysRemaining: Double? = null,
     val meetingsTodayCount: Int? = null,
     val pendingTasksCount: Int? = null,
@@ -75,25 +76,31 @@ class HomeViewModel(
         viewModelScope.launch {
             mutableUiState.value = mutableUiState.value.copy(isLoading = true, errorMessage = null)
 
-            val result = runCatching {
-                val summary = service.getSummary()
-                val meetings = service.getTodayEvents()
-                val tasks = service.listTasks()
-                Triple(summary, meetings, tasks)
-            }
+            val summaryResult = runCatching { service.getSummary() }
+            val meetingsResult = runCatching { service.getTodayEvents() }
+            val tasksResult = runCatching { service.listTasks() }
 
-            result.onSuccess { (summary, meetings, tasks) ->
+            summaryResult.onSuccess { summary ->
+                val meetings = meetingsResult.getOrNull()?.events.orEmpty().sortedByStartDate()
+                val tasks = tasksResult.getOrNull()?.tasks.orEmpty().sortedByDueDate()
+                val error = listOf(meetingsResult, tasksResult)
+                    .firstOrNull { it.isFailure }
+                    ?.exceptionOrNull()
+                    ?.homeErrorMessage()
+
                 hasLoaded = true
-                mutableUiState.value = HomeUiState(
+                mutableUiState.value = mutableUiState.value.copy(
                     isLoading = false,
                     firstName = summary.firstName,
+                    positionTitle = summary.positionTitle,
                     vacationDaysRemaining = summary.vacationDaysRemaining,
-                    meetingsTodayCount = summary.meetingsTodayCount,
-                    pendingTasksCount = summary.pendingTasksCount,
-                    urgentTasksCount = summary.urgentTasksCount,
-                    todayMeetings = meetings.events.sortedByStartDate(),
-                    tasks = tasks.tasks.sortedByDueDate(),
-                    completedTaskIds = tasks.tasks.filter { it.isDone }.map { it.id }.toSet()
+                    meetingsTodayCount = summary.meetingsTodayCount ?: meetings.size,
+                    pendingTasksCount = summary.pendingTasksCount ?: tasks.count { !it.isDone },
+                    urgentTasksCount = summary.urgentTasksCount ?: tasks.count { !it.isDone && it.priorityLabel == "Urgente" },
+                    todayMeetings = meetings,
+                    tasks = tasks,
+                    completedTaskIds = tasks.filter { it.isDone }.map { it.id }.toSet(),
+                    errorMessage = error
                 )
             }.onFailure { error ->
                 mutableUiState.value = mutableUiState.value.copy(
@@ -252,6 +259,7 @@ class HomeViewModel(
         return HomeUiState(
             isLoading = false,
             firstName = "Jose",
+            positionTitle = "Senior Mobile Developer",
             vacationDaysRemaining = 18.5,
             meetingsTodayCount = 3,
             pendingTasksCount = 4,

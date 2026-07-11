@@ -14,13 +14,7 @@ object AppConfig {
     const val DefaultPlannerPlanId = ""
     const val RedirectUri = "msauth://com.lognext.nexterandroid/254KWMWKtDuxHRVMIEJSTVi%2FtmE%3D"
 
-    val graphScopes = listOf(
-        "User.Read",
-        "Sites.Read.All",
-        "Files.Read.All",
-        "Calendars.Read",
-        "Tasks.ReadWrite"
-    )
+    val graphScopes = listOf("User.Read")
 
     val bffScopes = if (BackendApplicationIdUri.isBlank()) {
         emptyList()

@@ -8,13 +8,13 @@ class HomeService(
 ) : RestService(apiClient) {
     suspend fun getSummary(): HomeSummary {
         val me = get("/api/v1/staff/me", StaffMeResponse::class.java)
-        val tasks = listTasks().tasks
         return HomeSummary(
             firstName = me.firstName.ifBlank { me.fullName.substringBefore(" ").ifBlank { "Lognext" } },
+            positionTitle = me.jobTitle.ifBlank { me.positionTitle },
             vacationDaysRemaining = null,
             meetingsTodayCount = null,
-            pendingTasksCount = tasks.count { !it.isDone },
-            urgentTasksCount = tasks.count { !it.isDone && it.priorityLabel == "Urgente" }
+            pendingTasksCount = null,
+            urgentTasksCount = null
         )
     }
 
@@ -42,7 +42,9 @@ class HomeService(
 
     private data class StaffMeResponse(
         @com.google.gson.annotations.SerializedName("full_name") val fullName: String = "",
-        @com.google.gson.annotations.SerializedName("first_name") val firstName: String = ""
+        @com.google.gson.annotations.SerializedName("first_name") val firstName: String = "",
+        @com.google.gson.annotations.SerializedName("job_title") val jobTitle: String = "",
+        @com.google.gson.annotations.SerializedName("position_title") val positionTitle: String = ""
     )
 }
 
