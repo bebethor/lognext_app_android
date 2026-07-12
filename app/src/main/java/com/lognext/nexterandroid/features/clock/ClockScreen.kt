@@ -82,10 +82,27 @@ fun ClockScreen() {
         verticalArrangement = Arrangement.spacedBy(10.dp)
     ) {
         WorkdayCard(viewModel)
+        viewModel.errorMessage?.let { ClockErrorCard(it) }
         TodayRecordCard(viewModel)
         WeekSummaryCard(viewModel)
         RecentHistoryCard(viewModel)
     }
+}
+
+@Composable
+private fun ClockErrorCard(message: String) {
+    Text(
+        text = message,
+        color = NexterColors.Red,
+        fontSize = NexterTypography.Callout,
+        fontWeight = FontWeight.SemiBold,
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(12.dp))
+            .background(NexterColors.Red.copy(alpha = 0.08f))
+            .border(BorderStroke(1.dp, NexterColors.Red.copy(alpha = 0.20f)), RoundedCornerShape(12.dp))
+            .padding(12.dp)
+    )
 }
 
 @Composable

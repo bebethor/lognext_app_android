@@ -76,5 +76,7 @@ private val dateParsers: List<SimpleDateFormat>
         SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSZ", Locale.US),
         SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssZ", Locale.US),
         SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.US),
-        SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", Locale.US)
+        SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", Locale.US),
+        SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS", Locale.US),
+        SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.US)
     ).onEach { it.timeZone = TimeZone.getTimeZone("UTC") }
