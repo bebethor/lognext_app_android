@@ -8,6 +8,9 @@ import androidx.lifecycle.viewModelScope
 import com.lognext.nexterandroid.core.AppConfig
 import com.lognext.nexterandroid.ui.theme.NexterColors
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
@@ -21,11 +24,31 @@ class PeopleViewModel(
         private set
     var errorMessage by mutableStateOf<String?>(null)
         private set
-
-    var teamPeople by mutableStateOf(sampleTeam())
+    var isLoadingDetail by mutableStateOf(false)
         private set
-    var leadershipPeople by mutableStateOf(
-        listOf(
+    var detailErrorMessage by mutableStateOf<String?>(null)
+        private set
+    var detailManager by mutableStateOf<PeopleRowData?>(null)
+        private set
+    var detailReports by mutableStateOf<List<PeopleRowData>>(emptyList())
+        private set
+    var detailProjects by mutableStateOf<List<PeopleProjectDetail>>(emptyList())
+        private set
+
+    var teamPeople by mutableStateOf(if (AppConfig.UseFakeLogin) sampleTeam() else emptyList())
+        private set
+    var leadershipPeople by mutableStateOf(leadershipTeam())
+        private set
+
+    var projectCatalog by mutableStateOf(if (AppConfig.UseFakeLogin) sampleProjectCatalog() else emptyList())
+        private set
+
+    private var apiSearchResults by mutableStateOf<List<PeopleRowData>>(emptyList())
+    private var searchJob: Job? = null
+    private var detailJob: Job? = null
+    private var hasLoaded = false
+
+    private fun leadershipTeam(): List<PeopleRowData> = listOf(
         PeopleRowData(
             id = "leadership-pp",
             personCode = "PP",
@@ -72,23 +95,14 @@ class PeopleViewModel(
             company = "Lognext",
             darkText = true
         )
-        )
     )
-        private set
-
-    var projectCatalog by mutableStateOf(
-        listOf(
+    
+    private fun sampleProjectCatalog(): List<PeopleProject> = listOf(
         PeopleProject("LOGNEXT", "Lognext", "Consultoría tecnológica y servicios de transformación digital."),
         PeopleProject("SACYR", "Sacyr", "Cliente estratégico con servicios gestionados."),
         PeopleProject("PROY-APP", "Proyecto Nexter", "Producto interno para operaciones y personas."),
         PeopleProject("PROY-DATA", "Proyecto Data Platform", "Evolución de arquitectura de datos corporativa.")
-        )
     )
-        private set
-
-    private var apiSearchResults by mutableStateOf<List<PeopleRowData>>(emptyList())
-    private var searchJob: Job? = null
-    private var hasLoaded = false
 
     val companies: List<PeopleProject>
         get() = projectCatalog.filter { it.isCompany }
@@ -120,21 +134,41 @@ class PeopleViewModel(
         viewModelScope.launch {
             isLoading = true
             errorMessage = null
-            runCatching {
+            teamPeople = emptyList()
+            projectCatalog = emptyList()
+
+            val teamResult = runCatching {
                 val me = service.me()
-                val meRow = me.toPeopleRow(isCurrentUser = true)
-                val team = service.team(me.personCode).members.map { member ->
-                    member.toPeopleRow(isCurrentUser = member.personCode == me.personCode)
+                val personCode = me.personCode.orEmpty()
+                val team = service.team(personCode).members.map { member ->
+                    member.toPeopleRow(isCurrentUser = member.personCode.orEmpty() == personCode)
                 }
-                val projects = service.projects().projects.map { it.toPeopleProject() }
-                Triple(meRow, team, projects)
-            }.onSuccess { (me, team, projects) ->
-                teamPeople = (listOf(me) + team.filter { it.personCode != me.personCode }).distinctBy { it.personCode.ifBlank { it.id } }
-                leadershipPeople = emptyList()
+                if (team.isEmpty()) {
+                    listOf(me.toPeopleRow(isCurrentUser = true))
+                } else {
+                    team
+                }
+            }
+
+            val projectsResult = runCatching {
+                service.projects().projects.map { it.toPeopleProject() }
+                    .sortedBy { it.name.lowercase() }
+            }
+
+            teamResult.onSuccess { team ->
+                teamPeople = team.distinctBy { it.personCode.ifBlank { it.id } }
+            }.onFailure {
+                errorMessage = "Inténtalo de nuevo más tarde."
+            }
+
+            projectsResult.onSuccess { projects ->
                 projectCatalog = projects
             }.onFailure {
-                errorMessage = "No se pudo cargar People."
+                if (errorMessage == null) {
+                    errorMessage = "No se pudieron cargar los proyectos y empresas."
+                }
             }
+
             isLoading = false
         }
     }
@@ -152,7 +186,7 @@ class PeopleViewModel(
         searchJob = viewModelScope.launch {
             delay(300)
             runCatching {
-                service.searchStaff(query).people.map { it.toPeopleRow() }
+                service.searchStaffSmart(query).people.map { it.toPeopleRow() }
             }.onSuccess { people ->
                 apiSearchResults = people
             }.onFailure {
@@ -165,7 +199,144 @@ class PeopleViewModel(
         updateSearchText("")
     }
 
+    fun selectPerson(person: PeopleRowData) {
+        selectedPerson = person
+        detailJob?.cancel()
+        resetDetail()
+
+        if (AppConfig.UseFakeLogin) {
+            detailManager = sampleManagerFor(person)
+            detailReports = sampleReportsFor(person)
+            detailProjects = sampleProjectsFor(person)
+            return
+        }
+
+        detailJob = viewModelScope.launch {
+            isLoadingDetail = true
+            detailErrorMessage = null
+            runCatching {
+                val personCode = resolvePersonCode(person)
+                val profileRequest = async { runCatching { service.profile(personCode) }.getOrNull() }
+                val managerRequest = async { runCatching { service.manager(personCode) }.getOrNull() }
+                val teamRequest = async { runCatching { service.team(personCode) }.getOrNull() }
+
+                val profile = profileRequest.await()
+                val manager = managerRequest.await()
+                val team = teamRequest.await()
+
+                val resolvedPerson = profile?.toPeopleRow(fallback = person) ?: person.copy(personCode = personCode)
+                selectedPerson = resolvedPerson
+                detailManager = manager?.manager?.toPeopleRow()
+                    ?: profile?.toManagerRow(currentPersonCode = personCode)
+                    ?: team?.orgUnit?.toManagerRow(currentPersonCode = personCode)
+                detailReports = team?.members
+                    ?.filter { it.personCode.orEmpty() != personCode }
+                    ?.map { it.toPeopleRow() }
+                    .orEmpty()
+
+                if (profile == null || manager == null || team == null) {
+                    detailErrorMessage = "No se pudo cargar toda la información del perfil."
+                }
+
+                loadProjectsForPerson(personCode)
+            }.onFailure {
+                detailErrorMessage = "No se pudo cargar el perfil. Inténtalo de nuevo."
+            }
+            isLoadingDetail = false
+        }
+    }
+
+    fun dismissSelectedPerson() {
+        detailJob?.cancel()
+        selectedPerson = null
+        resetDetail()
+    }
+
     fun managerFor(person: PeopleRowData): PeopleRowData? {
+        if (!AppConfig.UseFakeLogin) return detailManager
+        return sampleManagerFor(person)
+    }
+
+    fun reportsFor(person: PeopleRowData): List<PeopleRowData> {
+        if (!AppConfig.UseFakeLogin) return detailReports
+        return sampleReportsFor(person)
+    }
+
+    fun projectsFor(person: PeopleRowData): List<PeopleProjectDetail> {
+        if (!AppConfig.UseFakeLogin) return detailProjects
+        return sampleProjectsFor(person)
+    }
+
+    private suspend fun resolvePersonCode(person: PeopleRowData): String {
+        person.personCode.takeIf { it.isNotBlank() }?.let { return it }
+        return service.searchStaffSmart(person.name).people.firstOrNull()?.personCode.orEmpty()
+            .ifBlank { throw IllegalStateException("Missing person_code") }
+    }
+
+    private fun PersonProfileResponse.toManagerRow(currentPersonCode: String): PeopleRowData? {
+        val managerName = managerName.orEmpty().trim()
+        val managerPersonCode = managerPersonCode.orEmpty().trim()
+        if (managerName.isBlank() || managerPersonCode == currentPersonCode) return null
+
+        return PeopleRowData(
+            id = managerPersonCode.ifBlank { "manager-$currentPersonCode" },
+            personCode = managerPersonCode,
+            initials = peopleInitials(managerName),
+            name = managerName,
+            role = "Manager",
+            color = peopleColor(managerPersonCode.ifBlank { managerName })
+        )
+    }
+
+    private fun OrgUnitResponse.toManagerRow(currentPersonCode: String): PeopleRowData? {
+        val managerName = managerName.trim()
+        val managerPersonCode = managerPersonCode.trim()
+        if (managerName.isBlank() || managerPersonCode == currentPersonCode) return null
+
+        return PeopleRowData(
+            id = managerPersonCode.ifBlank { "manager-$currentPersonCode" },
+            personCode = managerPersonCode,
+            initials = peopleInitials(managerName),
+            name = managerName,
+            role = "Manager",
+            color = peopleColor(managerPersonCode.ifBlank { managerName })
+        )
+    }
+
+    private suspend fun loadProjectsForPerson(personCode: String) {
+        val catalog = if (projectCatalog.isNotEmpty()) {
+            projectCatalog
+        } else {
+            service.projects().projects.map { it.toPeopleProject() }
+                .sortedBy { it.name.lowercase() }
+                .also { projectCatalog = it }
+        }
+
+        detailProjects = coroutineScope {
+            catalog.map { project ->
+                async {
+                    val members = runCatching { service.projectMembers(project.code).members }.getOrDefault(emptyList())
+                    if (members.any { it.personCode.orEmpty() == personCode }) {
+                        PeopleProjectDetail(project, members.map { it.toPeopleRow() })
+                    } else {
+                        null
+                    }
+                }
+            }.awaitAll()
+        }
+            .filterNotNull()
+            .sortedBy { it.project.name.lowercase() }
+    }
+
+    private fun resetDetail() {
+        isLoadingDetail = false
+        detailErrorMessage = null
+        detailManager = null
+        detailReports = emptyList()
+        detailProjects = emptyList()
+    }
+
+    private fun sampleManagerFor(person: PeopleRowData): PeopleRowData? {
         if (!AppConfig.UseFakeLogin) {
             return allPeople().firstOrNull { it.personCode.isNotBlank() && it.personCode == person.managerPersonCode }
                 ?: person.managerName.takeIf { it.isNotBlank() }?.let { managerName ->
@@ -187,7 +358,7 @@ class PeopleViewModel(
         }
     }
 
-    fun reportsFor(person: PeopleRowData): List<PeopleRowData> {
+    private fun sampleReportsFor(person: PeopleRowData): List<PeopleRowData> {
         if (!AppConfig.UseFakeLogin) {
             return allPeople().filter { it.managerPersonCode.isNotBlank() && it.managerPersonCode == person.personCode }
         }
@@ -199,7 +370,7 @@ class PeopleViewModel(
         }
     }
 
-    fun projectsFor(person: PeopleRowData): List<PeopleProjectDetail> {
+    private fun sampleProjectsFor(person: PeopleRowData): List<PeopleProjectDetail> {
         val members = teamPeople + leadershipPeople.take(1)
         val assignedProjects = if (person.isCurrentUser) projects.take(2) else projects.takeLast(2)
         return assignedProjects.map { PeopleProjectDetail(it, members.take(3)) }

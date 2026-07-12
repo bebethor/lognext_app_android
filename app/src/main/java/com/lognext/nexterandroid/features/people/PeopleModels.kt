@@ -38,6 +38,7 @@ data class PeopleProjectDetail(
 )
 
 data class PeopleDetailField(
+    val icon: String,
     val label: String,
     val value: String
 )

@@ -86,7 +86,7 @@ fun PeopleScreen() {
                     badge = null,
                     highlighted = true,
                     people = viewModel.searchResults,
-                    onPersonSelected = { viewModel.selectedPerson = it }
+                    onPersonSelected = viewModel::selectPerson
                 )
             }
         } else {
@@ -95,7 +95,7 @@ fun PeopleScreen() {
                 badge = stringResource(R.string.people_my_team),
                 highlighted = true,
                 people = viewModel.teamPeople,
-                onPersonSelected = { viewModel.selectedPerson = it }
+                onPersonSelected = viewModel::selectPerson
             )
 
             PeopleSectionCard(
@@ -103,7 +103,7 @@ fun PeopleScreen() {
                 badge = null,
                 highlighted = false,
                 people = viewModel.leadershipPeople,
-                onPersonSelected = { viewModel.selectedPerson = it }
+                onPersonSelected = viewModel::selectPerson
             )
 
             ProjectCatalogCard(
@@ -125,8 +125,10 @@ fun PeopleScreen() {
             manager = viewModel.managerFor(person),
             reports = viewModel.reportsFor(person),
             projects = viewModel.projectsFor(person),
-            onPersonSelected = { viewModel.selectedPerson = it },
-            onDismiss = { viewModel.selectedPerson = null }
+            isLoading = viewModel.isLoadingDetail,
+            errorMessage = viewModel.detailErrorMessage,
+            onPersonSelected = viewModel::selectPerson,
+            onDismiss = viewModel::dismissSelectedPerson
         )
     }
 }
@@ -257,14 +259,18 @@ private fun PeopleRow(person: PeopleRowData, onClick: () -> Unit) {
         PeopleAvatar(person = person, size = 55)
         Spacer(modifier = Modifier.width(12.dp))
         Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.fillMaxWidth()
+            ) {
                 Text(
                     text = person.name,
                     color = NexterColors.primaryText(),
                     fontSize = NexterTypography.Body,
                     fontWeight = FontWeight.SemiBold,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f, fill = false)
                 )
                 if (person.isCurrentUser) {
                     Spacer(modifier = Modifier.width(6.dp))
@@ -376,6 +382,8 @@ private fun PersonDetailDialog(
     manager: PeopleRowData?,
     reports: List<PeopleRowData>,
     projects: List<PeopleProjectDetail>,
+    isLoading: Boolean,
+    errorMessage: String?,
     onPersonSelected: (PeopleRowData) -> Unit,
     onDismiss: () -> Unit
 ) {
@@ -426,28 +434,71 @@ private fun PersonDetailDialog(
                     verticalArrangement = Arrangement.spacedBy(14.dp)
                 ) {
                     ProfileHero(person)
-                    DetailInformationSection(
-                        title = stringResource(R.string.people_contact),
-                        fields = listOf(
-                            PeopleDetailField("Email", person.email),
-                            PeopleDetailField(stringResource(R.string.people_work_phone), person.workPhone)
-                        ).filter { it.value.isNotBlank() }
-                    )
-                    DetailInformationSection(
-                        title = stringResource(R.string.people_work_info),
-                        fields = listOf(
-                            PeopleDetailField(stringResource(R.string.people_position), person.positionTitle.ifBlank { person.role }),
-                            PeopleDetailField(stringResource(R.string.people_company), person.company),
-                            PeopleDetailField(stringResource(R.string.people_hire_date), person.hireDate)
-                        ).filter { it.value.isNotBlank() }
-                    )
-                    ReportsToSection(manager, onPersonSelected)
-                    DirectReportsSection(reports, onPersonSelected)
-                    ProjectsSection(projects)
+                    if (isLoading) {
+                        DetailLoadingState()
+                    } else {
+                        errorMessage?.let { DetailErrorState(it) }
+                        DetailInformationSection(
+                            title = stringResource(R.string.people_contact),
+                            fields = listOf(
+                                PeopleDetailField("✉", "Email", person.email),
+                                PeopleDetailField("☎", stringResource(R.string.people_work_phone), person.workPhone)
+                            ).filter { it.value.isNotBlank() }
+                        )
+                        DetailInformationSection(
+                            title = stringResource(R.string.people_work_info),
+                            fields = listOf(
+                                PeopleDetailField("▣", stringResource(R.string.people_position), person.positionTitle.ifBlank { person.role }),
+                                PeopleDetailField("▦", stringResource(R.string.people_company), person.company),
+                                PeopleDetailField("◷", stringResource(R.string.people_hire_date), person.hireDate)
+                            ).filter { it.value.isNotBlank() }
+                        )
+                        ReportsToSection(manager, onPersonSelected)
+                        DirectReportsSection(reports, onPersonSelected)
+                        ProjectsSection(projects)
+                    }
                 }
             }
         }
     }
+}
+
+@Composable
+private fun DetailLoadingState() {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(10.dp))
+            .background(subtleBackground())
+            .border(BorderStroke(1.dp, NexterColors.border()), RoundedCornerShape(10.dp))
+            .padding(horizontal = 12.dp, vertical = 14.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(10.dp)
+    ) {
+        CircularProgressIndicator(color = NexterColors.Red, modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
+        Text(
+            text = stringResource(R.string.people_loading),
+            color = NexterColors.secondaryText(),
+            fontSize = NexterTypography.Callout,
+            fontWeight = FontWeight.SemiBold
+        )
+    }
+}
+
+@Composable
+private fun DetailErrorState(message: String) {
+    Text(
+        text = message,
+        color = NexterColors.Red,
+        fontSize = NexterTypography.Callout,
+        fontWeight = FontWeight.SemiBold,
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(10.dp))
+            .background(NexterColors.Red.copy(alpha = 0.10f))
+            .border(BorderStroke(1.dp, NexterColors.Red.copy(alpha = 0.25f)), RoundedCornerShape(10.dp))
+            .padding(horizontal = 12.dp, vertical = 10.dp)
+    )
 }
 
 @Composable
@@ -473,8 +524,23 @@ private fun ProfileHero(person: PeopleRowData) {
             verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
             PeopleAvatar(person = person, size = 64)
-            Text(person.name, color = Color.White, fontSize = NexterTypography.CardTitle, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center)
-            Text(person.role, color = Color.White.copy(alpha = 0.55f), fontSize = NexterTypography.Callout, textAlign = TextAlign.Center)
+            Text(
+                text = person.name,
+                color = Color.White,
+                fontSize = NexterTypography.CardTitle,
+                fontWeight = FontWeight.Bold,
+                textAlign = TextAlign.Center,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis
+            )
+            Text(
+                text = person.role,
+                color = Color.White.copy(alpha = 0.55f),
+                fontSize = NexterTypography.Callout,
+                textAlign = TextAlign.Center,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis
+            )
             if (person.orgUnitName.isNotBlank()) {
                 Text(
                     text = person.orgUnitName.uppercase(),
@@ -504,11 +570,27 @@ private fun DetailInformationSection(title: String, fields: List<PeopleDetailFie
                 .border(BorderStroke(1.dp, NexterColors.border()), RoundedCornerShape(10.dp))
         ) {
             fields.forEachIndexed { index, field ->
-                Column(modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp)) {
-                    Text(field.label, color = NexterColors.tertiaryText(), fontSize = NexterTypography.Footnote, fontWeight = FontWeight.SemiBold)
-                    Text(field.value, color = NexterColors.primaryText(), fontSize = NexterTypography.Body, fontWeight = FontWeight.SemiBold)
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 12.dp, vertical = 10.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = field.icon,
+                        color = NexterColors.Red,
+                        fontSize = NexterTypography.IconButton,
+                        fontWeight = FontWeight.Bold,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.width(24.dp)
+                    )
+                    Spacer(modifier = Modifier.width(12.dp))
+                    Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                        Text(field.label, color = NexterColors.tertiaryText(), fontSize = NexterTypography.Footnote, fontWeight = FontWeight.SemiBold)
+                        Text(field.value, color = NexterColors.primaryText(), fontSize = NexterTypography.Body, fontWeight = FontWeight.SemiBold)
+                    }
                 }
-                if (index != fields.lastIndex) Divider(color = NexterColors.border(), modifier = Modifier.padding(start = 12.dp))
+                if (index != fields.lastIndex) Divider(color = NexterColors.border(), modifier = Modifier.padding(start = 48.dp))
             }
         }
     }
@@ -560,7 +642,7 @@ private fun ProfilePersonRow(person: PeopleRowData, onClick: () -> Unit) {
         PeopleAvatar(person, size = 46)
         Spacer(modifier = Modifier.width(10.dp))
         Column(modifier = Modifier.weight(1f)) {
-            Text(person.name, color = NexterColors.primaryText(), fontSize = NexterTypography.Body, fontWeight = FontWeight.SemiBold)
+            Text(person.name, color = NexterColors.primaryText(), fontSize = NexterTypography.Body, fontWeight = FontWeight.SemiBold, maxLines = 2, overflow = TextOverflow.Ellipsis)
             Text(person.role, color = NexterColors.secondaryText(), fontSize = NexterTypography.Callout, maxLines = 1, overflow = TextOverflow.Ellipsis)
         }
         if (person.isCurrentUser) CurrentUserBadge() else Text("›", color = NexterColors.tertiaryText(), fontSize = NexterTypography.Body)
