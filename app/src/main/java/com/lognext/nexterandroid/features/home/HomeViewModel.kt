@@ -38,7 +38,7 @@ data class HomeUiState(
         }
 
     val displayedPendingTasksCount: Int
-        get() = if (tasks.isNotEmpty()) tasks.count { it.id !in completedTaskIds } else pendingTasksCount ?: 0
+        get() = if (tasks.isNotEmpty()) tasks.count { it.stableId !in completedTaskIds } else pendingTasksCount ?: 0
 
     val visibleMeetings: List<HomeCalendarEvent>
         get() {
@@ -99,7 +99,7 @@ class HomeViewModel(
                     urgentTasksCount = summary.urgentTasksCount ?: tasks.count { !it.isDone && it.priorityLabel == "Urgente" },
                     todayMeetings = meetings,
                     tasks = tasks,
-                    completedTaskIds = tasks.filter { it.isDone }.map { it.id }.toSet(),
+                    completedTaskIds = tasks.filter { it.isDone }.map { it.stableId }.toSet(),
                     errorMessage = error
                 )
             }.onFailure { error ->
@@ -152,17 +152,19 @@ class HomeViewModel(
 
     fun toggleCompleted(task: HomeTask) {
         val completed = mutableUiState.value.completedTaskIds.toMutableSet()
-        val shouldComplete = completed.add(task.id)
-        if (!shouldComplete) completed.remove(task.id)
+        val localTaskId = task.stableId
+        val shouldComplete = completed.add(localTaskId)
+        if (!shouldComplete) completed.remove(localTaskId)
         mutableUiState.value = mutableUiState.value.copy(completedTaskIds = completed)
 
-        if (!AppConfig.UseFakeLogin) {
+        val apiTaskId = task.id
+        if (!AppConfig.UseFakeLogin && !apiTaskId.isNullOrBlank()) {
             viewModelScope.launch {
                 runCatching {
-                    service.updateTask(task.id, HomeTaskUpdateRequest(percentComplete = if (shouldComplete) 100 else 0))
+                    service.updateTask(apiTaskId, HomeTaskUpdateRequest(percentComplete = if (shouldComplete) 100 else 0))
                 }.onFailure {
                     val reverted = mutableUiState.value.completedTaskIds.toMutableSet()
-                    if (shouldComplete) reverted.remove(task.id) else reverted.add(task.id)
+                    if (shouldComplete) reverted.remove(localTaskId) else reverted.add(localTaskId)
                     mutableUiState.value = mutableUiState.value.copy(
                         completedTaskIds = reverted,
                         errorMessage = "No se pudo actualizar la tarea. Inténtalo de nuevo."
@@ -200,15 +202,28 @@ class HomeViewModel(
                 title = cleanTitle,
                 planId = AppConfig.DefaultPlannerPlanId,
                 description = description.trim().ifBlank { null },
-                priority = priority.toApiPriority(),
+                importance = priority,
                 dueDate = dueDate?.takeIf { it.isNotBlank() }
             )
             runCatching {
                 service.createTask(request)
             }.onSuccess { task ->
+                val createdTask = HomeTask(
+                    id = task?.id ?: "created-task-${System.currentTimeMillis()}",
+                    title = cleanTitle,
+                    planId = task?.planId ?: AppConfig.DefaultPlannerPlanId,
+                    description = task?.description ?: description.trim().ifBlank { null },
+                    importance = task?.importance.orEmpty().ifBlank { priority },
+                    priority = task?.priority?.let {
+                        if (it == 5 && priority != "normal") priority.toApiPriority() else it
+                    } ?: priority.toApiPriority(),
+                    dueDate = task?.dueDate ?: dueDate?.takeIf { it.isNotBlank() },
+                    isCompleted = task?.isCompleted ?: false,
+                    percentComplete = task?.percentComplete ?: 0
+                )
                 mutableUiState.value = mutableUiState.value.copy(
                     isCreatingTask = false,
-                    tasks = (mutableUiState.value.tasks + task).sortedByDueDate()
+                    tasks = (mutableUiState.value.tasks + createdTask).sortedByDueDate()
                 )
             }.onFailure {
                 mutableUiState.value = mutableUiState.value.copy(
@@ -222,19 +237,28 @@ class HomeViewModel(
     fun deleteTask(task: HomeTask) {
         if (AppConfig.UseFakeLogin) {
             mutableUiState.value = mutableUiState.value.copy(
-                tasks = mutableUiState.value.tasks.filterNot { it.id == task.id },
-                completedTaskIds = mutableUiState.value.completedTaskIds - task.id
+                tasks = mutableUiState.value.tasks.filterNot { it.stableId == task.stableId },
+                completedTaskIds = mutableUiState.value.completedTaskIds - task.stableId
+            )
+            return
+        }
+
+        val apiTaskId = task.id
+        if (apiTaskId.isNullOrBlank()) {
+            mutableUiState.value = mutableUiState.value.copy(
+                tasks = mutableUiState.value.tasks.filterNot { it.stableId == task.stableId },
+                completedTaskIds = mutableUiState.value.completedTaskIds - task.stableId
             )
             return
         }
 
         viewModelScope.launch {
             runCatching {
-                service.deleteTask(task.id)
+                service.deleteTask(apiTaskId)
             }.onSuccess {
                 mutableUiState.value = mutableUiState.value.copy(
-                    tasks = mutableUiState.value.tasks.filterNot { it.id == task.id },
-                    completedTaskIds = mutableUiState.value.completedTaskIds - task.id
+                    tasks = mutableUiState.value.tasks.filterNot { it.stableId == task.stableId },
+                    completedTaskIds = mutableUiState.value.completedTaskIds - task.stableId
                 )
             }.onFailure {
                 mutableUiState.value = mutableUiState.value.copy(
@@ -303,6 +327,7 @@ class HomeViewModel(
                 HomeTask(
                     id = "mock-task-1",
                     title = "Pulir pantalla Home en Android",
+                    planId = "",
                     description = null,
                     importance = "high",
                     dueDate = "2099-01-01T18:00:00Z",
@@ -311,6 +336,7 @@ class HomeViewModel(
                 HomeTask(
                     id = "mock-task-2",
                     title = "Revisar navegacion inferior",
+                    planId = "",
                     description = null,
                     importance = "normal",
                     dueDate = "2099-01-02T10:00:00Z",
@@ -319,6 +345,7 @@ class HomeViewModel(
                 HomeTask(
                     id = "mock-task-3",
                     title = "Preparar People",
+                    planId = "",
                     description = null,
                     importance = "low",
                     dueDate = null,
@@ -362,8 +389,8 @@ class HomeViewModel(
 
 private fun String.toApiPriority(): Int {
     return when (lowercase(Locale.ROOT)) {
-        "high" -> 9
-        "low" -> 2
+        "high" -> 2
+        "low" -> 9
         else -> 5
     }
 }

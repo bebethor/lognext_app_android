@@ -482,7 +482,7 @@ private fun TasksCard(
                 if (index > 0) Divider(color = NexterColors.border())
                 TaskRow(
                     task = task,
-                    isCompleted = task.id in uiState.completedTaskIds,
+                    isCompleted = task.stableId in uiState.completedTaskIds,
                     onToggleCompleted = { onToggleCompleted(task) },
                     onDelete = { onDeleteTask(task) }
                 )
@@ -514,14 +514,14 @@ private fun TaskRow(
         Spacer(modifier = Modifier.width(10.dp))
         Column(modifier = Modifier.weight(1f)) {
             Text(
-                task.title,
+                task.displayTitle,
                 color = if (isCompleted) NexterColors.secondaryText() else NexterColors.primaryText(),
                 fontSize = NexterTypography.Callout,
                 fontWeight = FontWeight.Medium,
                 maxLines = 2
             )
             Row(modifier = Modifier.padding(top = 3.dp), verticalAlignment = Alignment.CenterVertically) {
-                PriorityChip(task.importance)
+                PriorityChip(task.priorityKey)
                 task.dueDateText?.let {
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(it, color = NexterColors.tertiaryText(), fontSize = NexterTypography.Footnote)

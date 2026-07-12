@@ -110,16 +110,33 @@ data class HomeTaskListResponse(
 )
 
 data class HomeTask(
-    val id: String,
-    val title: String,
-    @SerializedName("plan_id") val planId: String = "",
+    val id: String?,
+    val title: String?,
+    @SerializedName("plan_id") val planId: String?,
     val description: String?,
-    val importance: String = "",
+    val importance: String?,
     val priority: Int = 5,
     @SerializedName("due_date") val dueDate: String?,
     @SerializedName("is_completed") val isCompleted: Boolean = false,
     @SerializedName("percent_complete") val percentComplete: Int = 0
 ) {
+    val stableId: String
+        get() = id.orEmpty().ifBlank { "${displayTitle}-${dueDate.orEmpty()}" }
+
+    val displayTitle: String
+        get() = title.orEmpty().ifBlank { "Sin título" }
+
+    val priorityKey: String
+        get() {
+            val normalizedImportance = importance.orEmpty().lowercase(Locale.ROOT)
+            return when {
+                normalizedImportance in setOf("high", "normal", "low") -> normalizedImportance
+                priority <= 3 -> "high"
+                priority >= 8 -> "low"
+                else -> "normal"
+            }
+        }
+
     val isDone: Boolean
         get() = isCompleted || percentComplete >= 100
 
@@ -128,8 +145,8 @@ data class HomeTask(
 
     val priorityLabel: String
         get() = when {
-            importance.equals("high", ignoreCase = true) || priority >= 8 -> "Urgente"
-            importance.equals("low", ignoreCase = true) || priority <= 3 -> "Baja"
+            priorityKey == "high" -> "Urgente"
+            priorityKey == "low" -> "Baja"
             else -> "Media"
         }
 
@@ -143,7 +160,7 @@ data class HomeTaskCreateRequest(
     val title: String,
     @SerializedName("plan_id") val planId: String,
     val description: String?,
-    val priority: Int,
+    val importance: String,
     @SerializedName("due_date") val dueDate: String?,
     @SerializedName("start_date") val startDate: String? = null
 )
@@ -158,7 +175,7 @@ fun List<HomeCalendarEvent>.sortedByStartDate(): List<HomeCalendarEvent> {
 fun List<HomeTask>.sortedByDueDate(): List<HomeTask> {
     return sortedWith(
         compareBy<HomeTask> { it.sortDueDate ?: Date(Long.MAX_VALUE) }
-            .thenBy { it.title.lowercase(Locale.getDefault()) }
+            .thenBy { it.displayTitle.lowercase(Locale.getDefault()) }
     )
 }
 
