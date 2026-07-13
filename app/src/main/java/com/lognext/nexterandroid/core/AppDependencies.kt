@@ -7,6 +7,7 @@ import com.lognext.nexterandroid.core.network.APIClient
 import com.lognext.nexterandroid.core.network.OkHttpAPIClient
 import com.lognext.nexterandroid.features.clock.ClockService
 import com.lognext.nexterandroid.features.home.HomeService
+import com.lognext.nexterandroid.features.more.VacationService
 import com.lognext.nexterandroid.features.people.PeopleService
 
 object AppDependencies {
@@ -27,6 +28,9 @@ object AppDependencies {
     lateinit var peopleService: PeopleService
         private set
 
+    lateinit var vacationService: VacationService
+        private set
+
     fun initialize(context: Context) {
         if (initialized) return
 
@@ -35,6 +39,7 @@ object AppDependencies {
         homeService = HomeService(apiClient)
         clockService = ClockService(apiClient)
         peopleService = PeopleService(apiClient)
+        vacationService = VacationService(apiClient)
         initialized = true
     }
 }

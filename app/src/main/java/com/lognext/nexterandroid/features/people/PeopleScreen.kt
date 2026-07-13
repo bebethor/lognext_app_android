@@ -46,6 +46,7 @@ import com.lognext.nexterandroid.R
 import com.lognext.nexterandroid.core.AppDependencies
 import com.lognext.nexterandroid.ui.theme.NexterColors
 import com.lognext.nexterandroid.ui.theme.NexterTypography
+import java.util.Locale
 
 @Composable
 fun PeopleScreen() {
@@ -437,7 +438,7 @@ private fun PersonDetailDialog(
                     if (isLoading) {
                         DetailLoadingState()
                     } else {
-                        errorMessage?.let { DetailErrorState(it) }
+                        errorMessage?.let { DetailErrorState(localizedPeopleMessage(it)) }
                         DetailInformationSection(
                             title = stringResource(R.string.people_contact),
                             fields = listOf(
@@ -499,6 +500,17 @@ private fun DetailErrorState(message: String) {
             .border(BorderStroke(1.dp, NexterColors.Red.copy(alpha = 0.25f)), RoundedCornerShape(10.dp))
             .padding(horizontal = 12.dp, vertical = 10.dp)
     )
+}
+
+@Composable
+private fun localizedPeopleMessage(message: String): String {
+    return when (message.lowercase(Locale.getDefault())) {
+        "inténtalo de nuevo más tarde." -> stringResource(R.string.error_try_again_later)
+        "no se pudieron cargar los proyectos y empresas." -> stringResource(R.string.people_error_load_projects_companies)
+        "no se pudo cargar toda la información del perfil." -> stringResource(R.string.people_error_load_full_profile)
+        "no se pudo cargar el perfil. inténtalo de nuevo." -> stringResource(R.string.people_error_load_profile)
+        else -> message
+    }
 }
 
 @Composable

@@ -211,7 +211,7 @@ private fun LoginScreen(
 
             if (!errorMessage.isNullOrBlank()) {
                 Text(
-                    text = errorMessage,
+                    text = localizedHomeMessage(errorMessage),
                     color = NexterColors.Red,
                     fontSize = NexterTypography.Caption,
                     modifier = Modifier.padding(top = 14.dp)
@@ -287,7 +287,7 @@ private fun AuthenticatedHome(
             GreetingCard(uiState, authState.user.displayName)
             if (uiState.isLoading) LoadingCard()
             uiState.errorMessage?.let {
-                ErrorCard(message = it, onRetry = viewModel::refresh)
+                ErrorCard(message = localizedHomeMessage(it), onRetry = viewModel::refresh)
                 Spacer(modifier = Modifier.height(10.dp))
             }
             MeetingsCard(
@@ -634,6 +634,19 @@ private fun ErrorCard(message: String, onRetry: () -> Unit) {
 }
 
 @Composable
+private fun localizedHomeMessage(message: String): String {
+    return when (message.lowercase(Locale.getDefault())) {
+        "inténtalo de nuevo más tarde." -> stringResource(R.string.error_try_again_later)
+        "no se pudo actualizar la tarea. inténtalo de nuevo." -> stringResource(R.string.home_error_update_task)
+        "no se pudo crear la tarea. revisa los datos e inténtalo de nuevo." -> stringResource(R.string.home_error_create_task)
+        "no se pudo borrar la tarea. inténtalo de nuevo." -> stringResource(R.string.home_error_delete_task)
+        "no se pudo cargar la información." -> stringResource(R.string.home_error_load_info)
+        "no se pudo completar la autenticación." -> stringResource(R.string.auth_error_generic)
+        else -> message
+    }
+}
+
+@Composable
 private fun EmptyText(text: String, subtitle: String? = null) {
     Column(
         modifier = Modifier
@@ -803,7 +816,7 @@ private fun AgendaDialogContent(
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
                         Text(stringResource(R.string.agenda_error), color = NexterColors.primaryText(), fontSize = NexterTypography.Body, fontWeight = FontWeight.Bold)
-                        Text(uiState.agendaErrorMessage, color = NexterColors.secondaryText(), fontSize = NexterTypography.Callout, modifier = Modifier.padding(top = 8.dp))
+                        Text(localizedHomeMessage(uiState.agendaErrorMessage), color = NexterColors.secondaryText(), fontSize = NexterTypography.Callout, modifier = Modifier.padding(top = 8.dp))
                         Button(
                             onClick = onRetry,
                             colors = ButtonDefaults.buttonColors(backgroundColor = NexterColors.Red, contentColor = Color.White),
@@ -1000,7 +1013,7 @@ private fun AddTaskDialog(
 
                         uiState.createTaskErrorMessage?.let {
                             Text(
-                                it,
+                                localizedHomeMessage(it),
                                 color = NexterColors.Red,
                                 fontSize = NexterTypography.Callout,
                                 modifier = Modifier

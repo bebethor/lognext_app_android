@@ -17,6 +17,8 @@ class PeopleService(
 
     suspend fun manager(personCode: String): ManagerResponse = get("/api/v1/staff/manager/$personCode", ManagerResponse::class.java)
 
+    suspend fun orgTree(): OrgTreeResponse = get("/api/v1/staff/org-tree", OrgTreeResponse::class.java)
+
     suspend fun projects(): ProjectListResponse = get("/api/v1/staff/projects", ProjectListResponse::class.java)
 
     suspend fun projectMembers(projectCode: String): ProjectMembersResponse {
@@ -74,8 +76,28 @@ data class PersonProfileResponse(
     @SerializedName("org_unit_name") val orgUnitName: String? = "",
     @SerializedName("org_unit_code") val orgUnitCode: String? = "",
     @SerializedName("position_title") val positionTitle: String? = "",
-    @SerializedName("manager_name") val managerName: String? = "",
-    @SerializedName("manager_person_code") val managerPersonCode: String? = "",
+    @SerializedName(
+        value = "manager_name",
+        alternate = [
+            "reports_to_name",
+            "report_to_name",
+            "line_manager_name",
+            "supervisor_name",
+            "responsible_name",
+            "approver_name"
+        ]
+    ) val managerName: String? = "",
+    @SerializedName(
+        value = "manager_person_code",
+        alternate = [
+            "reports_to_person_code",
+            "report_to_person_code",
+            "line_manager_person_code",
+            "supervisor_person_code",
+            "responsible_person_code",
+            "approver_person_code"
+        ]
+    ) val managerPersonCode: String? = "",
     @SerializedName("work_phone") val workPhone: String? = "",
     @SerializedName("mobile_phone") val mobilePhone: String? = "",
     @SerializedName("hire_date") val hireDate: String? = "",
@@ -167,6 +189,10 @@ data class TeamResponse(
     val members: List<PersonSummaryResponse> = emptyList()
 )
 
+data class OrgTreeResponse(
+    @SerializedName("org_units") val orgUnits: List<OrgUnitResponse> = emptyList()
+)
+
 data class ManagerResponse(
     val manager: PersonSummaryResponse? = null
 )
@@ -195,6 +221,8 @@ data class ProjectResponse(
 data class OrgUnitResponse(
     @SerializedName("org_unit_code") val orgUnitCode: String = "",
     @SerializedName("org_unit_name") val orgUnitName: String = "",
+    @SerializedName("parent_org_unit_code") val parentOrgUnitCode: String = "",
+    @SerializedName("parent_org_unit_name") val parentOrgUnitName: String = "",
     @SerializedName("manager_person_code") val managerPersonCode: String = "",
     @SerializedName("manager_name") val managerName: String = ""
 )

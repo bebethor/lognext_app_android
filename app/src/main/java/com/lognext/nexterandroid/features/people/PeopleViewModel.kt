@@ -228,7 +228,6 @@ class PeopleViewModel(
                 selectedPerson = resolvedPerson
                 detailManager = manager?.manager?.toPeopleRow()
                     ?: profile?.toManagerRow(currentPersonCode = personCode)
-                    ?: team?.orgUnit?.toManagerRow(currentPersonCode = personCode)
                 detailReports = team?.members
                     ?.filter { it.personCode.orEmpty() != personCode }
                     ?.map { it.toPeopleRow() }
@@ -276,21 +275,6 @@ class PeopleViewModel(
     private fun PersonProfileResponse.toManagerRow(currentPersonCode: String): PeopleRowData? {
         val managerName = managerName.orEmpty().trim()
         val managerPersonCode = managerPersonCode.orEmpty().trim()
-        if (managerName.isBlank() || managerPersonCode == currentPersonCode) return null
-
-        return PeopleRowData(
-            id = managerPersonCode.ifBlank { "manager-$currentPersonCode" },
-            personCode = managerPersonCode,
-            initials = peopleInitials(managerName),
-            name = managerName,
-            role = "Manager",
-            color = peopleColor(managerPersonCode.ifBlank { managerName })
-        )
-    }
-
-    private fun OrgUnitResponse.toManagerRow(currentPersonCode: String): PeopleRowData? {
-        val managerName = managerName.trim()
-        val managerPersonCode = managerPersonCode.trim()
         if (managerName.isBlank() || managerPersonCode == currentPersonCode) return null
 
         return PeopleRowData(

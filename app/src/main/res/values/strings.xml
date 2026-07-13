@@ -32,6 +32,8 @@
     <string name="loading">Cargando</string>
     <string name="could_not_load">No se pudo cargar</string>
     <string name="retry">Reintentar</string>
+    <string name="error_try_again_later">Inténtalo de nuevo más tarde.</string>
+    <string name="auth_error_generic">No se pudo completar la autenticación.</string>
     <string name="agenda_title">Agenda</string>
     <string name="agenda_subtitle">Tus reuniones y próximos eventos</string>
     <string name="close">Cerrar</string>
@@ -55,6 +57,10 @@
     <string name="priority_high">Alta</string>
     <string name="priority_normal">Normal</string>
     <string name="priority_low">Baja</string>
+    <string name="home_error_update_task">No se pudo actualizar la tarea. Inténtalo de nuevo.</string>
+    <string name="home_error_create_task">No se pudo crear la tarea. Revisa los datos e inténtalo de nuevo.</string>
+    <string name="home_error_delete_task">No se pudo borrar la tarea. Inténtalo de nuevo.</string>
+    <string name="home_error_load_info">No se pudo cargar la información.</string>
     <string name="back">Volver</string>
 
     <string name="clock_record_title">REGISTRO DE JORNADA</string>
@@ -84,6 +90,11 @@
     <string name="clock_punching_exit">Fichando salida...</string>
     <string name="clock_punch_entry">Fichar entrada</string>
     <string name="clock_punch_exit">Fichar salida</string>
+    <string name="clock_error_load_all">No se pudieron cargar todos los datos de jornada.</string>
+    <string name="clock_error_entry_open">Ya tienes una entrada abierta. Primero debes fichar salida.</string>
+    <string name="clock_error_clock_in">No se pudo registrar la entrada. Inténtalo de nuevo en unos minutos.</string>
+    <string name="clock_error_no_open_entry">No tienes ninguna entrada abierta. Primero debes fichar entrada.</string>
+    <string name="clock_error_clock_out">No se pudo registrar la salida. Inténtalo de nuevo en unos minutos.</string>
 
     <string name="people_loading">Cargando People…</string>
     <string name="people_search_hint">Buscar persona…</string>
@@ -113,6 +124,9 @@
     <string name="people_description">Descripción</string>
     <string name="people_assigned_people">Personas asignadas</string>
     <string name="people_you">Tú</string>
+    <string name="people_error_load_projects_companies">No se pudieron cargar los proyectos y empresas.</string>
+    <string name="people_error_load_full_profile">No se pudo cargar toda la información del perfil.</string>
+    <string name="people_error_load_profile">No se pudo cargar el perfil. Inténtalo de nuevo.</string>
 
     <string name="more_vacations">Eventos de ausencia</string>
     <string name="more_absence_history">Historial de eventos de ausencia</string>
@@ -143,6 +157,7 @@
     <string name="more_dates">Fechas</string>
     <string name="more_start_date">Fecha inicio</string>
     <string name="more_end_date">Fecha fin</string>
+    <string name="more_dates_unavailable">Fechas no disponibles</string>
     <string name="more_type">Tipo</string>
     <string name="more_reason">Motivo</string>
     <string name="more_reason_required">Motivo *</string>
@@ -151,11 +166,23 @@
     <string name="more_send">Enviar</string>
     <string name="more_absence_type">Tipo de ausencia</string>
     <string name="more_vacation_type">Tipo de vacaciones</string>
+    <string name="more_loading_absence_events">Cargando eventos de ausencia…</string>
+    <string name="more_loading_history">Cargando historial…</string>
+    <string name="more_loading_types">Cargando tipos...</string>
+    <string name="more_no_absence_types">No hay tipos de ausencia disponibles.</string>
+    <string name="more_sending_request">Enviando solicitud…</string>
+    <string name="more_no_vacation_plan_configured">No hay plan de vacaciones configurado.</string>
+    <string name="more_error_load_vacations">No se pudieron cargar tus vacaciones.</string>
+    <string name="more_error_load_history">No se pudo cargar el historial de vacaciones.</string>
+    <string name="more_error_load_request_data">No se pudieron cargar los datos de la solicitud.</string>
+    <string name="more_error_submit_request">No se pudo enviar la solicitud. Revisa los datos e inténtalo de nuevo.</string>
     <string name="accept">Aceptar</string>
     <string name="vacation_annual_plan">Vacaciones anuales</string>
     <string name="vacation_days_unit">días</string>
     <string name="vacation_request_created">Solicitud creada</string>
     <string name="vacation_request_sent">Solicitud enviada correctamente.</string>
+    <string name="vacation_request_pending_title">Solicitud en proceso</string>
+    <string name="vacation_request_timeout_message">Cezanne ha tardado demasiado en responder. Es posible que la solicitud se haya creado correctamente, así que revisa Cezanne antes de volver a enviarla.</string>
     <string name="vacation_type_holiday">Festivo</string>
     <string name="vacation_type_non_working">No laborable</string>
     <string name="vacation_type_festivity">Festividad</string>
@@ -176,4 +203,16 @@
     <string name="notification_long_open_entry_subtitle">Aviso si pasan 9 horas desde la entrada.</string>
     <string name="notification_no_record_title">Sin registros al final del día</string>
     <string name="notification_no_record_subtitle">Aviso a las 19:00 si no has fichado nada.</string>
+    <string name="clock_notification_work_start_push_title">Recordatorio de jornada</string>
+    <string name="clock_notification_work_start_push_body">Recuerda fichar entrada al empezar a trabajar.</string>
+    <string name="clock_notification_lunch_start_push_title">Pausa de comida</string>
+    <string name="clock_notification_lunch_start_push_body">Recuerda fichar salida cuando te vayas a comer.</string>
+    <string name="clock_notification_lunch_end_push_title">Vuelta de comida</string>
+    <string name="clock_notification_lunch_end_push_body">Recuerda fichar entrada cuando vuelvas de comer.</string>
+    <string name="clock_notification_work_end_push_title">Fin de jornada</string>
+    <string name="clock_notification_work_end_push_body">Recuerda fichar salida cuando termines de trabajar.</string>
+    <string name="clock_notification_long_open_push_title">Jornada abierta</string>
+    <string name="clock_notification_long_open_push_body">Llevas muchas horas con la entrada abierta. Revisa si debes fichar salida.</string>
+    <string name="clock_notification_no_record_push_title">Jornada sin registrar</string>
+    <string name="clock_notification_no_record_push_body">Hoy no tienes registros de jornada. Revisa si necesitas fichar.</string>
 </resources>

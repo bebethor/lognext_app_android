@@ -82,7 +82,7 @@ fun ClockScreen() {
         verticalArrangement = Arrangement.spacedBy(10.dp)
     ) {
         WorkdayCard(viewModel)
-        viewModel.errorMessage?.let { ClockErrorCard(it) }
+        viewModel.errorMessage?.let { ClockErrorCard(localizedClockMessage(it)) }
         TodayRecordCard(viewModel)
         WeekSummaryCard(viewModel)
         RecentHistoryCard(viewModel)
@@ -619,6 +619,18 @@ private fun clockButtonTitle(viewModel: ClockViewModel): String {
         }
     }
     return if (viewModel.isCheckedIn) stringResource(R.string.clock_punch_exit) else stringResource(R.string.clock_punch_entry)
+}
+
+@Composable
+private fun localizedClockMessage(message: String): String {
+    return when (message.lowercase(Locale.getDefault())) {
+        "no se pudieron cargar todos los datos de jornada." -> stringResource(R.string.clock_error_load_all)
+        "ya tienes una entrada abierta. primero debes fichar salida." -> stringResource(R.string.clock_error_entry_open)
+        "no se pudo registrar la entrada. inténtalo de nuevo en unos minutos." -> stringResource(R.string.clock_error_clock_in)
+        "no tienes ninguna entrada abierta. primero debes fichar entrada." -> stringResource(R.string.clock_error_no_open_entry)
+        "no se pudo registrar la salida. inténtalo de nuevo en unos minutos." -> stringResource(R.string.clock_error_clock_out)
+        else -> message
+    }
 }
 
 private fun shortWeekdayLabels(): List<String> {
