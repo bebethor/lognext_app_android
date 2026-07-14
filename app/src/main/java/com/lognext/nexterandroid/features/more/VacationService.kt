@@ -51,4 +51,11 @@ class VacationService(
             acceptedStatusCodes = 200..201
         )
     }
+
+    suspend fun cancel(eventGuid: String): VacationCancelResponse {
+        return delete(
+            path = "/api/v1/vacations/$eventGuid",
+            type = VacationCancelResponse::class.java
+        )
+    }
 }

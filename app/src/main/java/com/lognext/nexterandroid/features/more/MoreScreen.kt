@@ -27,6 +27,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.Button
 import androidx.compose.material.ButtonDefaults
 import androidx.compose.material.Card
+import androidx.compose.material.AlertDialog
 import androidx.compose.material.CircularProgressIndicator
 import androidx.compose.material.Divider
 import androidx.compose.material.OutlinedButton
@@ -36,6 +37,7 @@ import androidx.compose.material.RadioButtonDefaults
 import androidx.compose.material.Switch
 import androidx.compose.material.SwitchDefaults
 import androidx.compose.material.Text
+import androidx.compose.material.TextButton
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -60,6 +62,7 @@ import androidx.core.content.ContextCompat
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.lognext.nexterandroid.BuildConfig
 import com.lognext.nexterandroid.R
 import com.lognext.nexterandroid.core.AppDependencies
 import com.lognext.nexterandroid.ui.theme.NexterColors
@@ -144,6 +147,12 @@ fun MoreScreen() {
             title = viewModel.confirmationTitle,
             message = viewModel.confirmationMessage,
             onDismiss = { viewModel.showConfirmation = false }
+        )
+    }
+    viewModel.vacationEntryToCancel?.let { entry ->
+        VacationCancellationAlert(
+            onDismiss = viewModel::dismissVacationCancellation,
+            onConfirm = { viewModel.cancelVacation(entry) }
         )
     }
 }
@@ -382,7 +391,7 @@ private fun VacationHistoryCard(viewModel: MoreViewModel) {
             ErrorBlock(message = localizedMoreMessage(message), onRetry = { viewModel.loadHistory(force = true) })
             return@SectionCard
         }
-        val items = viewModel.historyItems
+        val items = vacationHistoryItems(viewModel)
         if (items.isEmpty()) {
             Text(
                 stringResource(R.string.more_no_vacation_requests),
@@ -395,38 +404,58 @@ private fun VacationHistoryCard(viewModel: MoreViewModel) {
             )
         } else {
             items.forEachIndexed { index, entry ->
-                VacationHistoryRow(entry)
+                VacationHistoryRow(entry, viewModel)
                 if (index != items.lastIndex) Divider(color = NexterColors.border(), modifier = Modifier.padding(start = 14.dp))
             }
         }
     }
 }
 
+private fun vacationHistoryItems(viewModel: MoreViewModel): List<VacationHistoryEntry> {
+    if (!BuildConfig.DEBUG) return viewModel.historyItems
+    val mockEntry = VacationHistoryEntry(
+        eventGuid = "mock-approved-vacation-event",
+        typeName = "Vacaciones retribuidas",
+        planName = "Vacaciones retribuidas",
+        status = if (viewModel.mockVacationCancellationRequested) "cancellation_pending_approval" else "approved",
+        effectiveFrom = "2026-08-05",
+        effectiveTo = "2026-08-07",
+        totalDays = 3.0,
+        approver = "Responsable directo",
+        notes = "Fila temporal para revisar diseño",
+        reason = "Mock"
+    )
+    return listOf(mockEntry) + viewModel.historyItems
+}
+
 @Composable
-private fun VacationHistoryRow(entry: VacationHistoryEntry) {
+private fun VacationHistoryRow(entry: VacationHistoryEntry, viewModel: MoreViewModel) {
     val statusColor = vacationStatusColor(entry.status)
+    val isCancelling = viewModel.cancellingEventGuid == entry.eventGuid
     Column(
         modifier = Modifier.padding(14.dp),
         verticalArrangement = Arrangement.spacedBy(7.dp)
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(
-                text = vacationHistoryType(entry.typeName),
+                text = vacationHistoryTitle(entry),
                 color = NexterColors.primaryText(),
                 fontSize = NexterTypography.Body,
                 fontWeight = FontWeight.SemiBold,
                 modifier = Modifier.weight(1f)
             )
-            Text(
-                text = vacationStatusText(entry.status),
-                color = statusColor,
-                fontSize = NexterTypography.Badge,
-                fontWeight = FontWeight.SemiBold,
-                modifier = Modifier
-                    .clip(RoundedCornerShape(100.dp))
-                    .background(statusColor.copy(alpha = 0.12f))
-                    .padding(horizontal = 8.dp, vertical = 4.dp)
-            )
+            if (!entry.isCancellationPending) {
+                Text(
+                    text = vacationStatusText(entry.status),
+                    color = statusColor,
+                    fontSize = NexterTypography.Badge,
+                    fontWeight = FontWeight.SemiBold,
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(100.dp))
+                        .background(statusColor.copy(alpha = 0.12f))
+                        .padding(horizontal = 8.dp, vertical = 4.dp)
+                )
+            }
         }
         Row {
             Text(
@@ -450,7 +479,91 @@ private fun VacationHistoryRow(entry: VacationHistoryEntry) {
                 fontSize = NexterTypography.Footnote
             )
         }
+        if (entry.isCancellationPending) {
+            Row(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(NexterColors.Blue.copy(alpha = 0.10f))
+                    .padding(horizontal = 10.dp, vertical = 7.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Text("◷", color = NexterColors.Blue, fontSize = NexterTypography.Footnote, fontWeight = FontWeight.SemiBold)
+                Text(
+                    stringResource(R.string.vacation_cancellation_pending),
+                    color = NexterColors.Blue,
+                    fontSize = NexterTypography.Footnote,
+                    fontWeight = FontWeight.SemiBold
+                )
+            }
+        } else if (entry.canRequestCancellation) {
+            Row(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(8.dp))
+                    .clickable(enabled = !isCancelling) { viewModel.requestVacationCancellation(entry) }
+                    .background(NexterColors.Red.copy(alpha = 0.10f))
+                    .padding(horizontal = 10.dp, vertical = 7.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                if (isCancelling) {
+                    CircularProgressIndicator(color = NexterColors.Red, modifier = Modifier.size(14.dp), strokeWidth = 2.dp)
+                } else {
+                    Text("⊗", color = NexterColors.Red, fontSize = NexterTypography.Footnote, fontWeight = FontWeight.SemiBold)
+                }
+                Text(
+                    stringResource(if (isCancelling) R.string.vacation_requesting_cancellation else R.string.vacation_request_cancellation),
+                    color = NexterColors.Red,
+                    fontSize = NexterTypography.Footnote,
+                    fontWeight = FontWeight.SemiBold
+                )
+            }
+        }
     }
+}
+
+@Composable
+private fun VacationCancellationAlert(
+    onDismiss: () -> Unit,
+    onConfirm: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        backgroundColor = NexterColors.cardBackground(),
+        title = {
+            Text(
+                stringResource(R.string.vacation_cancel_event_title),
+                color = NexterColors.primaryText(),
+                fontSize = NexterTypography.CardTitle,
+                fontWeight = FontWeight.Bold
+            )
+        },
+        text = {
+            Text(
+                stringResource(R.string.vacation_cancel_event_message),
+                color = NexterColors.secondaryText(),
+                fontSize = NexterTypography.Body
+            )
+        },
+        confirmButton = {
+            TextButton(onClick = onConfirm) {
+                Text(
+                    stringResource(R.string.vacation_request_cancellation),
+                    color = NexterColors.Red,
+                    fontWeight = FontWeight.SemiBold
+                )
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text(
+                    stringResource(R.string.vacation_do_not_cancel),
+                    color = NexterColors.secondaryText(),
+                    fontWeight = FontWeight.SemiBold
+                )
+            }
+        }
+    )
 }
 
 @Composable
@@ -1091,6 +1204,15 @@ private fun vacationHistoryType(typeName: String): String {
 }
 
 @Composable
+private fun vacationHistoryTitle(entry: VacationHistoryEntry): String {
+    val typeName = entry.typeName.trim()
+    if (typeName.isNotEmpty()) return vacationHistoryType(typeName)
+    val planName = entry.planName.trim()
+    if (planName.isNotEmpty()) return vacationPlanName(planName)
+    return stringResource(R.string.more_request_vacation_title)
+}
+
+@Composable
 private fun vacationHistoryPeriod(entry: VacationHistoryEntry): String {
     return formatVacationPeriod(entry.effectiveFrom, entry.effectiveTo) ?: stringResource(R.string.more_dates_unavailable)
 }
@@ -1116,6 +1238,8 @@ private fun vacationConfirmationTitle(title: String): String {
     return when (title.lowercase(Locale.getDefault())) {
         "solicitud creada" -> stringResource(R.string.vacation_request_created)
         "solicitud en proceso" -> stringResource(R.string.vacation_request_pending_title)
+        "cancelación solicitada" -> stringResource(R.string.vacation_cancellation_requested_title)
+        "no se pudo cancelar" -> stringResource(R.string.vacation_cancellation_failed_title)
         else -> title
     }
 }
@@ -1125,6 +1249,10 @@ private fun vacationConfirmationMessage(message: String): String {
     return when (message.lowercase(Locale.getDefault())) {
         "solicitud enviada correctamente." -> stringResource(R.string.vacation_request_sent)
         "cezanne ha tardado demasiado en responder. es posible que la solicitud se haya creado correctamente, así que revisa cezanne antes de volver a enviarla." -> stringResource(R.string.vacation_request_timeout_message)
+        "solicitud de cancelación enviada." -> stringResource(R.string.vacation_cancellation_sent)
+        "no se pudo solicitar la cancelación. inténtalo de nuevo." -> stringResource(R.string.vacation_cancellation_error)
+        "este evento ya no está disponible." -> stringResource(R.string.vacation_cancellation_not_available)
+        "cezanne ha rechazado la cancelación de este evento." -> stringResource(R.string.vacation_cancellation_rejected)
         else -> message
     }
 }
@@ -1147,6 +1275,7 @@ private fun vacationStatusText(status: String): String {
         "approved", "aprobado", "accepted" -> stringResource(R.string.status_approved)
         "rejected", "rechazado" -> stringResource(R.string.status_rejected)
         "cancelled", "canceled", "cancelado" -> stringResource(R.string.status_cancelled)
+        "cancelando", "cancellation pending", "cancellation_pending_approval", "cancel pending" -> stringResource(R.string.vacation_cancellation_pending)
         "pending", "submitted", "approval pending", "pending approval", "aprobación pendiente" -> stringResource(R.string.status_pending)
         else -> status
     }
@@ -1219,6 +1348,7 @@ private fun vacationStatusColor(status: String): Color {
     return when (status.lowercase()) {
         "approved", "aprobado", "accepted" -> NexterColors.Green
         "rejected", "rechazado", "cancelled", "canceled", "cancelado" -> Color.Red
+        "cancelando", "cancellation pending", "cancellation_pending_approval", "cancel pending" -> NexterColors.Blue
         else -> NexterColors.Red
     }
 }

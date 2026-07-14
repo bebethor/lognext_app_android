@@ -63,6 +63,18 @@ open class RestService(
         }
     }
 
+    protected suspend fun <T> delete(path: String, type: Class<T>, acceptedStatusCodes: IntRange = 200..299): T {
+        return withContext(Dispatchers.IO) {
+            val request = Request.Builder()
+                .url(url(path))
+                .header("Accept", "application/json")
+                .delete()
+                .build()
+
+            gson.fromJson(apiClient.execute(request, acceptedStatusCodes), type)
+        }
+    }
+
     private fun url(path: String, query: Map<String, String?> = emptyMap()): String {
         val builder = AppConfig.BaseUrl.trimEnd('/').toHttpUrl().newBuilder()
         path.trimStart('/').split('/').filter { it.isNotBlank() }.forEach(builder::addPathSegment)

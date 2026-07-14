@@ -42,9 +42,16 @@ data class VacationHistoryEntry(
             "approved", "aprobado", "accepted" -> "Aprobada"
             "rejected", "rechazado" -> "Rechazada"
             "cancelled", "canceled", "cancelado" -> "Cancelada"
+            "cancelando", "cancellation pending", "cancellation_pending_approval", "cancel pending" -> "Cancelación pendiente"
             "pending", "submitted", "approval pending", "pending approval", "aprobación pendiente" -> "Pendiente"
             else -> status
         }
+
+    val canRequestCancellation: Boolean
+        get() = status.lowercase() in setOf("approved", "aprobado", "aprobada", "accepted")
+
+    val isCancellationPending: Boolean
+        get() = status.lowercase() in setOf("cancelando", "cancellation pending", "cancellation_pending_approval", "cancel pending")
 }
 
 data class VacationRequestType(
@@ -124,6 +131,13 @@ data class VacationCreateRequest(
 data class VacationCreateResponse(
     @SerializedName("event_guid") val eventGuid: String = "",
     val inserted: Boolean = false,
+    val messages: String = ""
+)
+
+data class VacationCancelResponse(
+    @SerializedName("event_guid") val eventGuid: String = "",
+    val status: String = "",
+    @SerializedName("pending_approval") val pendingApproval: Boolean = false,
     val messages: String = ""
 )
 

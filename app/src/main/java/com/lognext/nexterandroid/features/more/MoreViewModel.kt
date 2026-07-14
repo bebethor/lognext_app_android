@@ -7,6 +7,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.lognext.nexterandroid.BuildConfig
 import com.lognext.nexterandroid.core.network.APIError
 import com.lognext.nexterandroid.features.clock.ClockService
 import kotlinx.coroutines.launch
@@ -49,6 +50,14 @@ class MoreViewModel(
         private set
     var isSubmitting by mutableStateOf(false)
         private set
+    var cancellingEventGuid by mutableStateOf<String?>(null)
+        private set
+    var cancellationErrorMessage by mutableStateOf<String?>(null)
+        private set
+    var cancellationSuccessMessage by mutableStateOf<String?>(null)
+        private set
+    var mockVacationCancellationRequested by mutableStateOf(false)
+        private set
 
     val notificationSettings = listOf(
         ClockNotificationSetting("workStart", "Recordar fichar entrada", "Al empezar a trabajar.", true, 9 * 60),
@@ -76,6 +85,7 @@ class MoreViewModel(
     var endDate by mutableStateOf(todayString())
     var reason by mutableStateOf("")
     var notes by mutableStateOf("")
+    var vacationEntryToCancel by mutableStateOf<VacationHistoryEntry?>(null)
 
     private var hasLoadedPlans = false
     private var hasLoadedTypes = false
@@ -239,6 +249,45 @@ class MoreViewModel(
         }
     }
 
+    fun requestVacationCancellation(entry: VacationHistoryEntry) {
+        vacationEntryToCancel = entry
+    }
+
+    fun dismissVacationCancellation() {
+        vacationEntryToCancel = null
+    }
+
+    fun cancelVacation(entry: VacationHistoryEntry) {
+        if (!entry.canRequestCancellation || cancellingEventGuid != null) return
+        if (BuildConfig.DEBUG && entry.eventGuid == MockVacationEventGuid) {
+            mockVacationCancellationRequested = true
+            cancellationSuccessMessage = "Solicitud de cancelación enviada."
+            showVacationCancellationSuccess()
+            vacationEntryToCancel = null
+            return
+        }
+        viewModelScope.launch {
+            cancellingEventGuid = entry.eventGuid
+            cancellationErrorMessage = null
+            cancellationSuccessMessage = null
+            runCatching { service.cancel(entry.eventGuid) }
+                .onSuccess { response ->
+                    cancellationSuccessMessage = response.messages.trim()
+                        .ifBlank { "Solicitud de cancelación enviada." }
+                    updateHistoryStatus(entry.eventGuid, response.status.ifBlank { "cancellation_pending_approval" })
+                    showVacationCancellationSuccess()
+                    loadBalance(force = true)
+                    loadHistory(force = true)
+                }
+                .onFailure { error ->
+                    cancellationErrorMessage = cancellationErrorMessage(error)
+                    showVacationCancellationError()
+                }
+            vacationEntryToCancel = null
+            cancellingEventGuid = null
+        }
+    }
+
     fun rescheduleClockNotifications(context: Context) {
         val appContext = context.applicationContext
         viewModelScope.launch {
@@ -276,6 +325,24 @@ class MoreViewModel(
         showConfirmation = true
         resetRequestFields()
         refresh()
+    }
+
+    private fun showVacationCancellationSuccess() {
+        confirmationTitle = "Cancelación solicitada"
+        confirmationMessage = cancellationSuccessMessage ?: "Solicitud de cancelación enviada."
+        showConfirmation = true
+    }
+
+    private fun showVacationCancellationError() {
+        confirmationTitle = "No se pudo cancelar"
+        confirmationMessage = cancellationErrorMessage ?: "No se pudo solicitar la cancelación. Inténtalo de nuevo."
+        showConfirmation = true
+    }
+
+    private fun updateHistoryStatus(eventGuid: String, status: String) {
+        historyItems = historyItems.map { entry ->
+            if (entry.eventGuid == eventGuid) entry.copy(status = status) else entry
+        }
     }
 
     private suspend fun confirmRequestCreated(
@@ -320,6 +387,15 @@ class MoreViewModel(
         return "No se pudo enviar la solicitud. Revisa los datos e inténtalo de nuevo."
     }
 
+    private fun cancellationErrorMessage(error: Throwable): String {
+        if (error is APIError.Http) {
+            extractDetail(error.serverMessage)?.let { return it }
+            if (error.statusCode == 404) return "Este evento ya no está disponible."
+            if (error.statusCode == 422) return "Cezanne ha rechazado la cancelación de este evento."
+        }
+        return "No se pudo solicitar la cancelación. Inténtalo de nuevo."
+    }
+
     private fun extractDetail(body: String): String? {
         val trimmed = body.trim()
         if (trimmed.isBlank()) return null
@@ -362,6 +438,8 @@ class MoreViewModel(
     }
 
     private companion object {
+        const val MockVacationEventGuid = "mock-approved-vacation-event"
+
         fun todayString(): String {
             return SimpleDateFormat("yyyy-MM-dd", Locale.US).format(Calendar.getInstance().time)
         }
