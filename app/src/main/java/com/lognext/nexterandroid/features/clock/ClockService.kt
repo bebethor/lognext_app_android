@@ -51,13 +51,15 @@ data class ClockHistoryResponse(
 data class ClockEntryResponse(
     @SerializedName("clock_in") val clockIn: String? = null,
     @SerializedName("clock_out") val clockOut: String? = null,
-    @SerializedName("record_id") val recordId: String = ""
+    @SerializedName("record_id") val recordId: String = "",
+    @SerializedName("recordId") val recordIdCamel: String = "",
+    @SerializedName("id") val id: String = ""
 ) {
     fun toClockEntry(): ClockEntry {
         return ClockEntry(
             clockIn = clockIn?.takeIf { it.isNotBlank() }?.let(::parseApiDate),
             clockOut = clockOut?.takeIf { it.isNotBlank() }?.let(::parseApiDate),
-            recordId = recordId
+            recordId = recordId.ifBlank { recordIdCamel }.ifBlank { id }
         )
     }
 }

@@ -111,7 +111,7 @@ private fun WorkdayCard(viewModel: ClockViewModel) {
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(16.dp))
-            .background(Color(0xFF04042B))
+            .background(NexterColors.Navy)
     ) {
         Box(
             modifier = Modifier
@@ -603,7 +603,10 @@ private fun clockStatusText(viewModel: ClockViewModel): String {
     if (viewModel.isCheckedIn && viewModel.clockInTime != null) {
         return stringResource(R.string.clock_checked_in_at, formattedTime(viewModel.clockInTime!!))
     }
-    if (viewModel.clockOutTime != null) {
+    val hasTodayClockRecords = viewModel.hasLoadedTodayEntries && viewModel.todayEntries.any { entry ->
+        viewModel.belongsToCurrentClockDay(entry.clockIn) || viewModel.belongsToCurrentClockDay(entry.clockOut)
+    }
+    if (viewModel.belongsToCurrentClockDay(viewModel.clockOutTime) && hasTodayClockRecords) {
         return stringResource(R.string.clock_out_at, formattedTime(viewModel.clockOutTime!!))
     }
     return stringResource(R.string.clock_out)

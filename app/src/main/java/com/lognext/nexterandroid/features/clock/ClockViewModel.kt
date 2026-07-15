@@ -68,6 +68,10 @@ class ClockViewModel(
         return maxOf(0L, ((effectiveClockOut?.time ?: return 0L) - clockIn.time) / 1000L)
     }
 
+    fun belongsToCurrentClockDay(date: Date?): Boolean {
+        return date?.let { dayString(it) == currentClockDay } == true
+    }
+
     private fun clockIn() {
         if (!AppConfig.UseFakeLogin) {
             clockInWithApi()
