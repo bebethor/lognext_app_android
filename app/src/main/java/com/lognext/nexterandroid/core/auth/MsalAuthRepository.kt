@@ -92,7 +92,9 @@ class MsalAuthRepository(
         }
 
         runCatching {
-            getApplication().signOut()
+            withContext(Dispatchers.IO) {
+                getApplication().signOut()
+            }
             account = null
             bffAccessToken = null
             mutableAuthState.value = AuthState.Unauthenticated

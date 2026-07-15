@@ -103,12 +103,10 @@ fun HomeScreen() {
     when (val state = authState) {
         AuthState.Loading -> LoginScreen(
             isSigningIn = true,
-            errorMessage = null,
             onSignIn = {}
         )
         AuthState.Unauthenticated -> LoginScreen(
             isSigningIn = isLoggingIn,
-            errorMessage = null,
             onSignIn = {
                 activity?.let { scope.launch { authRepository.signIn(it) } }
             }
@@ -120,7 +118,6 @@ fun HomeScreen() {
         }
         is AuthState.Error -> LoginScreen(
             isSigningIn = isLoggingIn,
-            errorMessage = state.message,
             onSignIn = {
                 activity?.let { scope.launch { authRepository.signIn(it) } }
             }
@@ -131,7 +128,6 @@ fun HomeScreen() {
 @Composable
 private fun LoginScreen(
     isSigningIn: Boolean,
-    errorMessage: String?,
     onSignIn: () -> Unit
 ) {
     val transition = rememberInfiniteTransition()
@@ -207,15 +203,6 @@ private fun LoginScreen(
                         fontWeight = FontWeight.Black
                     )
                 }
-            }
-
-            if (!errorMessage.isNullOrBlank()) {
-                Text(
-                    text = localizedHomeMessage(errorMessage),
-                    color = NexterColors.Red,
-                    fontSize = NexterTypography.Caption,
-                    modifier = Modifier.padding(top = 14.dp)
-                )
             }
 
             Spacer(modifier = Modifier.height(35.dp))
