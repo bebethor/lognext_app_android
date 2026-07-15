@@ -23,12 +23,13 @@ data class AgendaEventGroup(
 )
 
 data class HomeSummary(
-    @SerializedName("first_name") val firstName: String,
+    @SerializedName("first_name") val firstName: String = "",
+    @SerializedName("full_name") val displayName: String = "",
     @SerializedName("position_title") val positionTitle: String = "",
-    @SerializedName("vacation_days_remaining") val vacationDaysRemaining: Double?,
-    @SerializedName("meetings_today_count") val meetingsTodayCount: Int?,
-    @SerializedName("pending_tasks_count") val pendingTasksCount: Int?,
-    @SerializedName("urgent_tasks_count") val urgentTasksCount: Int?
+    @SerializedName("vacation_days_remaining") val vacationDaysRemaining: Double? = null,
+    @SerializedName("meetings_today_count") val meetingsTodayCount: Int? = null,
+    @SerializedName("pending_tasks_count") val pendingTasksCount: Int? = null,
+    @SerializedName("urgent_tasks_count") val urgentTasksCount: Int? = null
 )
 
 data class HomeCalendarTodayResponse(

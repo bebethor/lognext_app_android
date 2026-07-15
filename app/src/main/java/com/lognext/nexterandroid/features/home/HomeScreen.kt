@@ -72,7 +72,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -269,14 +268,9 @@ private fun AuthenticatedHome(
             modifier = Modifier
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
-                .padding(start = 12.dp, top = 14.dp, end = 12.dp, bottom = 80.dp)
+            .padding(start = 12.dp, top = 14.dp, end = 12.dp, bottom = 80.dp)
         ) {
             GreetingCard(uiState, authState.user.displayName)
-            if (uiState.isLoading) LoadingCard()
-            uiState.errorMessage?.let {
-                ErrorCard(message = localizedHomeMessage(it), onRetry = viewModel::refresh)
-                Spacer(modifier = Modifier.height(10.dp))
-            }
             MeetingsCard(
                 uiState = uiState,
                 onOpenAgenda = {
@@ -335,7 +329,7 @@ private fun GreetingCard(uiState: HomeUiState, displayName: String) {
         Column {
             Text(stringResource(R.string.home_welcome), color = Color.White.copy(alpha = 0.70f), fontSize = NexterTypography.Callout, fontWeight = FontWeight.SemiBold)
             Text(
-                text = uiState.firstName.ifBlank { displayName },
+                text = uiState.displayName.ifBlank { uiState.firstName.ifBlank { displayName } },
                 color = Color.White,
                 fontSize = NexterTypography.CardTitle,
                 fontWeight = FontWeight.Bold,
@@ -397,7 +391,6 @@ private fun GreetingDivider() {
 private fun MeetingsCard(uiState: HomeUiState, onOpenAgenda: () -> Unit) {
     HtmlCard(title = "📅", label = stringResource(R.string.home_today_meetings), action = stringResource(R.string.home_view_agenda), onAction = onOpenAgenda) {
         when {
-            uiState.isLoading -> CardStateMessage(stringResource(R.string.home_loading_meetings), showProgress = true)
             uiState.visibleMeetings.isEmpty() -> EmptyText(
                 text = stringResource(R.string.home_no_meetings_today),
                 subtitle = stringResource(R.string.home_no_meetings_subtitle)
@@ -457,9 +450,7 @@ private fun TasksCard(
 ) {
     HtmlCard(title = "📝", label = stringResource(R.string.home_pending_tasks), action = stringResource(R.string.home_add), onAction = onAddTask) {
         val pendingTasks = uiState.tasks.filter { !it.isCompleted }.take(6)
-        if (uiState.isLoading) {
-            CardStateMessage(stringResource(R.string.home_loading_tasks), showProgress = true)
-        } else if (pendingTasks.isEmpty()) {
+        if (pendingTasks.isEmpty()) {
             EmptyText(
                 text = stringResource(R.string.home_no_pending_tasks),
                 subtitle = stringResource(R.string.home_no_pending_tasks_subtitle)
@@ -588,34 +579,6 @@ private fun HtmlCard(
             }
             Divider(color = NexterColors.border())
             Column(modifier = Modifier.padding(horizontal = 14.dp, vertical = 3.dp), content = content)
-        }
-    }
-}
-
-@Composable
-private fun LoadingCard() {
-    HtmlCard(title = "⌛", label = stringResource(R.string.loading)) {
-        Row(modifier = Modifier.padding(vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {
-            CircularProgressIndicator(color = NexterColors.Red, modifier = Modifier.size(24.dp))
-            Spacer(modifier = Modifier.width(10.dp))
-            Text(stringResource(R.string.home_loading_meetings), color = NexterColors.secondaryText(), fontSize = NexterTypography.Callout, fontWeight = FontWeight.SemiBold)
-        }
-    }
-}
-
-@Composable
-private fun ErrorCard(message: String, onRetry: () -> Unit) {
-    HtmlCard(title = "!", label = stringResource(R.string.could_not_load)) {
-        Text(message, color = NexterColors.secondaryText(), fontSize = NexterTypography.Callout, modifier = Modifier.padding(top = 10.dp))
-        Button(
-            onClick = onRetry,
-            colors = ButtonDefaults.buttonColors(backgroundColor = NexterColors.Navy, contentColor = Color.White),
-            shape = RoundedCornerShape(10.dp),
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(vertical = 10.dp)
-        ) {
-            Text(stringResource(R.string.retry), fontWeight = FontWeight.SemiBold)
         }
     }
 }
@@ -877,26 +840,6 @@ private fun DialogStateMessage(
         subtitle?.let {
             Text(it, color = NexterColors.tertiaryText(), fontSize = NexterTypography.Body)
         }
-    }
-}
-
-@Composable
-private fun CardStateMessage(
-    title: String,
-    showProgress: Boolean = false
-) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 24.dp),
-        horizontalArrangement = Arrangement.Center,
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        if (showProgress) {
-            CircularProgressIndicator(color = NexterColors.Red, modifier = Modifier.size(24.dp))
-            Spacer(modifier = Modifier.width(10.dp))
-        }
-        Text(title, color = NexterColors.secondaryText(), fontSize = NexterTypography.Callout, fontWeight = FontWeight.SemiBold)
     }
 }
 

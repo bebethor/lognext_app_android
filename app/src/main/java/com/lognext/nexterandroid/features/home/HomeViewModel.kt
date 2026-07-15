@@ -14,6 +14,7 @@ import java.util.Locale
 data class HomeUiState(
     val isLoading: Boolean = false,
     val firstName: String = "",
+    val displayName: String = "",
     val positionTitle: String = "",
     val vacationDaysRemaining: Double? = null,
     val meetingsTodayCount: Int? = null,
@@ -62,7 +63,7 @@ class HomeViewModel(
     private var hasLoaded = false
 
     fun loadIfNeeded() {
-        if (hasLoaded || mutableUiState.value.isLoading && mutableUiState.value.firstName.isNotBlank()) return
+        if (hasLoaded || mutableUiState.value.isLoading && mutableUiState.value.displayName.isNotBlank()) return
         refresh()
     }
 
@@ -92,6 +93,7 @@ class HomeViewModel(
                 mutableUiState.value = mutableUiState.value.copy(
                     isLoading = false,
                     firstName = summary.firstName,
+                    displayName = summary.displayName,
                     positionTitle = summary.positionTitle,
                     vacationDaysRemaining = summary.vacationDaysRemaining,
                     meetingsTodayCount = summary.meetingsTodayCount ?: meetings.size,
@@ -283,6 +285,7 @@ class HomeViewModel(
         return HomeUiState(
             isLoading = false,
             firstName = "Jose",
+            displayName = "Jose Alberto Ruiz-Carrillo",
             positionTitle = "Senior Mobile Developer",
             vacationDaysRemaining = 18.5,
             meetingsTodayCount = 3,

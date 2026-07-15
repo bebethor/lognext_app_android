@@ -57,25 +57,25 @@ object NexterColors {
 }
 
 object NexterTypography {
-    val TopBarDate = 22.sp
-    val Avatar = 18.sp
-    val IconButton = 19.sp
+    val TopBarDate = 18.sp
+    val Avatar = 15.sp
+    val IconButton = 17.sp
 
-    val ScreenTitle = 26.sp
-    val ScreenSubtitle = 17.sp
-    val CardTitle = 22.sp
-    val SectionTitle = 20.sp
+    val ScreenTitle = 22.sp
+    val ScreenSubtitle = 14.sp
+    val CardTitle = 18.sp
+    val SectionTitle = 16.sp
 
-    val Body = 18.sp
-    val Callout = 17.sp
-    val Footnote = 15.sp
-    val Caption = 14.sp
+    val Body = 15.sp
+    val Callout = 14.sp
+    val Footnote = 12.sp
+    val Caption = 11.sp
 
-    val Button = 18.sp
-    val SmallButton = 17.sp
-    val Badge = 14.sp
-    val Metric = 32.sp
-    val Clock = 44.sp
+    val Button = 15.sp
+    val SmallButton = 14.sp
+    val Badge = 11.sp
+    val Metric = 26.sp
+    val Clock = 36.sp
 }
 
 private val NexterLightColorScheme = lightColors(

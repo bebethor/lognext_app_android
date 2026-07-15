@@ -35,7 +35,6 @@ import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.core.view.WindowCompat
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -50,6 +49,7 @@ import com.lognext.nexterandroid.features.home.HomeScreen
 import com.lognext.nexterandroid.features.more.MoreScreen
 import com.lognext.nexterandroid.features.people.PeopleScreen
 import com.lognext.nexterandroid.ui.theme.NexterColors
+import com.lognext.nexterandroid.ui.theme.NexterTypography
 import com.lognext.nexterandroid.ui.theme.isNexterDarkTheme
 import kotlinx.coroutines.launch
 
@@ -139,7 +139,7 @@ fun NexterApp() {
                             },
                             selectedContentColor = NexterColors.Red,
                             unselectedContentColor = NexterColors.tertiaryText(),
-                            label = { Text(label, fontSize = 10.sp) },
+                            label = { Text(label, fontSize = NexterTypography.Caption) },
                             icon = {
                                 Icon(
                                     painter = painterResource(id = destination.iconRes()),

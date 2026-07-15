@@ -15,12 +15,17 @@ class HomeService(
             get("/api/v1/vacations/balance", VacationBalanceResponse::class.java).totalRemaining
         }.getOrNull()
 
+        val fallbackFirstName = me.firstName.orEmpty().ifBlank { me.fullName.orEmpty().substringBefore(" ").ifBlank { "Lognext" } }
+        val fallbackDisplayName = me.fullName.orEmpty().ifBlank { me.firstName.orEmpty().ifBlank { "Lognext" } }
+
         return homeSummary?.copy(
-            firstName = homeSummary.firstName.ifBlank { me.firstName.ifBlank { me.fullName.substringBefore(" ").ifBlank { "Lognext" } } },
+            firstName = homeSummary.firstName.orEmpty().ifBlank { fallbackFirstName },
+            displayName = homeSummary.displayName.orEmpty().ifBlank { fallbackDisplayName },
             positionTitle = me.jobTitle.ifBlank { me.positionTitle },
             vacationDaysRemaining = vacationDaysRemaining
         ) ?: HomeSummary(
-            firstName = me.firstName.ifBlank { me.fullName.substringBefore(" ").ifBlank { "Lognext" } },
+            firstName = fallbackFirstName,
+            displayName = fallbackDisplayName,
             positionTitle = me.jobTitle.ifBlank { me.positionTitle },
             vacationDaysRemaining = vacationDaysRemaining,
             meetingsTodayCount = null,
