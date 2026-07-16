@@ -7,7 +7,6 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.lognext.nexterandroid.BuildConfig
 import com.lognext.nexterandroid.core.network.APIError
 import com.lognext.nexterandroid.features.clock.ClockService
 import kotlinx.coroutines.launch
@@ -55,8 +54,6 @@ class MoreViewModel(
     var cancellationErrorMessage by mutableStateOf<String?>(null)
         private set
     var cancellationSuccessMessage by mutableStateOf<String?>(null)
-        private set
-    var mockVacationCancellationRequested by mutableStateOf(false)
         private set
 
     val notificationSettings = listOf(
@@ -259,13 +256,6 @@ class MoreViewModel(
 
     fun cancelVacation(entry: VacationHistoryEntry) {
         if (!entry.canRequestCancellation || cancellingEventGuid != null) return
-        if (BuildConfig.DEBUG && entry.eventGuid == MockVacationEventGuid) {
-            mockVacationCancellationRequested = true
-            cancellationSuccessMessage = "Solicitud de cancelación enviada."
-            showVacationCancellationSuccess()
-            vacationEntryToCancel = null
-            return
-        }
         viewModelScope.launch {
             cancellingEventGuid = entry.eventGuid
             cancellationErrorMessage = null
@@ -449,8 +439,6 @@ class MoreViewModel(
     }
 
     private companion object {
-        const val MockVacationEventGuid = "mock-approved-vacation-event"
-
         fun todayString(): String {
             return SimpleDateFormat("yyyy-MM-dd", Locale.US).format(Calendar.getInstance().time)
         }

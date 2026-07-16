@@ -391,7 +391,7 @@ private fun VacationHistoryCard(viewModel: MoreViewModel) {
             ErrorBlock(message = localizedMoreMessage(message), onRetry = { viewModel.loadHistory(force = true) })
             return@SectionCard
         }
-        val items = vacationHistoryItems(viewModel)
+        val items = viewModel.historyItems
         if (items.isEmpty()) {
             Text(
                 stringResource(R.string.more_no_vacation_requests),
@@ -409,23 +409,6 @@ private fun VacationHistoryCard(viewModel: MoreViewModel) {
             }
         }
     }
-}
-
-private fun vacationHistoryItems(viewModel: MoreViewModel): List<VacationHistoryEntry> {
-    if (!BuildConfig.DEBUG) return viewModel.historyItems
-    val mockEntry = VacationHistoryEntry(
-        eventGuid = "mock-approved-vacation-event",
-        typeName = "Vacaciones retribuidas",
-        planName = "Vacaciones retribuidas",
-        status = if (viewModel.mockVacationCancellationRequested) "cancellation_pending_approval" else "approved",
-        effectiveFrom = "2026-08-05",
-        effectiveTo = "2026-08-07",
-        totalDays = 3.0,
-        approver = "Responsable directo",
-        notes = "Fila temporal para revisar diseño",
-        reason = "Mock"
-    )
-    return listOf(mockEntry) + viewModel.historyItems
 }
 
 @Composable
