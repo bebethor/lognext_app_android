@@ -389,11 +389,22 @@ class MoreViewModel(
 
     private fun cancellationErrorMessage(error: Throwable): String {
         if (error is APIError.Http) {
-            extractDetail(error.serverMessage)?.let { return it }
+            extractDetail(error.serverMessage)?.let { detail ->
+                if (detail.isApprovedAbsenceWorkflowError()) {
+                    return "Solo se pueden cancelar mediante aprobación los eventos de ausencia aprobados."
+                }
+                return detail
+            }
             if (error.statusCode == 404) return "Este evento ya no está disponible."
             if (error.statusCode == 422) return "Cezanne ha rechazado la cancelación de este evento."
         }
         return "No se pudo solicitar la cancelación. Inténtalo de nuevo."
+    }
+
+    private fun String.isApprovedAbsenceWorkflowError(): Boolean {
+        val normalized = lowercase(Locale.getDefault())
+        return normalized.contains("only approved absence") &&
+            normalized.contains("deleted using workflow")
     }
 
     private fun extractDetail(body: String): String? {

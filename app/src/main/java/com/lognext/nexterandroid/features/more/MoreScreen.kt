@@ -1253,6 +1253,11 @@ private fun vacationConfirmationMessage(message: String): String {
         "no se pudo solicitar la cancelación. inténtalo de nuevo." -> stringResource(R.string.vacation_cancellation_error)
         "este evento ya no está disponible." -> stringResource(R.string.vacation_cancellation_not_available)
         "cezanne ha rechazado la cancelación de este evento." -> stringResource(R.string.vacation_cancellation_rejected)
+        "solo se pueden cancelar mediante aprobación los eventos de ausencia aprobados.",
+        "only approved absence can be deleted using workflow.",
+        "only approved absence can be deleted using workflow",
+        "only approved absence ca be deleted using workflow.",
+        "only approved absence ca be deleted using workflow" -> stringResource(R.string.vacation_cancellation_requires_approved_workflow)
         else -> message
     }
 }

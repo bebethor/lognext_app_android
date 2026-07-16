@@ -195,6 +195,7 @@
     <string name="vacation_cancellation_error">No se pudo solicitar la cancelación. Inténtalo de nuevo.</string>
     <string name="vacation_cancellation_not_available">Este evento ya no está disponible.</string>
     <string name="vacation_cancellation_rejected">Cezanne ha rechazado la cancelación de este evento.</string>
+    <string name="vacation_cancellation_requires_approved_workflow">Solo se pueden cancelar mediante aprobación los eventos de ausencia aprobados.</string>
     <string name="vacation_type_holiday">Festivo</string>
     <string name="vacation_type_non_working">No laborable</string>
     <string name="vacation_type_festivity">Festividad</string>
