@@ -88,7 +88,7 @@ class PeopleViewModel(
             personCode = "MS",
             initials = "MS",
             name = "Miguel Ángel Saiz",
-            role = "Resp. Unidad de Negocio",
+            role = "Director de Operaciones",
             color = NexterColors.Yellow,
             orgUnitName = "Comité de dirección",
             email = "miguel.saiz@lognext.com",
