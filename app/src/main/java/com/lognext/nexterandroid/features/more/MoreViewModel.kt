@@ -419,9 +419,10 @@ class MoreViewModel(
 
     private fun visibleRequestPlans(source: List<VacationAbsencePlan>): List<VacationAbsencePlan> {
         val wanted = listOf(
-            listOf("vacacion", "vacaciones", "holiday", "holidays", "conge", "conges"),
-            listOf("permiso", "permission", "paid leave"),
-            listOf("enfermedad", "sick", "sickness", "illness", "maladie")
+            listOf("vacacion", "vacaciones", "holiday", "holidays", "conge", "conges")
+            // Para volver a mostrar estos planes en el futuro, añádelos de nuevo a esta lista:
+            // listOf("permiso", "permission", "paid leave"),
+            // listOf("enfermedad", "sick", "sickness", "illness", "maladie")
         )
         val normalizedPlans = source.map { plan ->
             plan to "${plan.displayName} ${plan.category}".normalizeForSearch()
