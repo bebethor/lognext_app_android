@@ -11,8 +11,8 @@ android {
         applicationId = "com.lognext.nexterandroid"
         minSdk = 23
         targetSdk = 37
-        versionCode = 1
-        versionName = "1.0"
+        versionCode = 100100
+        versionName = "10.1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
