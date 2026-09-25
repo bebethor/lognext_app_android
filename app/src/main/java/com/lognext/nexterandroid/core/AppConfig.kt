@@ -12,7 +12,6 @@ object AppConfig {
 
     const val BaseUrl = "https://nexter.lognext.com/"
     const val DefaultPlannerPlanId = ""
-    const val RedirectUri = "msauth://com.lognext.nexterandroid/254KWMWKtDuxHRVMIEJSTVi%2FtmE%3D"
 
     val graphScopes = listOf("User.Read")
 

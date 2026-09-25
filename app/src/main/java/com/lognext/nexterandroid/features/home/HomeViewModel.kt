@@ -273,7 +273,7 @@ class HomeViewModel(
     private fun Throwable.homeErrorMessage(): String {
         return when (this) {
             is APIError.Http -> if (statusCode == 401) {
-                "Login correcto, pero la API no ha aceptado el token. Falta configurar el scope del backend."
+                "La API ha rechazado la sesión (401). Vuelve a iniciar sesión. Si continúa, contacta con soporte."
             } else {
                 message ?: "No se pudo cargar la información."
             }

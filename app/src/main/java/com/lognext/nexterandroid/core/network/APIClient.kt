@@ -6,6 +6,8 @@ import okhttp3.Interceptor
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.Response
+import java.io.IOException
+import kotlinx.coroutines.CancellationException
 
 interface APIClient {
     @Throws(APIError::class)
@@ -37,7 +39,7 @@ class OkHttpAPIClient(
     }
 }
 
-private class BffAuthInterceptor(
+internal class BffAuthInterceptor(
     private val authRepository: AuthRepository
 ) : Interceptor {
     override fun intercept(chain: Interceptor.Chain): Response {
@@ -46,14 +48,19 @@ private class BffAuthInterceptor(
             return chain.proceed(originalRequest)
         }
 
-        val token = runBlocking { authRepository.currentBffToken() }
-        val authorizedRequest = if (token.isNullOrBlank()) {
-            originalRequest
-        } else {
-            originalRequest.newBuilder()
-                .header("Authorization", "Bearer $token")
-                .build()
+        val token = try {
+            runBlocking { authRepository.currentBffToken() }
+        } catch (error: CancellationException) {
+            throw error
+        } catch (error: Exception) {
+            throw IOException("No se pudo obtener acceso a la API. Vuelve a iniciar sesión.", error)
         }
+        if (token.isNullOrBlank()) {
+            throw IOException("No hay una sesión válida para la API. Vuelve a iniciar sesión.")
+        }
+        val authorizedRequest = originalRequest.newBuilder()
+            .header("Authorization", "Bearer $token")
+            .build()
 
         return chain.proceed(authorizedRequest)
     }

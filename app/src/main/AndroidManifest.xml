@@ -36,6 +36,15 @@
                     android:host="com.lognext.nexterandroid"
                     android:path="/254KWMWKtDuxHRVMIEJSTVi/tmE="
                     android:scheme="msauth" />
+                <data android:scheme="msauth"
+                    android:host="com.lognext.nexterandroid"
+                    android:path="/hfLoJEayU/5FVA69gyUwl3QFQKw=" />
+                <data android:scheme="msauth"
+                    android:host="com.lognext.nexterandroid"
+                    android:path="/nGI81pytfs6S6FDBSP8IB0pX2oA=" />
+                <data android:scheme="msauth"
+                    android:host="com.lognext.nexterandroid"
+                    android:path="/BaBC5Cm6KoGOU9NlFWe8brAAlVg=" />
             </intent-filter>
         </activity>
 

@@ -2,7 +2,6 @@ package com.lognext.nexterandroid.core.auth
 
 import android.app.Activity
 import android.content.Context
-import com.lognext.nexterandroid.R
 import com.lognext.nexterandroid.core.AppConfig
 import com.microsoft.identity.client.AcquireTokenParameters
 import com.microsoft.identity.client.AuthenticationCallback
@@ -13,6 +12,7 @@ import com.microsoft.identity.client.IPublicClientApplication
 import com.microsoft.identity.client.PublicClientApplication
 import com.microsoft.identity.client.exception.MsalException
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.suspendCancellableCoroutine
@@ -31,7 +31,6 @@ class MsalAuthRepository(
 
     private var application: ISingleAccountPublicClientApplication? = null
     private var account: IAccount? = null
-    private var bffAccessToken: String? = null
 
     override suspend fun restoreSession() {
         if (AppConfig.UseFakeLogin) {
@@ -47,9 +46,10 @@ class MsalAuthRepository(
                 app.currentAccount.currentAccount
             }
             account = currentAccount
-            bffAccessToken = null
+            if (currentAccount != null) acquireBffToken(app, currentAccount)
             mutableAuthState.value = currentAccount?.toAuthState() ?: AuthState.Unauthenticated
         }.onFailure { error ->
+            if (error is CancellationException) throw error
             mutableAuthState.value = AuthState.Error(error.authMessage())
         }
     }
@@ -70,13 +70,14 @@ class MsalAuthRepository(
             }
 
             val app = getApplication()
-            val result = app.signInAwait(activity, AppConfig.graphScopes)
+            require(AppConfig.bffScopes.isNotEmpty()) { "No está configurado el acceso a la API de Lognext." }
+            val result = app.signInAwait(activity, AppConfig.bffScopes)
+            check(result.accessToken.isNotBlank()) { "Microsoft no ha devuelto un token de acceso a la API." }
             account = result.account
-            bffAccessToken = runCatching {
-                acquireBffToken(app, result.account)
-            }.getOrNull()
             mutableAuthState.value = result.account.toAuthState()
-        } catch (error: Throwable) {
+        } catch (error: CancellationException) {
+            throw error
+        } catch (error: Exception) {
             mutableAuthState.value = AuthState.Error(error.authMessage())
         } finally {
             mutableIsLoggingIn.value = false
@@ -86,7 +87,6 @@ class MsalAuthRepository(
     override suspend fun signOut() {
         if (AppConfig.UseFakeLogin) {
             account = null
-            bffAccessToken = null
             mutableAuthState.value = AuthState.Unauthenticated
             return
         }
@@ -96,9 +96,9 @@ class MsalAuthRepository(
                 getApplication().signOut()
             }
             account = null
-            bffAccessToken = null
             mutableAuthState.value = AuthState.Unauthenticated
         }.onFailure { error ->
+            if (error is CancellationException) throw error
             mutableAuthState.value = AuthState.Error(error.authMessage())
         }
     }
@@ -106,14 +106,9 @@ class MsalAuthRepository(
     override suspend fun currentBffToken(): String? {
         if (AppConfig.UseFakeLogin) return null
 
-        bffAccessToken?.let { return it }
-
-        val resolvedAccount = account ?: return null
-        return runCatching {
-            acquireBffToken(getApplication(), resolvedAccount)
-        }.onSuccess { token ->
-            bffAccessToken = token
-        }.getOrNull()
+        val resolvedAccount = account ?: error("La sesión no está disponible. Vuelve a iniciar sesión.")
+        // MSAL manages token expiry and refresh; do not retain an access token indefinitely.
+        return acquireBffToken(getApplication(), resolvedAccount)
     }
 
     private suspend fun getApplication(): ISingleAccountPublicClientApplication {
@@ -122,32 +117,33 @@ class MsalAuthRepository(
         return suspendCancellableCoroutine { continuation ->
             PublicClientApplication.createSingleAccountPublicClientApplication(
                 context,
-                R.raw.msal_auth_config,
+                MsalSigningConfiguration.resourceForInstalledApp(context),
                 object : IPublicClientApplication.ISingleAccountApplicationCreatedListener {
                     override fun onCreated(application: ISingleAccountPublicClientApplication) {
                         this@MsalAuthRepository.application = application
-                        continuation.resume(application)
+                        if (continuation.isActive) continuation.resume(application)
                     }
 
                     override fun onError(exception: MsalException) {
-                        continuation.resumeWithException(exception)
+                        if (continuation.isActive) continuation.resumeWithException(exception)
                     }
                 }
             )
         }
     }
 
-    private fun acquireBffToken(
+    private suspend fun acquireBffToken(
         app: ISingleAccountPublicClientApplication,
         account: IAccount
-    ): String? {
-        if (AppConfig.bffScopes.isEmpty()) return null
+    ): String {
+        require(AppConfig.bffScopes.isNotEmpty()) { "No está configurado el acceso a la API de Lognext." }
 
-        val result = app.acquireTokenSilent(
-            AppConfig.bffScopes.toTypedArray(),
-            account.authority
-        )
-        return result.accessToken
+        return withContext(Dispatchers.IO) {
+            app.acquireTokenSilent(
+                AppConfig.bffScopes.toTypedArray(),
+                account.authority
+            ).accessToken
+        }
     }
 
     private suspend fun ISingleAccountPublicClientApplication.signInAwait(
@@ -159,23 +155,19 @@ class MsalAuthRepository(
                 .startAuthorizationFromActivity(activity)
                 .withScopes(scopes)
 
-            if (AppConfig.bffScopes.isNotEmpty()) {
-                builder.withOtherScopesToAuthorize(AppConfig.bffScopes)
-            }
-
             val parameters = builder
                 .withCallback(
                     object : AuthenticationCallback {
                         override fun onSuccess(authenticationResult: IAuthenticationResult) {
-                            continuation.resume(authenticationResult)
+                            if (continuation.isActive) continuation.resume(authenticationResult)
                         }
 
                         override fun onError(exception: MsalException) {
-                            continuation.resumeWithException(exception)
+                            if (continuation.isActive) continuation.resumeWithException(exception)
                         }
 
                         override fun onCancel() {
-                            continuation.resumeWithException(AuthCancelledException())
+                            if (continuation.isActive) continuation.resumeWithException(AuthCancelledException())
                         }
                     }
                 )

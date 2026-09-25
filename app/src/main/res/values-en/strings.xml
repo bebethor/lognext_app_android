@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">Nexter</string>
+    <string name="app_name">Lognext</string>
     <string name="nav_tasks">Tasks</string>
     <string name="nav_clock">Workday</string>
     <string name="nav_people">People</string>

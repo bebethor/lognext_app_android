@@ -25,6 +25,7 @@ import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
@@ -117,6 +118,7 @@ fun HomeScreen() {
         }
         is AuthState.Error -> LoginScreen(
             isSigningIn = isLoggingIn,
+            errorMessage = state.message,
             onSignIn = {
                 activity?.let { scope.launch { authRepository.signIn(it) } }
             }
@@ -127,6 +129,7 @@ fun HomeScreen() {
 @Composable
 private fun LoginScreen(
     isSigningIn: Boolean,
+    errorMessage: String? = null,
     onSignIn: () -> Unit
 ) {
     val transition = rememberInfiniteTransition()
@@ -206,6 +209,20 @@ private fun LoginScreen(
 
             Spacer(modifier = Modifier.height(35.dp))
 
+            if (!isSigningIn && errorMessage != null) {
+                Card(
+                    backgroundColor = NexterColors.cardBackground(),
+                    modifier = Modifier.fillMaxWidth().heightIn(max = 180.dp)
+                ) {
+                    Text(
+                        text = errorMessage,
+                        color = NexterColors.primaryText(),
+                        modifier = Modifier.verticalScroll(rememberScrollState()).padding(16.dp)
+                    )
+                }
+                Spacer(modifier = Modifier.height(16.dp))
+            }
+
             Column(
                 modifier = Modifier.alpha(textAlpha),
                 horizontalAlignment = Alignment.Start,
@@ -271,6 +288,19 @@ private fun AuthenticatedHome(
             .padding(start = 12.dp, top = 14.dp, end = 12.dp, bottom = 80.dp)
         ) {
             GreetingCard(uiState, authState.user.displayName)
+            uiState.errorMessage?.let { message ->
+                Card(
+                    backgroundColor = NexterColors.cardBackground(),
+                    modifier = Modifier.fillMaxWidth().padding(vertical = 12.dp)
+                ) {
+                    Column(modifier = Modifier.padding(16.dp)) {
+                        Text(message, color = NexterColors.primaryText())
+                        OutlinedButton(onClick = viewModel::refresh, enabled = !uiState.isLoading) {
+                            Text(stringResource(R.string.retry))
+                        }
+                    }
+                }
+            }
             MeetingsCard(
                 uiState = uiState,
                 onOpenAgenda = {
