@@ -101,10 +101,10 @@
     <string name="people_results">Resultados</string>
     <string name="people_my_team">Mi equipo</string>
     <string name="people_leadership">COMITÉ DE DIRECCIÓN</string>
-    <string name="people_companies">Empresas</string>
-    <string name="people_projects">Proyectos</string>
-    <string name="people_no_companies">No hay empresas disponibles.</string>
-    <string name="people_no_projects">No hay proyectos disponibles.</string>
+    <!-- <string name="people_companies">Empresas</string> -->
+    <!-- <string name="people_projects">Proyectos</string> -->
+    <!-- <string name="people_no_companies">No hay empresas disponibles.</string> -->
+    <!-- <string name="people_no_projects">No hay proyectos disponibles.</string> -->
     <string name="people_none_found">No se encontraron personas</string>
     <string name="people_try_other">Prueba con otro nombre o departamento.</string>
     <string name="people_profile">Perfil</string>
@@ -119,12 +119,12 @@
     <string name="people_reports_count">📥 Le reportan (%1$s)</string>
     <string name="people_nobody">nadie</string>
     <string name="people_no_direct_reports">Nadie reporta directamente</string>
-    <string name="people_no_assigned_projects">No hay proyectos asignados.</string>
-    <string name="people_code">Código</string>
-    <string name="people_description">Descripción</string>
-    <string name="people_assigned_people">Personas asignadas</string>
+    <!-- <string name="people_no_assigned_projects">No hay proyectos asignados.</string> -->
+    <!-- <string name="people_code">Código</string> -->
+    <!-- <string name="people_description">Descripción</string> -->
+    <!-- <string name="people_assigned_people">Personas asignadas</string> -->
     <string name="people_you">Tú</string>
-    <string name="people_error_load_projects_companies">No se pudieron cargar los proyectos y empresas.</string>
+    <!-- <string name="people_error_load_projects_companies">No se pudieron cargar los proyectos y empresas.</string> -->
     <string name="people_error_load_full_profile">No se pudo cargar toda la información del perfil.</string>
     <string name="people_error_load_profile">No se pudo cargar el perfil. Inténtalo de nuevo.</string>
 

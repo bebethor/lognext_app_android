@@ -21,6 +21,7 @@ import androidx.compose.material.Icon
 import androidx.compose.material.Scaffold
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -55,7 +56,6 @@ import kotlinx.coroutines.launch
 
 @Composable
 fun NexterApp() {
-    val navController = rememberNavController()
     val scope = rememberCoroutineScope()
     val isDark = isNexterDarkTheme()
     val view = LocalView.current
@@ -63,7 +63,9 @@ fun NexterApp() {
     val navigationBarHeight = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
     val authState by AppDependencies.authRepository.authState.collectAsState()
     val authenticatedState = authState as? AuthState.Authenticated
-    val showAuthenticatedChrome = authenticatedState != null
+    LaunchedEffect(AppDependencies.authRepository) {
+        AppDependencies.authRepository.restoreSession()
+    }
     val destinations = listOf(
         AppDestination.Home,
         AppDestination.Clock,
@@ -84,9 +86,17 @@ fun NexterApp() {
         insetsController.isAppearanceLightNavigationBars = !isDark
     }
 
+    // Remove the authenticated navigation graph on logout, regardless of the selected tab.
+    // Its destinations and ViewModels must not survive into the next session.
+    if (authenticatedState == null) {
+        HomeScreen()
+        return
+    }
+    val navController = rememberNavController()
+
     Scaffold(
         topBar = {
-            authenticatedState?.let { state ->
+            authenticatedState.let { state ->
                 NexterTopBar(
                     displayName = state.user.displayName,
                     onSignOut = { scope.launch { AppDependencies.authRepository.signOut() } }
@@ -94,8 +104,6 @@ fun NexterApp() {
             }
         },
         bottomBar = {
-            if (!showAuthenticatedChrome) return@Scaffold
-
             val backStackEntry = navController.currentBackStackEntryAsState().value
             val currentRoute = backStackEntry?.destination?.route
 

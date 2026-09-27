@@ -19,12 +19,13 @@ class PeopleService(
 
     suspend fun orgTree(): OrgTreeResponse = get("/api/v1/staff/org-tree", OrgTreeResponse::class.java)
 
-    suspend fun projects(): ProjectListResponse = get("/api/v1/staff/projects", ProjectListResponse::class.java)
-
-    suspend fun projectMembers(projectCode: String): ProjectMembersResponse {
-        return get("/api/v1/staff/projects/$projectCode/members", ProjectMembersResponse::class.java)
-    }
-
+// Empresas y proyectos desactivados temporalmente; conservar para su recuperación.
+    // suspend fun projects(): ProjectListResponse = get("/api/v1/staff/projects", ProjectListResponse::class.java)
+//
+    // suspend fun projectMembers(projectCode: String): ProjectMembersResponse {
+        // return get("/api/v1/staff/projects/$projectCode/members", ProjectMembersResponse::class.java)
+    // }
+//
     suspend fun searchStaff(query: String): StaffSearchResponse {
         return get("/api/v1/staff/search", StaffSearchResponse::class.java, mapOf("q" to query))
     }
@@ -99,7 +100,6 @@ data class PersonProfileResponse(
         ]
     ) val managerPersonCode: String? = "",
     @SerializedName("work_phone") val workPhone: String? = "",
-    @SerializedName("mobile_phone") val mobilePhone: String? = "",
     @SerializedName("hire_date") val hireDate: String? = "",
     val company: String? = "",
     val active: Boolean = true
@@ -120,7 +120,8 @@ data class PersonProfileResponse(
             color = peopleColor(resolvedPersonCode.ifBlank { displayName }),
             orgUnitName = orgUnitName.orEmpty(),
             email = email.orEmpty(),
-            workPhone = workPhone.orEmpty().ifBlank { mobilePhone.orEmpty() },
+            // Only the corporate number may be displayed in an employee profile.
+            workPhone = workPhone.orEmpty().trim(),
             positionTitle = resolvedPositionTitle,
             hireDate = formatPeopleDate(hireDate.orEmpty()),
             company = company.orEmpty(),
@@ -141,7 +142,7 @@ data class PersonProfileResponse(
             color = if (resolved.personCode.isBlank()) fallback.color else resolved.color,
             orgUnitName = resolved.orgUnitName.ifBlank { fallback.orgUnitName },
             email = resolved.email.ifBlank { fallback.email },
-            workPhone = resolved.workPhone.ifBlank { fallback.workPhone },
+            workPhone = resolved.workPhone,
             positionTitle = resolved.positionTitle.ifBlank { fallback.positionTitle },
             hireDate = resolved.hireDate.ifBlank { fallback.hireDate },
             company = resolved.company.ifBlank { fallback.company },
@@ -202,22 +203,23 @@ data class StaffSearchResponse(
     val people: List<PersonSummaryResponse> = emptyList()
 )
 
-data class ProjectListResponse(
-    val projects: List<ProjectResponse> = emptyList()
-)
-
-data class ProjectMembersResponse(
-    val members: List<PersonSummaryResponse> = emptyList()
-)
-
-data class ProjectResponse(
-    @SerializedName("project_code") val projectCode: String = "",
-    @SerializedName("project_name") val projectName: String = "",
-    val description: String = ""
-) {
-    fun toPeopleProject(): PeopleProject = PeopleProject(projectCode, projectName, description)
-}
-
+// Empresas y proyectos desactivados temporalmente; conservar para su recuperación.
+// data class ProjectListResponse(
+    // val projects: List<ProjectResponse> = emptyList()
+// )
+//
+// data class ProjectMembersResponse(
+    // val members: List<PersonSummaryResponse> = emptyList()
+// )
+//
+// data class ProjectResponse(
+    // @SerializedName("project_code") val projectCode: String = "",
+    // @SerializedName("project_name") val projectName: String = "",
+    // val description: String = ""
+// ) {
+    // fun toPeopleProject(): PeopleProject = PeopleProject(projectCode, projectName, description)
+// }
+//
 data class OrgUnitResponse(
     @SerializedName("org_unit_code") val orgUnitCode: String = "",
     @SerializedName("org_unit_name") val orgUnitName: String = "",

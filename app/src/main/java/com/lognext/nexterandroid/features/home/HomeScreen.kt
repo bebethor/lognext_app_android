@@ -96,10 +96,6 @@ fun HomeScreen() {
     val scope = rememberCoroutineScope()
     val activity = LocalContext.current as? Activity
 
-    LaunchedEffect(authRepository) {
-        authRepository.restoreSession()
-    }
-
     when (val state = authState) {
         AuthState.Loading -> LoginScreen(
             isSigningIn = true,

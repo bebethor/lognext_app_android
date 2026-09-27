@@ -22,21 +22,22 @@ data class PeopleRowData(
     val isCurrentUser: Boolean = false
 )
 
-data class PeopleProject(
-    val code: String,
-    val name: String,
-    val description: String
-) {
-    val id: String = code
-    val isCompany: Boolean
-        get() = code.isNotBlank() && code == code.uppercase() && !name.contains("proyecto", ignoreCase = true)
-}
-
-data class PeopleProjectDetail(
-    val project: PeopleProject,
-    val members: List<PeopleRowData>
-)
-
+// Empresas y proyectos desactivados temporalmente; conservar para su recuperación.
+// data class PeopleProject(
+    // val code: String,
+    // val name: String,
+    // val description: String
+// ) {
+    // val id: String = code
+    // val isCompany: Boolean
+        // get() = code.isNotBlank() && code == code.uppercase() && !name.contains("proyecto", ignoreCase = true)
+// }
+//
+// data class PeopleProjectDetail(
+    // val project: PeopleProject,
+    // val members: List<PeopleRowData>
+// )
+//
 data class PeopleDetailField(
     val icon: String,
     val label: String,

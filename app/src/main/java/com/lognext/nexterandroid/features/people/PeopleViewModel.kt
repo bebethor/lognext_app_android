@@ -9,8 +9,8 @@ import com.lognext.nexterandroid.core.AppConfig
 import com.lognext.nexterandroid.ui.theme.NexterColors
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.async
-import kotlinx.coroutines.awaitAll
-import kotlinx.coroutines.coroutineScope
+// import kotlinx.coroutines.awaitAll
+// import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
@@ -32,17 +32,19 @@ class PeopleViewModel(
         private set
     var detailReports by mutableStateOf<List<PeopleRowData>>(emptyList())
         private set
-    var detailProjects by mutableStateOf<List<PeopleProjectDetail>>(emptyList())
-        private set
-
+// Empresas y proyectos desactivados temporalmente; conservar para su recuperación.
+    // var detailProjects by mutableStateOf<List<PeopleProjectDetail>>(emptyList())
+        // private set
+//
     var teamPeople by mutableStateOf(if (AppConfig.UseFakeLogin) sampleTeam() else emptyList())
         private set
     var leadershipPeople by mutableStateOf(leadershipTeam())
         private set
 
-    var projectCatalog by mutableStateOf(if (AppConfig.UseFakeLogin) sampleProjectCatalog() else emptyList())
-        private set
-
+// Empresas y proyectos desactivados temporalmente; conservar para su recuperación.
+    // var projectCatalog by mutableStateOf(if (AppConfig.UseFakeLogin) sampleProjectCatalog() else emptyList())
+        // private set
+//
     private var apiSearchResults by mutableStateOf<List<PeopleRowData>>(emptyList())
     private var searchJob: Job? = null
     private var detailJob: Job? = null
@@ -97,19 +99,20 @@ class PeopleViewModel(
         )
     )
     
-    private fun sampleProjectCatalog(): List<PeopleProject> = listOf(
-        PeopleProject("LOGNEXT", "Lognext", "Consultoría tecnológica y servicios de transformación digital."),
-        PeopleProject("SACYR", "Sacyr", "Cliente estratégico con servicios gestionados."),
-        PeopleProject("PROY-APP", "Proyecto Nexter", "Producto interno para operaciones y personas."),
-        PeopleProject("PROY-DATA", "Proyecto Data Platform", "Evolución de arquitectura de datos corporativa.")
-    )
-
-    val companies: List<PeopleProject>
-        get() = projectCatalog.filter { it.isCompany }
-
-    val projects: List<PeopleProject>
-        get() = projectCatalog.filter { !it.isCompany }
-
+// Empresas y proyectos desactivados temporalmente; conservar para su recuperación.
+    // private fun sampleProjectCatalog(): List<PeopleProject> = listOf(
+        // PeopleProject("LOGNEXT", "Lognext", "Consultoría tecnológica y servicios de transformación digital."),
+        // PeopleProject("SACYR", "Sacyr", "Cliente estratégico con servicios gestionados."),
+        // PeopleProject("PROY-APP", "Proyecto Nexter", "Producto interno para operaciones y personas."),
+        // PeopleProject("PROY-DATA", "Proyecto Data Platform", "Evolución de arquitectura de datos corporativa.")
+    // )
+//
+    // val companies: List<PeopleProject>
+        // get() = projectCatalog.filter { it.isCompany }
+//
+    // val projects: List<PeopleProject>
+        // get() = projectCatalog.filter { !it.isCompany }
+//
     val hasSearchText: Boolean
         get() = searchText.trim().isNotEmpty()
 
@@ -135,7 +138,7 @@ class PeopleViewModel(
             isLoading = true
             errorMessage = null
             teamPeople = emptyList()
-            projectCatalog = emptyList()
+            // projectCatalog = emptyList()
 
             val teamResult = runCatching {
                 val me = service.me()
@@ -150,25 +153,27 @@ class PeopleViewModel(
                 }
             }
 
-            val projectsResult = runCatching {
-                service.projects().projects.map { it.toPeopleProject() }
-                    .sortedBy { it.name.lowercase() }
-            }
-
+// Empresas y proyectos desactivados temporalmente; conservar para su recuperación.
+            // val projectsResult = runCatching {
+                // service.projects().projects.map { it.toPeopleProject() }
+                    // .sortedBy { it.name.lowercase() }
+            // }
+//
             teamResult.onSuccess { team ->
                 teamPeople = team.distinctBy { it.personCode.ifBlank { it.id } }
             }.onFailure {
                 errorMessage = "Inténtalo de nuevo más tarde."
             }
 
-            projectsResult.onSuccess { projects ->
-                projectCatalog = projects
-            }.onFailure {
-                if (errorMessage == null) {
-                    errorMessage = "No se pudieron cargar los proyectos y empresas."
-                }
-            }
-
+// Empresas y proyectos desactivados temporalmente; conservar para su recuperación.
+            // projectsResult.onSuccess { projects ->
+                // projectCatalog = projects
+            // }.onFailure {
+                // if (errorMessage == null) {
+                    // errorMessage = "No se pudieron cargar los proyectos y empresas."
+                // }
+            // }
+//
             isLoading = false
         }
     }
@@ -207,7 +212,7 @@ class PeopleViewModel(
         if (AppConfig.UseFakeLogin) {
             detailManager = sampleManagerFor(person)
             detailReports = sampleReportsFor(person)
-            detailProjects = sampleProjectsFor(person)
+            // detailProjects = sampleProjectsFor(person)
             return
         }
 
@@ -237,7 +242,7 @@ class PeopleViewModel(
                     detailErrorMessage = "No se pudo cargar toda la información del perfil."
                 }
 
-                loadProjectsForPerson(personCode)
+                // loadProjectsForPerson(personCode)
             }.onFailure {
                 detailErrorMessage = "No se pudo cargar el perfil. Inténtalo de nuevo."
             }
@@ -261,11 +266,12 @@ class PeopleViewModel(
         return sampleReportsFor(person)
     }
 
-    fun projectsFor(person: PeopleRowData): List<PeopleProjectDetail> {
-        if (!AppConfig.UseFakeLogin) return detailProjects
-        return sampleProjectsFor(person)
-    }
-
+// Empresas y proyectos desactivados temporalmente; conservar para su recuperación.
+    // fun projectsFor(person: PeopleRowData): List<PeopleProjectDetail> {
+        // if (!AppConfig.UseFakeLogin) return detailProjects
+        // return sampleProjectsFor(person)
+    // }
+//
     private suspend fun resolvePersonCode(person: PeopleRowData): String {
         person.personCode.takeIf { it.isNotBlank() }?.let { return it }
         return service.searchStaffSmart(person.name).people.firstOrNull()?.personCode.orEmpty()
@@ -287,37 +293,38 @@ class PeopleViewModel(
         )
     }
 
-    private suspend fun loadProjectsForPerson(personCode: String) {
-        val catalog = if (projectCatalog.isNotEmpty()) {
-            projectCatalog
-        } else {
-            service.projects().projects.map { it.toPeopleProject() }
-                .sortedBy { it.name.lowercase() }
-                .also { projectCatalog = it }
-        }
-
-        detailProjects = coroutineScope {
-            catalog.map { project ->
-                async {
-                    val members = runCatching { service.projectMembers(project.code).members }.getOrDefault(emptyList())
-                    if (members.any { it.personCode.orEmpty() == personCode }) {
-                        PeopleProjectDetail(project, members.map { it.toPeopleRow() })
-                    } else {
-                        null
-                    }
-                }
-            }.awaitAll()
-        }
-            .filterNotNull()
-            .sortedBy { it.project.name.lowercase() }
-    }
-
+// Empresas y proyectos desactivados temporalmente; conservar para su recuperación.
+    // private suspend fun loadProjectsForPerson(personCode: String) {
+        // val catalog = if (projectCatalog.isNotEmpty()) {
+            // projectCatalog
+        // } else {
+            // service.projects().projects.map { it.toPeopleProject() }
+                // .sortedBy { it.name.lowercase() }
+                // .also { projectCatalog = it }
+        // }
+//
+        // detailProjects = coroutineScope {
+            // catalog.map { project ->
+                // async {
+                    // val members = runCatching { service.projectMembers(project.code).members }.getOrDefault(emptyList())
+                    // if (members.any { it.personCode.orEmpty() == personCode }) {
+                        // PeopleProjectDetail(project, members.map { it.toPeopleRow() })
+                    // } else {
+                        // null
+                    // }
+                // }
+            // }.awaitAll()
+        // }
+            // .filterNotNull()
+            // .sortedBy { it.project.name.lowercase() }
+    // }
+//
     private fun resetDetail() {
         isLoadingDetail = false
         detailErrorMessage = null
         detailManager = null
         detailReports = emptyList()
-        detailProjects = emptyList()
+        // detailProjects = emptyList()
     }
 
     private fun sampleManagerFor(person: PeopleRowData): PeopleRowData? {
@@ -354,12 +361,13 @@ class PeopleViewModel(
         }
     }
 
-    private fun sampleProjectsFor(person: PeopleRowData): List<PeopleProjectDetail> {
-        val members = teamPeople + leadershipPeople.take(1)
-        val assignedProjects = if (person.isCurrentUser) projects.take(2) else projects.takeLast(2)
-        return assignedProjects.map { PeopleProjectDetail(it, members.take(3)) }
-    }
-
+// Empresas y proyectos desactivados temporalmente; conservar para su recuperación.
+    // private fun sampleProjectsFor(person: PeopleRowData): List<PeopleProjectDetail> {
+        // val members = teamPeople + leadershipPeople.take(1)
+        // val assignedProjects = if (person.isCurrentUser) projects.take(2) else projects.takeLast(2)
+        // return assignedProjects.map { PeopleProjectDetail(it, members.take(3)) }
+    // }
+//
     private fun allPeople(): List<PeopleRowData> = teamPeople + leadershipPeople
 
     private fun sampleTeam(): List<PeopleRowData> {

@@ -107,16 +107,17 @@ fun PeopleScreen() {
                 onPersonSelected = viewModel::selectPerson
             )
 
-            ProjectCatalogCard(
-                title = stringResource(R.string.people_companies),
-                projects = viewModel.companies,
-                emptyMessage = stringResource(R.string.people_no_companies)
-            )
-            ProjectCatalogCard(
-                title = stringResource(R.string.people_projects),
-                projects = viewModel.projects,
-                emptyMessage = stringResource(R.string.people_no_projects)
-            )
+// Empresas y proyectos desactivados temporalmente; conservar para su recuperación.
+            // ProjectCatalogCard(
+                // title = stringResource(R.string.people_companies),
+                // projects = viewModel.companies,
+                // emptyMessage = stringResource(R.string.people_no_companies)
+            // )
+            // ProjectCatalogCard(
+                // title = stringResource(R.string.people_projects),
+                // projects = viewModel.projects,
+                // emptyMessage = stringResource(R.string.people_no_projects)
+            // )
         }
     }
 
@@ -125,7 +126,7 @@ fun PeopleScreen() {
             person = person,
             manager = viewModel.managerFor(person),
             reports = viewModel.reportsFor(person),
-            projects = viewModel.projectsFor(person),
+            // projects = viewModel.projectsFor(person),
             isLoading = viewModel.isLoadingDetail,
             errorMessage = viewModel.detailErrorMessage,
             onPersonSelected = viewModel::selectPerson,
@@ -290,78 +291,79 @@ private fun PeopleRow(person: PeopleRowData, onClick: () -> Unit) {
     }
 }
 
-@Composable
-private fun ProjectCatalogCard(title: String, projects: List<PeopleProject>, emptyMessage: String) {
-    Card(
-        backgroundColor = NexterColors.cardBackground(),
-        shape = RoundedCornerShape(14.dp),
-        elevation = 0.dp,
-        border = BorderStroke(1.dp, NexterColors.border()),
-        modifier = Modifier.fillMaxWidth()
-    ) {
-        Column {
-            Text(
-                text = title.uppercase(),
-                color = NexterColors.primaryText(),
-                fontSize = NexterTypography.SectionTitle,
-                fontWeight = FontWeight.Bold,
-                letterSpacing = androidx.compose.ui.unit.TextUnit.Unspecified,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 14.dp, vertical = 12.dp)
-            )
-            Divider(color = NexterColors.border())
-            if (projects.isEmpty()) {
-                Text(
-                    text = emptyMessage,
-                    color = NexterColors.secondaryText(),
-                    fontSize = NexterTypography.Callout,
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 20.dp)
-                )
-            } else {
-                projects.forEachIndexed { index, project ->
-                    ProjectRow(project)
-                    if (index != projects.lastIndex) Divider(color = NexterColors.border(), modifier = Modifier.padding(start = 14.dp))
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun ProjectRow(project: PeopleProject) {
-    Column(
-        modifier = Modifier.padding(horizontal = 14.dp, vertical = 11.dp),
-        verticalArrangement = Arrangement.spacedBy(4.dp)
-    ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Text(
-                text = project.name,
-                color = NexterColors.primaryText(),
-                fontSize = NexterTypography.Body,
-                fontWeight = FontWeight.SemiBold,
-                modifier = Modifier.weight(1f)
-            )
-            Text(
-                text = project.code,
-                color = NexterColors.Red,
-                fontSize = NexterTypography.Badge,
-                fontWeight = FontWeight.SemiBold
-            )
-        }
-        if (project.description.isNotEmpty()) {
-            Text(
-                text = project.description,
-                color = NexterColors.secondaryText(),
-                fontSize = NexterTypography.Callout
-            )
-        }
-    }
-}
-
+// Empresas y proyectos desactivados temporalmente; conservar para su recuperación.
+// @Composable
+// private fun ProjectCatalogCard(title: String, projects: List<PeopleProject>, emptyMessage: String) {
+    // Card(
+        // backgroundColor = NexterColors.cardBackground(),
+        // shape = RoundedCornerShape(14.dp),
+        // elevation = 0.dp,
+        // border = BorderStroke(1.dp, NexterColors.border()),
+        // modifier = Modifier.fillMaxWidth()
+    // ) {
+        // Column {
+            // Text(
+                // text = title.uppercase(),
+                // color = NexterColors.primaryText(),
+                // fontSize = NexterTypography.SectionTitle,
+                // fontWeight = FontWeight.Bold,
+                // letterSpacing = androidx.compose.ui.unit.TextUnit.Unspecified,
+                // modifier = Modifier
+                    // .fillMaxWidth()
+                    // .padding(horizontal = 14.dp, vertical = 12.dp)
+            // )
+            // Divider(color = NexterColors.border())
+            // if (projects.isEmpty()) {
+                // Text(
+                    // text = emptyMessage,
+                    // color = NexterColors.secondaryText(),
+                    // fontSize = NexterTypography.Callout,
+                    // textAlign = TextAlign.Center,
+                    // modifier = Modifier
+                        // .fillMaxWidth()
+                        // .padding(vertical = 20.dp)
+                // )
+            // } else {
+                // projects.forEachIndexed { index, project ->
+                    // ProjectRow(project)
+                    // if (index != projects.lastIndex) Divider(color = NexterColors.border(), modifier = Modifier.padding(start = 14.dp))
+                // }
+            // }
+        // }
+    // }
+// }
+//
+// @Composable
+// private fun ProjectRow(project: PeopleProject) {
+    // Column(
+        // modifier = Modifier.padding(horizontal = 14.dp, vertical = 11.dp),
+        // verticalArrangement = Arrangement.spacedBy(4.dp)
+    // ) {
+        // Row(verticalAlignment = Alignment.CenterVertically) {
+            // Text(
+                // text = project.name,
+                // color = NexterColors.primaryText(),
+                // fontSize = NexterTypography.Body,
+                // fontWeight = FontWeight.SemiBold,
+                // modifier = Modifier.weight(1f)
+            // )
+            // Text(
+                // text = project.code,
+                // color = NexterColors.Red,
+                // fontSize = NexterTypography.Badge,
+                // fontWeight = FontWeight.SemiBold
+            // )
+        // }
+        // if (project.description.isNotEmpty()) {
+            // Text(
+                // text = project.description,
+                // color = NexterColors.secondaryText(),
+                // fontSize = NexterTypography.Callout
+            // )
+        // }
+    // }
+// }
+//
 @Composable
 private fun EmptyPeopleState() {
     Column(
@@ -382,7 +384,7 @@ private fun PersonDetailDialog(
     person: PeopleRowData,
     manager: PeopleRowData?,
     reports: List<PeopleRowData>,
-    projects: List<PeopleProjectDetail>,
+    // projects: List<PeopleProjectDetail>,
     isLoading: Boolean,
     errorMessage: String?,
     onPersonSelected: (PeopleRowData) -> Unit,
@@ -456,7 +458,7 @@ private fun PersonDetailDialog(
                         )
                         ReportsToSection(manager, onPersonSelected)
                         DirectReportsSection(reports, onPersonSelected)
-                        ProjectsSection(projects)
+                        // ProjectsSection(projects)
                     }
                 }
             }
@@ -506,7 +508,7 @@ private fun DetailErrorState(message: String) {
 private fun localizedPeopleMessage(message: String): String {
     return when (message.lowercase(Locale.getDefault())) {
         "inténtalo de nuevo más tarde." -> stringResource(R.string.error_try_again_later)
-        "no se pudieron cargar los proyectos y empresas." -> stringResource(R.string.people_error_load_projects_companies)
+        // "no se pudieron cargar los proyectos y empresas." -> stringResource(R.string.people_error_load_projects_companies)
         "no se pudo cargar toda la información del perfil." -> stringResource(R.string.people_error_load_full_profile)
         "no se pudo cargar el perfil. inténtalo de nuevo." -> stringResource(R.string.people_error_load_profile)
         else -> message
@@ -661,50 +663,51 @@ private fun ProfilePersonRow(person: PeopleRowData, onClick: () -> Unit) {
     }
 }
 
-@Composable
-private fun ProjectsSection(projects: List<PeopleProjectDetail>) {
-    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-        Text(stringResource(R.string.people_projects), color = NexterColors.tertiaryText(), fontSize = NexterTypography.SectionTitle, fontWeight = FontWeight.Bold)
-        if (projects.isEmpty()) {
-            Text(
-                stringResource(R.string.people_no_assigned_projects),
-                color = NexterColors.secondaryText(),
-                fontSize = NexterTypography.Callout,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(10.dp))
-                    .background(subtleBackground())
-                    .padding(14.dp)
-            )
-        } else {
-            projects.forEach { project ->
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(10.dp))
-                        .background(subtleBackground())
-                        .border(BorderStroke(1.dp, NexterColors.border()), RoundedCornerShape(10.dp))
-                        .padding(14.dp),
-                    verticalArrangement = Arrangement.spacedBy(10.dp)
-                ) {
-                    Text(project.project.name, color = NexterColors.primaryText(), fontSize = NexterTypography.Body, fontWeight = FontWeight.SemiBold)
-                    ProjectDetailValue(stringResource(R.string.people_code), project.project.code)
-                    if (project.project.description.isNotEmpty()) ProjectDetailValue(stringResource(R.string.people_description), project.project.description)
-                    ProjectDetailValue(stringResource(R.string.people_assigned_people), project.members.joinToString(", ") { it.name })
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun ProjectDetailValue(label: String, value: String) {
-    Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
-        Text(label, color = NexterColors.tertiaryText(), fontSize = NexterTypography.Footnote, fontWeight = FontWeight.SemiBold)
-        Text(value, color = NexterColors.primaryText(), fontSize = NexterTypography.Callout)
-    }
-}
-
+// Empresas y proyectos desactivados temporalmente; conservar para su recuperación.
+// @Composable
+// private fun ProjectsSection(projects: List<PeopleProjectDetail>) {
+    // Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        // Text(stringResource(R.string.people_projects), color = NexterColors.tertiaryText(), fontSize = NexterTypography.SectionTitle, fontWeight = FontWeight.Bold)
+        // if (projects.isEmpty()) {
+            // Text(
+                // stringResource(R.string.people_no_assigned_projects),
+                // color = NexterColors.secondaryText(),
+                // fontSize = NexterTypography.Callout,
+                // modifier = Modifier
+                    // .fillMaxWidth()
+                    // .clip(RoundedCornerShape(10.dp))
+                    // .background(subtleBackground())
+                    // .padding(14.dp)
+            // )
+        // } else {
+            // projects.forEach { project ->
+                // Column(
+                    // modifier = Modifier
+                        // .fillMaxWidth()
+                        // .clip(RoundedCornerShape(10.dp))
+                        // .background(subtleBackground())
+                        // .border(BorderStroke(1.dp, NexterColors.border()), RoundedCornerShape(10.dp))
+                        // .padding(14.dp),
+                    // verticalArrangement = Arrangement.spacedBy(10.dp)
+                // ) {
+                    // Text(project.project.name, color = NexterColors.primaryText(), fontSize = NexterTypography.Body, fontWeight = FontWeight.SemiBold)
+                    // ProjectDetailValue(stringResource(R.string.people_code), project.project.code)
+                    // if (project.project.description.isNotEmpty()) ProjectDetailValue(stringResource(R.string.people_description), project.project.description)
+                    // ProjectDetailValue(stringResource(R.string.people_assigned_people), project.members.joinToString(", ") { it.name })
+                // }
+            // }
+        // }
+    // }
+// }
+//
+// @Composable
+// private fun ProjectDetailValue(label: String, value: String) {
+    // Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
+        // Text(label, color = NexterColors.tertiaryText(), fontSize = NexterTypography.Footnote, fontWeight = FontWeight.SemiBold)
+        // Text(value, color = NexterColors.primaryText(), fontSize = NexterTypography.Callout)
+    // }
+// }
+//
 @Composable
 private fun PeopleAvatar(person: PeopleRowData, size: Int) {
     Box(
