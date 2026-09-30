@@ -144,7 +144,12 @@ object ClockNotificationScheduler {
             .setPriority(NotificationCompat.PRIORITY_DEFAULT)
             .setAutoCancel(true)
             .build()
-        NotificationManagerCompat.from(context).notify(id.hashCode(), notification)
+        // Notification permission can be denied or revoked after a reminder is scheduled.
+        try {
+            NotificationManagerCompat.from(context).notify(id.hashCode(), notification)
+        } catch (_: SecurityException) {
+            // Skip this reminder when Android no longer permits notifications.
+        }
     }
 
     fun scheduleNextWeek(context: Context, intent: Intent) {
