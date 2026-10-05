@@ -13,10 +13,10 @@ open class RestService(
     private val apiClient: APIClient,
     private val gson: Gson = Gson()
 ) {
-    protected suspend fun <T> get(path: String, type: Class<T>, query: Map<String, String?> = emptyMap()): T {
+    protected suspend fun <T> get(path: String, type: Class<T>, query: Map<String, String?> = emptyMap(), includeBlankQueryValues: Boolean = false): T {
         return withContext(Dispatchers.IO) {
             val request = Request.Builder()
-                .url(url(path, query))
+                .url(url(path, query, includeBlankQueryValues))
                 .header("Accept", "application/json")
                 .get()
                 .build()
@@ -75,11 +75,11 @@ open class RestService(
         }
     }
 
-    private fun url(path: String, query: Map<String, String?> = emptyMap()): String {
+    private fun url(path: String, query: Map<String, String?> = emptyMap(), includeBlankQueryValues: Boolean = false): String {
         val builder = AppConfig.BaseUrl.trimEnd('/').toHttpUrl().newBuilder()
         path.trimStart('/').split('/').filter { it.isNotBlank() }.forEach(builder::addPathSegment)
         query.forEach { (name, value) ->
-            if (!value.isNullOrBlank()) builder.addQueryParameter(name, value)
+            if (value != null && (includeBlankQueryValues || value.isNotBlank())) builder.addQueryParameter(name, value)
         }
         return builder.build().toString()
     }

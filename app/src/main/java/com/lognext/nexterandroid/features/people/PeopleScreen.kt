@@ -76,7 +76,14 @@ fun PeopleScreen() {
             onClear = viewModel::clearSearch
         )
 
-        if (viewModel.isLoading) {
+        viewModel.errorMessage?.let { message ->
+            DetailErrorState(message)
+            androidx.compose.material.TextButton(onClick = viewModel::loadIfNeeded) {
+                Text("Reintentar")
+            }
+        }
+
+        if (viewModel.isLoading && viewModel.teamPeople.isEmpty()) {
             LoadingPeopleState()
         } else if (viewModel.hasSearchText) {
             if (viewModel.searchResults.isEmpty()) {

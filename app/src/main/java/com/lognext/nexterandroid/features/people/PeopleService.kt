@@ -27,7 +27,7 @@ class PeopleService(
     // }
 //
     suspend fun searchStaff(query: String): StaffSearchResponse {
-        return get("/api/v1/staff/search", StaffSearchResponse::class.java, mapOf("q" to query))
+        return get("/api/v1/staff/search", StaffSearchResponse::class.java, mapOf("q" to query), includeBlankQueryValues = true)
     }
 
     suspend fun searchStaffSmart(query: String): StaffSearchResponse {

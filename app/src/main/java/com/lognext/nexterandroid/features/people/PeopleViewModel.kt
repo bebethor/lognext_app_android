@@ -1,5 +1,9 @@
 package com.lognext.nexterandroid.features.people
 
+import android.util.Log
+import com.lognext.nexterandroid.BuildConfig
+import com.lognext.nexterandroid.core.network.APIError
+import kotlinx.coroutines.CancellationException
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -128,8 +132,8 @@ class PeopleViewModel(
             }.distinctBy { it.id }
         }
 
-    val teamSectionTitle: String
-        get() = teamPeople.firstOrNull()?.orgUnitName?.takeIf { it.isNotBlank() } ?: "Mi equipo"
+    var teamSectionTitle by mutableStateOf(if (AppConfig.UseFakeLogin) "Mobile & Products" else "Mi equipo")
+        private set
 
     fun loadIfNeeded() {
         if (hasLoaded || AppConfig.UseFakeLogin) return
@@ -137,44 +141,96 @@ class PeopleViewModel(
         viewModelScope.launch {
             isLoading = true
             errorMessage = null
-            teamPeople = emptyList()
-            // projectCatalog = emptyList()
-
-            val teamResult = runCatching {
+            var stage = "perfil"
+            try {
                 val me = service.me()
-                val personCode = me.personCode.orEmpty()
-                val team = service.team(personCode).members.map { member ->
-                    member.toPeopleRow(isCurrentUser = member.personCode.orEmpty() == personCode)
+                val ownTeam = buildPeopleTeam(me, TeamResponse())
+                teamPeople = ownTeam.people
+                teamSectionTitle = ownTeam.title
+                if (BuildConfig.DEBUG) {
+                    Log.d("NexterProfile", "GET /api/v1/staff/me — perfil del usuario conectado")
+                    Log.d("NexterProfile", "job_title=${me.jobTitle}")
+                    Log.d("NexterProfile", "position_title=${me.positionTitle}")
+                    Log.d("NexterProfile", "org_unit_code=${me.orgUnitCode}")
+                    Log.d("NexterProfile", "org_unit_name=${me.orgUnitName}")
                 }
-                if (team.isEmpty()) {
-                    listOf(me.toPeopleRow(isCurrentUser = true))
+                stage = "equipo"
+                val team = buildPeopleTeam(me, service.team(me.personCode.orEmpty()))
+                teamPeople = team.people
+                teamSectionTitle = team.title
+            } catch (error: CancellationException) {
+                hasLoaded = false
+                throw error
+            } catch (error: Exception) {
+                hasLoaded = false
+                errorMessage = if (stage == "perfil") {
+                    "No se pudo cargar tu perfil. Inténtalo de nuevo."
                 } else {
-                    team
+                    "No se pudo cargar tu equipo. Inténtalo de nuevo."
                 }
+                if (BuildConfig.DEBUG) {
+                    val reason = if (error is APIError.Http) "HTTP ${error.statusCode}" else error.javaClass.simpleName
+                    Log.w("NexterProfile", "Error al cargar $stage ($reason).")
+                }
+            } finally {
+                isLoading = false
             }
-
-// Empresas y proyectos desactivados temporalmente; conservar para su recuperación.
-            // val projectsResult = runCatching {
-                // service.projects().projects.map { it.toPeopleProject() }
-                    // .sortedBy { it.name.lowercase() }
-            // }
-//
-            teamResult.onSuccess { team ->
-                teamPeople = team.distinctBy { it.personCode.ifBlank { it.id } }
-            }.onFailure {
-                errorMessage = "Inténtalo de nuevo más tarde."
+            // Diagnostics must not compete with the requests needed to display People.
+            if (BuildConfig.DEBUG) {
+                logOrgUnits()
+                logJobTitles()
             }
+        }
+    }
 
-// Empresas y proyectos desactivados temporalmente; conservar para su recuperación.
-            // projectsResult.onSuccess { projects ->
-                // projectCatalog = projects
-            // }.onFailure {
-                // if (errorMessage == null) {
-                    // errorMessage = "No se pudieron cargar los proyectos y empresas."
-                // }
-            // }
-//
-            isLoading = false
+    private fun logOrgUnits() {
+        viewModelScope.launch {
+            val tag = "NexterOrgUnits"
+            Log.d(tag, "Consultando GET /api/v1/staff/org-tree…")
+            try {
+                val units = service.orgTree().orgUnits
+                    .sortedWith(compareBy({ it.orgUnitName.lowercase() }, { it.orgUnitCode }))
+                Log.d(tag, "Unidades organizativas devueltas por la API: ${units.size}")
+                units.forEachIndexed { index, unit ->
+                    Log.d(
+                        tag,
+                        "${index + 1}. org_unit_name=${unit.orgUnitName} | org_unit_code=${unit.orgUnitCode}" +
+                            " | parent_org_unit_name=${unit.parentOrgUnitName}" +
+                            " | parent_org_unit_code=${unit.parentOrgUnitCode}"
+                    )
+                }
+                Log.d(tag, "Fin de la lista de unidades organizativas.")
+            } catch (error: CancellationException) {
+                throw error
+            } catch (error: Exception) {
+                val reason = if (error is APIError.Http) "HTTP ${error.statusCode}" else error.javaClass.simpleName
+                Log.w(tag, "No se pudieron consultar las unidades organizativas ($reason).")
+            }
+        }
+    }
+
+    private fun logJobTitles() {
+        viewModelScope.launch {
+            val tag = "NexterJobTitles"
+            // An empty substring matches active employees in the backend search.
+            // This is an inventory of returned titles, not a complete position catalog.
+            Log.d(tag, "Consultando GET /api/v1/staff/search?q= (empleados activos)…")
+            try {
+                val people = service.searchStaff("").people.distinctBy { it.personCode }
+                val titles = people.map { it.jobTitle.orEmpty().trim() }
+                val counts = titles.filter { it.isNotBlank() }.groupingBy { it }.eachCount()
+                Log.d(tag, "Puestos distintos en los resultados: ${counts.size} | empleados devueltos: ${people.size}" +
+                    " | sin puesto: ${titles.count { it.isBlank() }}")
+                counts.entries.sortedBy { it.key.lowercase() }.forEachIndexed { index, entry ->
+                    Log.d(tag, "${index + 1}. job_title=${entry.key} | empleados=${entry.value}")
+                }
+                Log.d(tag, "Fin de la lista. Valores de job_title devueltos; no es un catálogo completo de puestos.")
+            } catch (error: CancellationException) {
+                throw error
+            } catch (error: Exception) {
+                val reason = if (error is APIError.Http) "HTTP ${error.statusCode}" else error.javaClass.simpleName
+                Log.w(tag, "No se pudieron consultar los puestos ($reason).")
+            }
         }
     }
 

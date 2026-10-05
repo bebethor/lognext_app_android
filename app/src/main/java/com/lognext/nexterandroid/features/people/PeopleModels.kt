@@ -65,3 +65,20 @@ fun peopleColor(value: String): Color {
     val index = kotlin.math.abs(value.hashCode()) % colors.size
     return colors[index]
 }
+
+internal data class PeopleTeam(
+    val title: String,
+    val people: List<PeopleRowData>
+)
+
+internal fun buildPeopleTeam(me: PersonProfileResponse, team: TeamResponse): PeopleTeam {
+    // The team endpoint may omit the signed-in person or return reports from other units.
+    val people = listOf(me.toPeopleRow(isCurrentUser = true)) +
+        team.members.map { it.toPeopleRow() }
+    return PeopleTeam(
+        title = me.orgUnitName.orEmpty().takeIf { it.isNotBlank() }
+            ?: team.orgUnit?.orgUnitName?.takeIf { it.isNotBlank() }
+            ?: "Mi equipo",
+        people = people.distinctBy { it.personCode.ifBlank { it.id } }
+    )
+}
