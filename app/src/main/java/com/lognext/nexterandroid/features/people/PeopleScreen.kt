@@ -387,7 +387,7 @@ private fun EmptyPeopleState() {
 }
 
 @Composable
-private fun PersonDetailDialog(
+internal fun PersonDetailDialog(
     person: PeopleRowData,
     manager: PeopleRowData?,
     reports: List<PeopleRowData>,
@@ -664,7 +664,7 @@ private fun ProfilePersonRow(person: PeopleRowData, onClick: () -> Unit) {
         Spacer(modifier = Modifier.width(10.dp))
         Column(modifier = Modifier.weight(1f)) {
             Text(person.name, color = NexterColors.primaryText(), fontSize = NexterTypography.Body, fontWeight = FontWeight.SemiBold, maxLines = 2, overflow = TextOverflow.Ellipsis)
-            Text(person.role, color = NexterColors.secondaryText(), fontSize = NexterTypography.Callout, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Text(person.reportingSubtitle, color = NexterColors.secondaryText(), fontSize = NexterTypography.Callout, maxLines = 1, overflow = TextOverflow.Ellipsis)
         }
         if (person.isCurrentUser) CurrentUserBadge() else Text("›", color = NexterColors.tertiaryText(), fontSize = NexterTypography.Body)
     }

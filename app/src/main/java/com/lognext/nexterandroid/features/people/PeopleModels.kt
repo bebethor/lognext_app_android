@@ -82,3 +82,7 @@ internal fun buildPeopleTeam(me: PersonProfileResponse, team: TeamResponse): Peo
         people = people.distinctBy { it.personCode.ifBlank { it.id } }
     )
 }
+
+// Reporting rows identify the person's organisational unit, not their job category.
+internal val PeopleRowData.reportingSubtitle: String
+    get() = orgUnitName.takeIf { it.isNotBlank() } ?: role

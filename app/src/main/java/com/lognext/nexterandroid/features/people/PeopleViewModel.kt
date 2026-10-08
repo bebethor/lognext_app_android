@@ -277,7 +277,24 @@ class PeopleViewModel(
             detailErrorMessage = null
             runCatching {
                 val personCode = resolvePersonCode(person)
-                val profileRequest = async { runCatching { service.profile(personCode) }.getOrNull() }
+                val profileRequest = async {
+                    try {
+                        service.profile(personCode).also { profile ->
+                            if (BuildConfig.DEBUG) {
+                                Log.d("NexterProfile", "Perfil seleccionado: work_phone=" +
+                                    if (profile.workPhone.isNullOrBlank()) "ausente o vacío" else "presente")
+                            }
+                        }
+                    } catch (error: CancellationException) {
+                        throw error
+                    } catch (error: Exception) {
+                        if (BuildConfig.DEBUG) {
+                            val reason = if (error is APIError.Http) "HTTP ${error.statusCode}" else error.javaClass.simpleName
+                            Log.w("NexterProfile", "No se pudo cargar el perfil seleccionado ($reason).")
+                        }
+                        null
+                    }
+                }
                 val managerRequest = async { runCatching { service.manager(personCode) }.getOrNull() }
                 val teamRequest = async { runCatching { service.team(personCode) }.getOrNull() }
 
