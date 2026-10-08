@@ -25,6 +25,11 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import com.lognext.nexterandroid.features.common.EmployeeCategory
+import kotlinx.coroutines.CancellationException
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.graphics.Color
@@ -63,6 +68,18 @@ fun NexterApp() {
     val navigationBarHeight = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
     val authState by AppDependencies.authRepository.authState.collectAsState()
     val authenticatedState = authState as? AuthState.Authenticated
+    var employeeCategory by remember(authenticatedState) { mutableStateOf<EmployeeCategory?>(null) }
+    LaunchedEffect(authenticatedState) {
+        if (authenticatedState != null && !com.lognext.nexterandroid.core.AppConfig.UseFakeLogin) {
+            try {
+                employeeCategory = EmployeeCategory.fromJobTitle(AppDependencies.peopleService.me().jobTitle)
+            } catch (error: CancellationException) {
+                throw error
+            } catch (_: Exception) {
+                employeeCategory = null
+            }
+        }
+    }
     LaunchedEffect(AppDependencies.authRepository) {
         AppDependencies.authRepository.restoreSession()
     }
@@ -98,6 +115,7 @@ fun NexterApp() {
         topBar = {
             authenticatedState.let { state ->
                 NexterTopBar(
+                    employeeCategory = employeeCategory,
                     displayName = state.user.displayName,
                     onSignOut = { scope.launch { AppDependencies.authRepository.signOut() } }
                 )

@@ -41,6 +41,7 @@ import java.util.Locale
 @Composable
 fun NexterTopBar(
     displayName: String,
+    employeeCategory: EmployeeCategory? = null,
     onSignOut: () -> Unit
 ) {
     val date = remember {
@@ -92,6 +93,24 @@ fun NexterTopBar(
                     fontSize = NexterTypography.Avatar,
                     fontWeight = FontWeight.Bold
                 )
+            }
+            employeeCategory?.let { category ->
+                Spacer(modifier = Modifier.width(10.dp))
+                Box(
+                    modifier = Modifier
+                        .size(35.dp)
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(if (category == EmployeeCategory.Staff) NexterColors.Green else NexterColors.Blue),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = category.badge,
+                        color = NexterColors.Navy,
+                        fontSize = NexterTypography.Footnote,
+                        fontWeight = FontWeight.Bold,
+                        maxLines = 1
+                    )
+                }
             }
             Spacer(modifier = Modifier.width(10.dp))
             OutlinedButton(
