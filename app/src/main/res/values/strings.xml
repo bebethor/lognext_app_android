@@ -20,12 +20,12 @@
     <string name="home_pending_tasks_short">Tareas pend.</string>
     <string name="home_today_meetings">Reuniones de hoy</string>
     <string name="home_view_agenda">Ver agenda</string>
-    <string name="home_loading_meetings">Cargando reuniones…</string>
+    <string name="home_loading_meetings">Cargando reuniones</string>
     <string name="home_no_meetings_today">No tienes reuniones hoy</string>
     <string name="home_no_meetings_subtitle">Cuando tengas reuniones programadas aparecerán aquí.</string>
     <string name="home_pending_tasks">Tareas pendientes</string>
     <string name="home_add">Añadir</string>
-    <string name="home_loading_tasks">Cargando tareas…</string>
+    <string name="home_loading_tasks">Cargando tareas</string>
     <string name="home_no_pending_tasks">No tienes tareas pendientes</string>
     <string name="home_no_pending_tasks_subtitle">Cuando tengas tareas asignadas aparecerán aquí.</string>
     <string name="delete">Borrar</string>
@@ -228,4 +228,8 @@
     <string name="clock_notification_long_open_push_body">Llevas muchas horas con la entrada abierta. Revisa si debes fichar salida.</string>
     <string name="clock_notification_no_record_push_title">Jornada sin registrar</string>
     <string name="clock_notification_no_record_push_body">Hoy no tienes registros de jornada. Revisa si necesitas fichar.</string>
+
+    <string name="home_meetings_load_failed">No se pudieron cargar las reuniones</string>
+    <string name="home_tasks_load_failed">No se pudieron cargar las tareas</string>
+    <string name="home_loading_retry_hint">Pulsa Reintentar para volver a cargar la información.</string>
 </resources>

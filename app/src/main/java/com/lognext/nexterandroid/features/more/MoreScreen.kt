@@ -122,16 +122,17 @@ fun MoreScreen() {
     ) {
         VacationCard(viewModel)
         VacationHistoryCard(viewModel)
-        ClockNotificationsCard(
-            viewModel = viewModel,
-            onNotificationEnabledChange = { id, enabled -> setNotificationEnabled(id, enabled) },
-            onTimeClick = { settingId, currentMinutes ->
-                showTimePicker(context, currentMinutes) { selectedMinutes ->
-                    viewModel.notificationMinutes[settingId] = selectedMinutes
-                    viewModel.rescheduleClockNotifications(context)
-                }
-            }
-        )
+        // Notificaciones de jornada ocultas temporalmente; descomentar para recuperar la tarjeta.
+        // ClockNotificationsCard(
+        //     viewModel = viewModel,
+        //     onNotificationEnabledChange = { id, enabled -> setNotificationEnabled(id, enabled) },
+        //     onTimeClick = { settingId, currentMinutes ->
+        //         showTimePicker(context, currentMinutes) { selectedMinutes ->
+        //             viewModel.notificationMinutes[settingId] = selectedMinutes
+        //             viewModel.rescheduleClockNotifications(context)
+        //         }
+        //     }
+        // )
     }
 
     if (viewModel.showVacationRequest) {
@@ -175,22 +176,23 @@ private fun VacationCard(viewModel: MoreViewModel) {
         ) {
             PaidVacationSummaryCard(viewModel)
 
-            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                CompactAbsenceSummaryCard(
-                    title = stringResource(R.string.more_permissions_fallback),
-                    usedValue = "0",
-                    usedUnit = "",
-                    episodes = "0",
-                    modifier = Modifier.weight(1f)
-                )
-                CompactAbsenceSummaryCard(
-                    title = stringResource(R.string.more_sickness_fallback),
-                    usedValue = "0",
-                    usedUnit = "",
-                    episodes = "0",
-                    modifier = Modifier.weight(1f)
-                )
-            }
+            // Oculto temporalmente: descomentar este bloque para recuperar Permisos Retribuidos y Enfermedad.
+            // Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            //     CompactAbsenceSummaryCard(
+            //         title = stringResource(R.string.more_permissions_fallback),
+            //         usedValue = "0",
+            //         usedUnit = "",
+            //         episodes = "0",
+            //         modifier = Modifier.weight(1f)
+            //     )
+            //     CompactAbsenceSummaryCard(
+            //         title = stringResource(R.string.more_sickness_fallback),
+            //         usedValue = "0",
+            //         usedUnit = "",
+            //         episodes = "0",
+            //         modifier = Modifier.weight(1f)
+            //     )
+            // }
         }
 
         Column(

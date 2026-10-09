@@ -30,6 +30,12 @@ class PeopleService(
         return get("/api/v1/staff/search", StaffSearchResponse::class.java, mapOf("q" to query), includeBlankQueryValues = true)
     }
 
+    suspend fun leadership(): List<PersonSummaryResponse> =
+        searchStaff("").people.filter { it.jobTitle.orEmpty().normalizeSearch() == "comite de direccion" }
+            .filter { !it.personCode.isNullOrBlank() }
+            .distinctBy { it.personCode }
+            .sortedBy { it.fullName.orEmpty().normalizeSearch() }
+
     suspend fun searchStaffSmart(query: String): StaffSearchResponse {
         val candidates = searchCandidates(query)
         val mergedPeople = mutableListOf<PersonSummaryResponse>()

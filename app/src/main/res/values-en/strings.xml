@@ -18,12 +18,12 @@
     <string name="home_pending_tasks_short">Pending tasks</string>
     <string name="home_today_meetings">Today’s meetings</string>
     <string name="home_view_agenda">View agenda</string>
-    <string name="home_loading_meetings">Loading meetings…</string>
+    <string name="home_loading_meetings">Loading meetings</string>
     <string name="home_no_meetings_today">You have no meetings today</string>
     <string name="home_no_meetings_subtitle">Scheduled meetings will appear here.</string>
     <string name="home_pending_tasks">Pending tasks</string>
     <string name="home_add">Add</string>
-    <string name="home_loading_tasks">Loading tasks…</string>
+    <string name="home_loading_tasks">Loading tasks</string>
     <string name="home_no_pending_tasks">You have no pending tasks</string>
     <string name="home_no_pending_tasks_subtitle">Assigned tasks will appear here.</string>
     <string name="delete">Delete</string>
@@ -223,4 +223,8 @@
     <string name="clock_notification_long_open_push_body">Your clock-in has been open for many hours. Check whether you should clock out.</string>
     <string name="clock_notification_no_record_push_title">Workday not recorded</string>
     <string name="clock_notification_no_record_push_body">You have no workday records today. Check whether you need to clock in.</string>
+
+    <string name="home_meetings_load_failed">Unable to load meetings</string>
+    <string name="home_tasks_load_failed">Unable to load tasks</string>
+    <string name="home_loading_retry_hint">Tap Retry to load the information again.</string>
 </resources>

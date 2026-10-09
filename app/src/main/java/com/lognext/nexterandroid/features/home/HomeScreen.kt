@@ -414,9 +414,28 @@ private fun GreetingDivider() {
 }
 
 @Composable
+private fun HomeCardLoadingState(message: String) {
+    Row(
+        modifier = Modifier.fillMaxWidth().padding(vertical = 24.dp),
+        horizontalArrangement = Arrangement.spacedBy(12.dp, Alignment.CenterHorizontally),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        CircularProgressIndicator(
+            color = NexterColors.Red,
+            strokeWidth = 2.dp,
+            modifier = Modifier.size(22.dp)
+        )
+        Text(message, color = NexterColors.secondaryText(), fontSize = NexterTypography.Callout)
+    }
+}
+
+@Composable
 private fun MeetingsCard(uiState: HomeUiState, onOpenAgenda: () -> Unit) {
     HtmlCard(title = "📅", label = stringResource(R.string.home_today_meetings), action = stringResource(R.string.home_view_agenda), onAction = onOpenAgenda) {
         when {
+            uiState.isLoading -> HomeCardLoadingState(stringResource(R.string.home_loading_meetings))
+            uiState.visibleMeetings.isEmpty() && uiState.meetingsLoadFailed ->
+                EmptyText(stringResource(R.string.home_meetings_load_failed), stringResource(R.string.home_loading_retry_hint))
             uiState.visibleMeetings.isEmpty() -> EmptyText(
                 text = stringResource(R.string.home_no_meetings_today),
                 subtitle = stringResource(R.string.home_no_meetings_subtitle)
@@ -468,21 +487,25 @@ private fun MeetingRow(meeting: HomeCalendarEvent, index: Int) {
 }
 
 @Composable
-private fun TasksCard(
+internal fun TasksCard(
     uiState: HomeUiState,
     onAddTask: () -> Unit,
     onToggleCompleted: (HomeTask) -> Unit,
     onDeleteTask: (HomeTask) -> Unit
 ) {
     HtmlCard(title = "📝", label = stringResource(R.string.home_pending_tasks), action = stringResource(R.string.home_add), onAction = onAddTask) {
-        val pendingTasks = uiState.tasks.filter { !it.isCompleted }.take(6)
-        if (pendingTasks.isEmpty()) {
+        val visibleTasks = uiState.tasks
+        if (uiState.isLoading) {
+            HomeCardLoadingState(stringResource(R.string.home_loading_tasks))
+        } else if (visibleTasks.isEmpty() && uiState.tasksLoadFailed) {
+            EmptyText(stringResource(R.string.home_tasks_load_failed), stringResource(R.string.home_loading_retry_hint))
+        } else if (visibleTasks.isEmpty()) {
             EmptyText(
                 text = stringResource(R.string.home_no_pending_tasks),
                 subtitle = stringResource(R.string.home_no_pending_tasks_subtitle)
             )
         } else {
-            pendingTasks.forEachIndexed { index, task ->
+            visibleTasks.forEachIndexed { index, task ->
                 if (index > 0) Divider(color = NexterColors.border())
                 TaskRow(
                     task = task,

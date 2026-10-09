@@ -106,6 +106,15 @@ fun PeopleScreen() {
                 onPersonSelected = viewModel::selectPerson
             )
 
+            if (viewModel.isLoadingLeadership) {
+                DetailLoadingState()
+            }
+            viewModel.leadershipErrorMessage?.let { message ->
+                DetailErrorState(message)
+                androidx.compose.material.TextButton(onClick = viewModel::loadLeadershipIfNeeded) {
+                    Text("Reintentar")
+                }
+            }
             PeopleSectionCard(
                 title = stringResource(R.string.people_leadership),
                 badge = null,

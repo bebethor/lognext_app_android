@@ -49,7 +49,7 @@ import androidx.navigation.compose.rememberNavController
 import com.lognext.nexterandroid.R
 import com.lognext.nexterandroid.core.AppDependencies
 import com.lognext.nexterandroid.core.auth.AuthState
-import com.lognext.nexterandroid.features.clock.ClockScreen
+// import com.lognext.nexterandroid.features.clock.ClockScreen
 import com.lognext.nexterandroid.features.common.NexterTopBar
 import com.lognext.nexterandroid.features.home.HomeScreen
 import com.lognext.nexterandroid.features.more.MoreScreen
@@ -85,7 +85,8 @@ fun NexterApp() {
     }
     val destinations = listOf(
         AppDestination.Home,
-        AppDestination.Clock,
+        // Jornada oculta temporalmente: descomentar esta entrada y su ruta para recuperarla.
+        // AppDestination.Clock,
         AppDestination.People,
         AppDestination.More
     )
@@ -185,7 +186,7 @@ fun NexterApp() {
             modifier = Modifier.padding(innerPadding)
         ) {
             composable(AppDestination.Home.route) { HomeScreen() }
-            composable(AppDestination.Clock.route) { ClockScreen() }
+            // composable(AppDestination.Clock.route) { ClockScreen() }
             composable(AppDestination.People.route) { PeopleScreen() }
             composable(AppDestination.More.route) { MoreScreen() }
         }

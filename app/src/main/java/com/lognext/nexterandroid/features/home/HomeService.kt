@@ -69,7 +69,7 @@ class HomeService(
 }
 
 data class HomeTaskUpdateRequest(
-    @com.google.gson.annotations.SerializedName("percent_complete") val percentComplete: Int? = null,
+    @com.google.gson.annotations.SerializedName("is_completed") val isCompleted: Boolean? = null,
     val priority: Int? = null,
     val description: String? = null
 )

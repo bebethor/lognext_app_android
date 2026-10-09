@@ -13,6 +13,8 @@ import java.util.Locale
 
 data class HomeUiState(
     val isLoading: Boolean = false,
+    val meetingsLoadFailed: Boolean = false,
+    val tasksLoadFailed: Boolean = false,
     val firstName: String = "",
     val displayName: String = "",
     val positionTitle: String = "",
@@ -39,7 +41,7 @@ data class HomeUiState(
         }
 
     val displayedPendingTasksCount: Int
-        get() = if (tasks.isNotEmpty()) tasks.count { it.stableId !in completedTaskIds } else pendingTasksCount ?: 0
+        get() = tasks.count { it.stableId !in completedTaskIds }
 
     val visibleMeetings: List<HomeCalendarEvent>
         get() {
@@ -61,6 +63,7 @@ class HomeViewModel(
     val uiState: StateFlow<HomeUiState> = mutableUiState.asStateFlow()
 
     private var hasLoaded = false
+    private val updatingTaskIds = mutableSetOf<String>()
 
     fun loadIfNeeded() {
         if (hasLoaded || mutableUiState.value.isLoading && mutableUiState.value.displayName.isNotBlank()) return
@@ -80,6 +83,17 @@ class HomeViewModel(
             val summaryResult = runCatching { service.getSummary() }
             val meetingsResult = runCatching { service.getTodayEvents() }
             val tasksResult = runCatching { service.listTasks() }
+
+            // A failed summary must not discard successfully loaded meetings or tasks.
+            mutableUiState.value = mutableUiState.value.copy(
+                meetingsLoadFailed = meetingsResult.isFailure,
+                tasksLoadFailed = tasksResult.isFailure,
+                todayMeetings = meetingsResult.getOrNull()?.events?.sortedByStartDate()
+                    ?: mutableUiState.value.todayMeetings,
+                tasks = tasksResult.getOrNull()?.tasks?.sortedByDueDate() ?: mutableUiState.value.tasks,
+                completedTaskIds = tasksResult.getOrNull()?.tasks?.filter { it.isDone }
+                    ?.map { it.stableId }?.toSet() ?: mutableUiState.value.completedTaskIds
+            )
 
             summaryResult.onSuccess { summary ->
                 val meetings = meetingsResult.getOrNull()?.events.orEmpty().sortedByStartDate()
@@ -153,24 +167,42 @@ class HomeViewModel(
     }
 
     fun toggleCompleted(task: HomeTask) {
-        val completed = mutableUiState.value.completedTaskIds.toMutableSet()
         val localTaskId = task.stableId
+        if (localTaskId in updatingTaskIds) return
+        if (!AppConfig.UseFakeLogin && task.id.isNullOrBlank()) {
+            mutableUiState.value = mutableUiState.value.copy(errorMessage = "No se pudo actualizar la tarea. Inténtalo de nuevo.")
+            return
+        }
+        val completed = mutableUiState.value.completedTaskIds.toMutableSet()
         val shouldComplete = completed.add(localTaskId)
         if (!shouldComplete) completed.remove(localTaskId)
         mutableUiState.value = mutableUiState.value.copy(completedTaskIds = completed)
 
         val apiTaskId = task.id
         if (!AppConfig.UseFakeLogin && !apiTaskId.isNullOrBlank()) {
+            updatingTaskIds.add(localTaskId)
             viewModelScope.launch {
-                runCatching {
-                    service.updateTask(apiTaskId, HomeTaskUpdateRequest(percentComplete = if (shouldComplete) 100 else 0))
-                }.onFailure {
+                try {
+                    service.updateTask(apiTaskId, HomeTaskUpdateRequest(isCompleted = shouldComplete))
+                    mutableUiState.value = mutableUiState.value.copy(
+                        tasks = mutableUiState.value.tasks.map {
+                            if (it.stableId == localTaskId) it.copy(
+                                isCompleted = shouldComplete,
+                                percentComplete = if (shouldComplete) 100 else 0
+                            ) else it
+                        }
+                    )
+                } catch (error: kotlinx.coroutines.CancellationException) {
+                    throw error
+                } catch (_: Exception) {
                     val reverted = mutableUiState.value.completedTaskIds.toMutableSet()
                     if (shouldComplete) reverted.remove(localTaskId) else reverted.add(localTaskId)
                     mutableUiState.value = mutableUiState.value.copy(
                         completedTaskIds = reverted,
                         errorMessage = "No se pudo actualizar la tarea. Inténtalo de nuevo."
                     )
+                } finally {
+                    updatingTaskIds.remove(localTaskId)
                 }
             }
         }
@@ -237,6 +269,7 @@ class HomeViewModel(
     }
 
     fun deleteTask(task: HomeTask) {
+        if (task.stableId in updatingTaskIds) return
         if (AppConfig.UseFakeLogin) {
             mutableUiState.value = mutableUiState.value.copy(
                 tasks = mutableUiState.value.tasks.filterNot { it.stableId == task.stableId },
@@ -247,25 +280,26 @@ class HomeViewModel(
 
         val apiTaskId = task.id
         if (apiTaskId.isNullOrBlank()) {
-            mutableUiState.value = mutableUiState.value.copy(
-                tasks = mutableUiState.value.tasks.filterNot { it.stableId == task.stableId },
-                completedTaskIds = mutableUiState.value.completedTaskIds - task.stableId
-            )
+            mutableUiState.value = mutableUiState.value.copy(errorMessage = "No se pudo borrar la tarea. Inténtalo de nuevo.")
             return
         }
 
+        updatingTaskIds.add(task.stableId)
         viewModelScope.launch {
-            runCatching {
+            try {
                 service.deleteTask(apiTaskId)
-            }.onSuccess {
                 mutableUiState.value = mutableUiState.value.copy(
                     tasks = mutableUiState.value.tasks.filterNot { it.stableId == task.stableId },
                     completedTaskIds = mutableUiState.value.completedTaskIds - task.stableId
                 )
-            }.onFailure {
+            } catch (error: kotlinx.coroutines.CancellationException) {
+                throw error
+            } catch (_: Exception) {
                 mutableUiState.value = mutableUiState.value.copy(
                     errorMessage = "No se pudo borrar la tarea. Inténtalo de nuevo."
                 )
+            } finally {
+                updatingTaskIds.remove(task.stableId)
             }
         }
     }

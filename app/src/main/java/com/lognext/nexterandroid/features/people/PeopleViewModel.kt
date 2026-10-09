@@ -42,7 +42,7 @@ class PeopleViewModel(
 //
     var teamPeople by mutableStateOf(if (AppConfig.UseFakeLogin) sampleTeam() else emptyList())
         private set
-    var leadershipPeople by mutableStateOf(leadershipTeam())
+    var leadershipPeople by mutableStateOf(if (AppConfig.UseFakeLogin) leadershipTeam() else emptyList())
         private set
 
 // Empresas y proyectos desactivados temporalmente; conservar para su recuperación.
@@ -53,6 +53,29 @@ class PeopleViewModel(
     private var searchJob: Job? = null
     private var detailJob: Job? = null
     private var hasLoaded = false
+    private var hasLoadedLeadership = false
+    var isLoadingLeadership by mutableStateOf(false)
+        private set
+    var leadershipErrorMessage by mutableStateOf<String?>(null)
+        private set
+
+    fun loadLeadershipIfNeeded() {
+        if (AppConfig.UseFakeLogin || hasLoadedLeadership || isLoadingLeadership) return
+        isLoadingLeadership = true
+        leadershipErrorMessage = null
+        viewModelScope.launch {
+            try {
+                leadershipPeople = service.leadership().map { it.toPeopleRow() }
+                hasLoadedLeadership = true
+            } catch (error: CancellationException) {
+                throw error
+            } catch (_: Exception) {
+                leadershipErrorMessage = "No se pudo cargar el comité de dirección."
+            } finally {
+                isLoadingLeadership = false
+            }
+        }
+    }
 
     private fun leadershipTeam(): List<PeopleRowData> = listOf(
         PeopleRowData(
@@ -136,6 +159,7 @@ class PeopleViewModel(
         private set
 
     fun loadIfNeeded() {
+        loadLeadershipIfNeeded()
         if (hasLoaded || AppConfig.UseFakeLogin) return
         hasLoaded = true
         viewModelScope.launch {

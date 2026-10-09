@@ -18,12 +18,12 @@
     <string name="home_pending_tasks_short">Tâches pend.</string>
     <string name="home_today_meetings">Réunions du jour</string>
     <string name="home_view_agenda">Voir agenda</string>
-    <string name="home_loading_meetings">Chargement des réunions…</string>
+    <string name="home_loading_meetings">Chargement des réunions</string>
     <string name="home_no_meetings_today">Vous n’avez aucune réunion aujourd’hui</string>
     <string name="home_no_meetings_subtitle">Vos réunions programmées apparaîtront ici.</string>
     <string name="home_pending_tasks">Tâches en attente</string>
     <string name="home_add">Ajouter</string>
-    <string name="home_loading_tasks">Chargement des tâches…</string>
+    <string name="home_loading_tasks">Chargement des tâches</string>
     <string name="home_no_pending_tasks">Vous n’avez aucune tâche en attente</string>
     <string name="home_no_pending_tasks_subtitle">Les tâches assignées apparaîtront ici.</string>
     <string name="delete">Supprimer</string>
@@ -223,4 +223,8 @@
     <string name="clock_notification_long_open_push_body">Votre entrée est ouverte depuis de nombreuses heures. Vérifiez si vous devez pointer la sortie.</string>
     <string name="clock_notification_no_record_push_title">Journée non enregistrée</string>
     <string name="clock_notification_no_record_push_body">Vous n’avez aucun pointage aujourd’hui. Vérifiez si vous devez pointer.</string>
+
+    <string name="home_meetings_load_failed">Impossible de charger les réunions</string>
+    <string name="home_tasks_load_failed">Impossible de charger les tâches</string>
+    <string name="home_loading_retry_hint">Appuyez sur Réessayer pour recharger les informations.</string>
 </resources>
