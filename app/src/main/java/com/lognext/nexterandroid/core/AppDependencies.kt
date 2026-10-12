@@ -16,6 +16,14 @@ object AppDependencies {
     lateinit var authRepository: AuthRepository
         private set
 
+    lateinit var responseCache: com.lognext.nexterandroid.core.network.ResponseCache
+        private set
+
+    fun clearResponseCache(delete: Boolean = false) {
+        val account = (authRepository.authState.value as? com.lognext.nexterandroid.core.auth.AuthState.Authenticated)?.user?.username
+        if (account != null) { if (delete) responseCache.clear(account) else responseCache.invalidate(account) }
+    }
+
     lateinit var apiClient: APIClient
         private set
 
@@ -35,7 +43,8 @@ object AppDependencies {
         if (initialized) return
 
         authRepository = MsalAuthRepository(context.applicationContext)
-        apiClient = OkHttpAPIClient(authRepository)
+        responseCache = com.lognext.nexterandroid.core.network.ResponseCache(context.applicationContext)
+        apiClient = OkHttpAPIClient(authRepository, responseCache)
         homeService = HomeService(apiClient)
         clockService = ClockService(apiClient)
         peopleService = PeopleService(apiClient)

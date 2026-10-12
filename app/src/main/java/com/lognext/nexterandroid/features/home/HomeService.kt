@@ -52,6 +52,21 @@ class HomeService(
         patch("/api/v1/tasks/$taskId", request, 204..204)
     }
 
+    suspend fun getTask(taskId: String): HomeTask = get("/api/v1/tasks/$taskId", HomeTask::class.java)
+
+    suspend fun editTask(taskId: String, title: String, description: String, importance: String, dueDate: String?) {
+        val body = com.google.gson.JsonObject().apply {
+            addProperty("title", title)
+            addProperty("description", description)
+            addProperty("importance", importance)
+            if (dueDate == null) add("due_date", com.google.gson.JsonNull.INSTANCE) else addProperty("due_date", dueDate)
+        }
+        patch("/api/v1/tasks/$taskId", body, 204..204)
+    }
+
+    suspend fun createMeeting(request: CreateMeetingRequest): HomeCalendarEvent =
+        post("/api/v1/calendar/events", request, HomeCalendarEvent::class.java, 201..201)
+
     suspend fun deleteTask(taskId: String) {
         delete("/api/v1/tasks/$taskId", 204..204)
     }

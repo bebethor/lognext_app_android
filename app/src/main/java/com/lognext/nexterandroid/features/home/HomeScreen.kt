@@ -25,6 +25,7 @@ import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.offset
@@ -52,6 +53,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -74,6 +76,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.repeatOnLifecycle
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.lognext.nexterandroid.R
@@ -265,13 +268,34 @@ private fun AuthenticatedHome(
     }
     val viewModel: HomeViewModel = viewModel(factory = factory)
     val uiState by viewModel.uiState.collectAsState()
-    var showAgenda by remember { mutableStateOf(false) }
-    var showAddTask by remember { mutableStateOf(false) }
+    var showAgenda by rememberSaveable { mutableStateOf(false) }
+    var selectedMeeting by remember { mutableStateOf<HomeCalendarEvent?>(null) }
+    var selectedTask by remember { mutableStateOf<HomeTask?>(null) }
+    var showCreateMeeting by remember { mutableStateOf(false) }
+    var showAddTask by rememberSaveable { mutableStateOf(false) }
+
+    val lifecycleOwner = androidx.compose.ui.platform.LocalLifecycleOwner.current
+    LaunchedEffect(viewModel, lifecycleOwner) {
+        lifecycleOwner.lifecycle.repeatOnLifecycle(androidx.lifecycle.Lifecycle.State.STARTED) {
+            while (true) {
+                kotlinx.coroutines.delay(60000)
+                viewModel.refresh()
+                if (showAgenda) viewModel.loadAgenda(uiState.agendaScope, force = true)
+            }
+        }
+    }
+
+    var wasCreatingTask by remember { mutableStateOf(false) }
+    LaunchedEffect(uiState.isCreatingTask, uiState.createTaskErrorMessage) {
+        if (wasCreatingTask && !uiState.isCreatingTask && uiState.createTaskErrorMessage == null) showAddTask = false
+        wasCreatingTask = uiState.isCreatingTask
+    }
 
     LaunchedEffect(authState.user.username) {
         viewModel.loadIfNeeded()
     }
 
+    com.lognext.nexterandroid.features.common.RefreshableContent(uiState.isLoading, { AppDependencies.clearResponseCache(); viewModel.refresh() }) {
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -299,6 +323,7 @@ private fun AuthenticatedHome(
             }
             MeetingsCard(
                 uiState = uiState,
+                onMeetingSelected = { selectedMeeting = it },
                 onOpenAgenda = {
                     viewModel.loadAgenda(AgendaScope.Today)
                     showAgenda = true
@@ -308,15 +333,25 @@ private fun AuthenticatedHome(
                 uiState = uiState,
                 onAddTask = { showAddTask = true },
                 onToggleCompleted = viewModel::toggleCompleted,
-                onDeleteTask = viewModel::deleteTask
+                onDeleteTask = viewModel::deleteTask,
+                onTaskSelected = { selectedTask = it }
             )
         }
     }
+    }
+
+    selectedMeeting?.let { meeting -> MeetingDetailDialog(meeting, onDismiss = { selectedMeeting = null }) }
+    selectedTask?.let { task -> TaskEditorDialog(task, onDismiss = { selectedTask = null }) { title, description, priority, due ->
+        viewModel.editTask(task, title, description, priority, due)
+    } }
+    if (showCreateMeeting) CreateMeetingDialog(onDismiss = { showCreateMeeting = false }, onCreate = viewModel::createMeeting)
 
     if (showAgenda) {
         AgendaDialog(
             uiState = uiState,
             onDismiss = { showAgenda = false },
+            onMeetingSelected = { selectedMeeting = it },
+            onCreateMeeting = { showCreateMeeting = true },
             onScopeSelected = { viewModel.loadAgenda(it, force = uiState.agendaScope != it) },
             onRetry = { viewModel.loadAgenda(uiState.agendaScope, force = true) }
         )
@@ -328,7 +363,8 @@ private fun AuthenticatedHome(
             onDismiss = { showAddTask = false },
             onCreate = { title, description, priority, dueDate ->
                 viewModel.createTask(title, description, priority, dueDate)
-                if (uiState.createTaskErrorMessage == null) showAddTask = false
+                if (com.lognext.nexterandroid.core.AppConfig.UseFakeLogin) showAddTask = false
+
             }
         )
     }
@@ -386,7 +422,7 @@ private fun GreetingCard(uiState: HomeUiState, displayName: String) {
             Row(modifier = Modifier.padding(top = 14.dp), verticalAlignment = Alignment.CenterVertically) {
                 GreetingStat(uiState.formattedVacationDays, stringResource(R.string.home_available_days_short), Modifier.weight(1f))
                 GreetingDivider()
-                GreetingStat((uiState.meetingsTodayCount ?: uiState.todayMeetings.size).toString(), stringResource(R.string.home_meetings_today_short), Modifier.weight(1f))
+                GreetingStat(uiState.todayMeetings.size.toString(), stringResource(R.string.home_meetings_today_short), Modifier.weight(1f))
                 GreetingDivider()
                 GreetingStat(uiState.displayedPendingTasksCount.toString(), stringResource(R.string.home_pending_tasks_short), Modifier.weight(1f))
             }
@@ -430,10 +466,10 @@ private fun HomeCardLoadingState(message: String) {
 }
 
 @Composable
-private fun MeetingsCard(uiState: HomeUiState, onOpenAgenda: () -> Unit) {
+private fun MeetingsCard(uiState: HomeUiState, onOpenAgenda: () -> Unit, onMeetingSelected: (HomeCalendarEvent) -> Unit) {
     HtmlCard(title = "📅", label = stringResource(R.string.home_today_meetings), action = stringResource(R.string.home_view_agenda), onAction = onOpenAgenda) {
         when {
-            uiState.isLoading -> HomeCardLoadingState(stringResource(R.string.home_loading_meetings))
+            uiState.isLoading && uiState.todayMeetings.isEmpty() -> HomeCardLoadingState(stringResource(R.string.home_loading_meetings))
             uiState.visibleMeetings.isEmpty() && uiState.meetingsLoadFailed ->
                 EmptyText(stringResource(R.string.home_meetings_load_failed), stringResource(R.string.home_loading_retry_hint))
             uiState.visibleMeetings.isEmpty() -> EmptyText(
@@ -442,16 +478,16 @@ private fun MeetingsCard(uiState: HomeUiState, onOpenAgenda: () -> Unit) {
             )
             else -> uiState.visibleMeetings.forEachIndexed { index, meeting ->
                 if (index > 0) Divider(color = NexterColors.border())
-                MeetingRow(meeting, index)
+                MeetingRow(meeting, index) { onMeetingSelected(meeting) }
             }
         }
     }
 }
 
 @Composable
-private fun MeetingRow(meeting: HomeCalendarEvent, index: Int) {
+private fun MeetingRow(meeting: HomeCalendarEvent, index: Int, onClick: () -> Unit = {}) {
     val colors = listOf(NexterColors.Red, NexterColors.Blue, NexterColors.Green, NexterColors.Violet, NexterColors.Aqua)
-    Row(modifier = Modifier.padding(vertical = 9.dp), verticalAlignment = Alignment.Top) {
+    Row(modifier = Modifier.fillMaxWidth().clickable(onClick = onClick).padding(vertical = 9.dp), verticalAlignment = Alignment.Top) {
         Text(
             text = meeting.startTimeText,
             color = NexterColors.tertiaryText(),
@@ -491,11 +527,12 @@ internal fun TasksCard(
     uiState: HomeUiState,
     onAddTask: () -> Unit,
     onToggleCompleted: (HomeTask) -> Unit,
-    onDeleteTask: (HomeTask) -> Unit
+    onDeleteTask: (HomeTask) -> Unit,
+    onTaskSelected: (HomeTask) -> Unit = {}
 ) {
     HtmlCard(title = "📝", label = stringResource(R.string.home_pending_tasks), action = stringResource(R.string.home_add), onAction = onAddTask) {
         val visibleTasks = uiState.tasks
-        if (uiState.isLoading) {
+        if (uiState.isLoading && visibleTasks.isEmpty()) {
             HomeCardLoadingState(stringResource(R.string.home_loading_tasks))
         } else if (visibleTasks.isEmpty() && uiState.tasksLoadFailed) {
             EmptyText(stringResource(R.string.home_tasks_load_failed), stringResource(R.string.home_loading_retry_hint))
@@ -511,7 +548,8 @@ internal fun TasksCard(
                     task = task,
                     isCompleted = task.stableId in uiState.completedTaskIds,
                     onToggleCompleted = { onToggleCompleted(task) },
-                    onDelete = { onDeleteTask(task) }
+                    onDelete = { onDeleteTask(task) },
+                    onOpen = { onTaskSelected(task) }
                 )
             }
         }
@@ -523,6 +561,7 @@ private fun TaskRow(
     task: HomeTask,
     isCompleted: Boolean,
     onToggleCompleted: () -> Unit,
+    onOpen: () -> Unit,
     onDelete: () -> Unit
 ) {
     Row(modifier = Modifier.padding(vertical = 9.dp), verticalAlignment = Alignment.Top) {
@@ -539,7 +578,7 @@ private fun TaskRow(
             if (isCompleted) Text("✓", color = NexterColors.Navy, fontSize = NexterTypography.Caption, fontWeight = FontWeight.Bold)
         }
         Spacer(modifier = Modifier.width(10.dp))
-        Column(modifier = Modifier.weight(1f)) {
+        Column(modifier = Modifier.weight(1f).clickable(onClick = onOpen)) {
             Text(
                 task.displayTitle,
                 color = if (isCompleted) NexterColors.secondaryText() else NexterColors.primaryText(),
@@ -549,10 +588,11 @@ private fun TaskRow(
             )
             Row(modifier = Modifier.padding(top = 3.dp), verticalAlignment = Alignment.CenterVertically) {
                 PriorityChip(task.priorityKey)
-                task.dueDateText?.let {
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(it, color = NexterColors.tertiaryText(), fontSize = NexterTypography.Footnote)
-                }
+            }
+            task.creationDate?.let { Text(stringResource(R.string.parity_created_value, java.text.DateFormat.getDateInstance().format(it)), fontSize = NexterTypography.Footnote, color = NexterColors.tertiaryText()) }
+            task.sortDueDate?.let { due ->
+                val overdue = !isCompleted && due.before(java.util.Calendar.getInstance().apply { set(java.util.Calendar.HOUR_OF_DAY, 0); set(java.util.Calendar.MINUTE, 0); set(java.util.Calendar.SECOND, 0); set(java.util.Calendar.MILLISECOND, 0) }.time)
+                Text(stringResource(if (overdue) R.string.parity_overdue_value else R.string.parity_due_value, java.text.DateFormat.getDateInstance().format(due)), color = if (overdue) NexterColors.Red else NexterColors.tertiaryText(), fontSize = NexterTypography.Footnote)
             }
         }
         if (isCompleted) {
@@ -676,7 +716,9 @@ private fun AgendaDialog(
     uiState: HomeUiState,
     onDismiss: () -> Unit,
     onScopeSelected: (AgendaScope) -> Unit,
-    onRetry: () -> Unit
+    onRetry: () -> Unit,
+    onMeetingSelected: (HomeCalendarEvent) -> Unit,
+    onCreateMeeting: () -> Unit
 ) {
     val topInset = WindowInsets.statusBars.asPaddingValues().calculateTopPadding() + 5.dp
     val bottomInset = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding() + 5.dp
@@ -697,12 +739,16 @@ private fun AgendaDialog(
                 elevation = 12.dp,
                 modifier = Modifier.fillMaxSize()
             ) {
-                AgendaDialogContent(
+                Column {
+                    androidx.compose.material.TextButton(onClick = onCreateMeeting) { Text(stringResource(R.string.parity_new_meeting)) }
+                    AgendaDialogContent(
                     uiState = uiState,
                     onDismiss = onDismiss,
                     onScopeSelected = onScopeSelected,
-                    onRetry = onRetry
+                    onRetry = onRetry,
+                    onMeetingSelected = onMeetingSelected
                 )
+                }
             }
         }
     }
@@ -713,7 +759,8 @@ private fun AgendaDialogContent(
     uiState: HomeUiState,
     onDismiss: () -> Unit,
     onScopeSelected: (AgendaScope) -> Unit,
-    onRetry: () -> Unit
+    onRetry: () -> Unit,
+    onMeetingSelected: (HomeCalendarEvent) -> Unit
 ) {
     Column(modifier = Modifier.fillMaxSize()) {
         Row(
@@ -804,7 +851,7 @@ private fun AgendaDialogContent(
                 .padding(start = 16.dp, end = 16.dp, bottom = 16.dp)
         ) {
             when {
-                uiState.isLoadingAgenda || !uiState.hasLoadedAgenda -> {
+                (uiState.isLoadingAgenda || !uiState.hasLoadedAgenda) && uiState.agendaEvents.isEmpty() -> {
                     DialogStateMessage(stringResource(R.string.agenda_loading), showProgress = true)
                 }
                 uiState.agendaErrorMessage != null -> {
@@ -836,7 +883,7 @@ private fun AgendaDialogContent(
                             .verticalScroll(scrollState)
                     ) {
                         uiState.visibleAgendaEvents.groupedByDay().forEach { group ->
-                            AgendaDaySection(group)
+                            AgendaDaySection(group, onMeetingSelected)
                             Spacer(modifier = Modifier.height(10.dp))
                         }
                     }
@@ -847,7 +894,7 @@ private fun AgendaDialogContent(
 }
 
 @Composable
-private fun AgendaDaySection(group: AgendaEventGroup) {
+private fun AgendaDaySection(group: AgendaEventGroup, onMeetingSelected: (HomeCalendarEvent) -> Unit) {
     Card(
         backgroundColor = NexterColors.cardBackground(),
         elevation = 0.dp,
@@ -865,7 +912,7 @@ private fun AgendaDaySection(group: AgendaEventGroup) {
             )
             group.events.forEachIndexed { index, event ->
                 if (index > 0) Divider(color = NexterColors.border(), modifier = Modifier.padding(start = 86.dp))
-                MeetingRow(event, index)
+                MeetingRow(event, index) { onMeetingSelected(event) }
             }
         }
     }
@@ -919,7 +966,7 @@ private fun AddTaskDialog(
     ) {
         Box(
             modifier = Modifier
-                .fillMaxSize()
+                .fillMaxSize().imePadding()
                 .padding(start = 10.dp, top = topInset, end = 10.dp, bottom = bottomInset),
             contentAlignment = Alignment.Center
         ) {
@@ -1111,7 +1158,7 @@ private fun PrioritySelectorRow(
             )
             Text(
                 priorityLabelText(priority),
-                color = NexterColors.primaryText(),
+                color = accent,
                 fontSize = NexterTypography.Body,
                 fontWeight = FontWeight.SemiBold
             )
@@ -1178,7 +1225,7 @@ private fun PriorityPickerDialog(
                         Spacer(modifier = Modifier.width(10.dp))
                         Text(
                             label,
-                            color = NexterColors.primaryText(),
+                            color = accent,
                             fontSize = NexterTypography.Body,
                             fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
                             modifier = Modifier.weight(1f)

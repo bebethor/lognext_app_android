@@ -111,15 +111,19 @@ fun NexterApp() {
         return
     }
     val navController = rememberNavController()
+    val hasStaleData by AppDependencies.responseCache.hasStaleData.collectAsState()
 
     Scaffold(
         topBar = {
+            Column {
             authenticatedState.let { state ->
                 NexterTopBar(
                     employeeCategory = employeeCategory,
                     displayName = state.user.displayName,
                     onSignOut = { scope.launch { AppDependencies.authRepository.signOut() } }
                 )
+            }
+            if (hasStaleData) Text(stringResource(R.string.parity_cached_warning), modifier = Modifier.fillMaxWidth().padding(8.dp), style = androidx.compose.material.MaterialTheme.typography.caption)
             }
         },
         bottomBar = {
@@ -161,7 +165,8 @@ fun NexterApp() {
                             onClick = {
                                 navController.navigate(destination.route) {
                                     launchSingleTop = true
-                                    popUpTo(AppDestination.Home.route)
+                                    restoreState = true
+                                    popUpTo(AppDestination.Home.route) { saveState = true }
                                 }
                             },
                             selectedContentColor = NexterColors.Red,

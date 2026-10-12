@@ -45,7 +45,8 @@ data class HomeCalendarEvent(
     @SerializedName("is_online_meeting") val isOnlineMeeting: Boolean,
     @SerializedName("join_url") val joinUrl: String?,
     @SerializedName("attendees_count") val attendeesCount: Int?,
-    val organizer: String?
+    val organizer: String?,
+    val attendees: List<MeetingAttendee>? = null
 ) {
     val startDate: Date?
         get() = parseIsoDate(start)
@@ -119,7 +120,8 @@ data class HomeTask(
     val priority: Int = 5,
     @SerializedName("due_date") val dueDate: String?,
     @SerializedName("is_completed") val isCompleted: Boolean = false,
-    @SerializedName("percent_complete") val percentComplete: Int = 0
+    @SerializedName("percent_complete") val percentComplete: Int = 0,
+    @SerializedName("created_date") val createdDate: String? = null
 ) {
     val stableId: String
         get() = id.orEmpty().ifBlank { "${displayTitle}-${dueDate.orEmpty()}" }
@@ -140,6 +142,8 @@ data class HomeTask(
 
     val isDone: Boolean
         get() = isCompleted || percentComplete >= 100
+
+    val creationDate: Date? get() = createdDate?.let(::parseIsoDate)
 
     val sortDueDate: Date?
         get() = dueDate?.takeIf { it.isNotBlank() }?.let(::parseIsoDate)
@@ -198,7 +202,7 @@ private fun Calendar.sameDay(other: Calendar): Boolean {
 }
 
 private fun parseIsoDate(value: String): Date? {
-    val normalizedValue = value.normalizedIsoTimeZone()
+    val normalizedValue = value.replace(Regex("(\\.\\d{3})\\d+"), "$1").normalizedIsoTimeZone()
     return isoParsers.firstNotNullOfOrNull { parser ->
         runCatching { parser.parse(normalizedValue) }.getOrNull()
     }
@@ -218,3 +222,17 @@ private fun String.normalizedIsoTimeZone(): String {
     if (endsWith("Z")) return this
     return replace(Regex("([+-]\\d{2}):(\\d{2})$"), "$1$2")
 }
+
+
+data class MeetingAttendee(val name: String = "", val email: String = "")
+
+fun List<HomeTask>.sortedByCreationDate(): List<HomeTask> =
+    sortedWith(compareByDescending<HomeTask> { it.creationDate?.time ?: Long.MIN_VALUE }.thenBy { it.stableId })
+
+data class CreateMeetingRequest(
+    val subject: String, val start: String, val end: String,
+    val description: String, val location: String,
+    @SerializedName("is_online_meeting") val isOnlineMeeting: Boolean,
+    val attendees: List<MeetingAttendee>,
+    @SerializedName("transaction_id") val transactionId: String
+)

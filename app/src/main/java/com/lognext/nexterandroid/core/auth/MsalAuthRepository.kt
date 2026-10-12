@@ -85,6 +85,7 @@ class MsalAuthRepository(
     }
 
     override suspend fun signOut() {
+        com.lognext.nexterandroid.core.AppDependencies.clearResponseCache(delete = true)
         if (AppConfig.UseFakeLogin) {
             account = null
             mutableAuthState.value = AuthState.Unauthenticated
@@ -109,6 +110,22 @@ class MsalAuthRepository(
         val resolvedAccount = account ?: error("La sesión no está disponible. Vuelve a iniciar sesión.")
         // MSAL manages token expiry and refresh; do not retain an access token indefinitely.
         return acquireBffToken(getApplication(), resolvedAccount)
+    }
+
+    override suspend fun requestCalendarWritePermission(activity: Activity) {
+        if (AppConfig.UseFakeLogin) return
+        val app = getApplication()
+        val resolvedAccount = account ?: error("Vuelve a iniciar sesión")
+        try {
+            withContext(Dispatchers.IO) {
+                app.acquireTokenSilent(arrayOf("Calendars.ReadWrite"), resolvedAccount.authority)
+            }
+        } catch (error: com.microsoft.identity.client.exception.MsalUiRequiredException) {
+            val result = app.signInAwait(activity, listOf("Calendars.ReadWrite"))
+            check(result.account.username.equals(resolvedAccount.username, ignoreCase = true)) {
+                "Debes autorizar con la misma cuenta con la que has iniciado sesión."
+            }
+        }
     }
 
     private suspend fun getApplication(): ISingleAccountPublicClientApplication {
@@ -154,6 +171,7 @@ class MsalAuthRepository(
             val builder = AcquireTokenParameters.Builder()
                 .startAuthorizationFromActivity(activity)
                 .withScopes(scopes)
+            account?.let { builder.withLoginHint(it.username) }
 
             val parameters = builder
                 .withCallback(

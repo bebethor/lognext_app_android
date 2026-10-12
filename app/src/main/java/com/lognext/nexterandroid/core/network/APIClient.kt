@@ -15,7 +15,8 @@ interface APIClient {
 }
 
 class OkHttpAPIClient(
-    authRepository: AuthRepository? = null,
+    private val authRepository: AuthRepository? = null,
+    private val cache: ResponseCache? = null,
     private val client: OkHttpClient = OkHttpClient.Builder()
         .apply {
             if (authRepository != null) {
@@ -25,12 +26,31 @@ class OkHttpAPIClient(
         .build()
 ) : APIClient {
     override fun execute(request: Request, acceptedStatusCodes: IntRange): String {
-        client.newCall(request).execute().use { response ->
-            if (response.code !in acceptedStatusCodes) {
-                throw APIError.Http(response.code, response.serverMessage())
+        val account = (authRepository?.authState?.value as? com.lognext.nexterandroid.core.auth.AuthState.Authenticated)?.user?.username
+        val cacheable = request.method == "GET" && account != null && request.url.encodedPath.startsWith("/api/v1/")
+        if (cacheable) cache?.read(account!!, request.url.toString())?.let { return it }
+        try {
+            client.newCall(request).execute().use { response ->
+                if (response.code !in acceptedStatusCodes) {
+                    throw APIError.Http(response.code, response.serverMessage())
+                }
+                val body = response.body?.string() ?: throw APIError.InvalidResponse
+                if (cacheable) {
+                    runCatching { cache?.write(account!!, request.url.toString(), body) }
+                    cache?.markStale(request.url.toString(), false)
+                } else if (account != null && request.method != "GET") {
+                    cache?.clear(account)
+                }
+                return body
             }
-
-            return response.body?.string() ?: throw APIError.InvalidResponse
+        } catch (error: IOException) {
+            if (cacheable) {
+                cache?.read(account!!, request.url.toString(), maxAge = null)?.let {
+                    cache.markStale(request.url.toString(), true)
+                    return it
+                }
+            }
+            throw error
         }
     }
 

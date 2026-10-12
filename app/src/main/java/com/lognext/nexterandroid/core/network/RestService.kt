@@ -84,7 +84,7 @@ open class RestService(
         return builder.build().toString()
     }
 
-    private fun jsonBody(body: Any?) = gson.toJson(body ?: emptyMap<String, Any>())
+    private fun jsonBody(body: Any?) = (if (body is com.google.gson.JsonElement) body.toString() else gson.toJson(body ?: emptyMap<String, Any>()))
         .toRequestBody(JsonContentType.toMediaType())
 
     private companion object {

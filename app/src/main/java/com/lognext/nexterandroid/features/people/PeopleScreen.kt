@@ -40,6 +40,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.repeatOnLifecycle
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.lognext.nexterandroid.R
@@ -58,10 +59,21 @@ fun PeopleScreen() {
     }
     val viewModel: PeopleViewModel = viewModel(factory = factory)
 
+    val lifecycleOwner = androidx.compose.ui.platform.LocalLifecycleOwner.current
+    LaunchedEffect(viewModel, lifecycleOwner) {
+        lifecycleOwner.lifecycle.repeatOnLifecycle(androidx.lifecycle.Lifecycle.State.STARTED) {
+            while (true) {
+                kotlinx.coroutines.delay(120000)
+                viewModel.refresh()
+            }
+        }
+    }
+
     LaunchedEffect(viewModel) {
         viewModel.loadIfNeeded()
     }
 
+    com.lognext.nexterandroid.features.common.RefreshableContent(viewModel.isLoading, viewModel::refresh) {
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -136,6 +148,7 @@ fun PeopleScreen() {
             // )
         }
     }
+    }
 
     viewModel.selectedPerson?.let { person ->
         PersonDetailDialog(
@@ -146,7 +159,8 @@ fun PeopleScreen() {
             isLoading = viewModel.isLoadingDetail,
             errorMessage = viewModel.detailErrorMessage,
             onPersonSelected = viewModel::selectPerson,
-            onDismiss = viewModel::dismissSelectedPerson
+            onDismiss = viewModel::dismissSelectedPerson,
+            onRefresh = { com.lognext.nexterandroid.core.AppDependencies.clearResponseCache(); viewModel.selectPerson(person) }
         )
     }
 }
@@ -404,12 +418,14 @@ internal fun PersonDetailDialog(
     isLoading: Boolean,
     errorMessage: String?,
     onPersonSelected: (PeopleRowData) -> Unit,
-    onDismiss: () -> Unit
+    onDismiss: () -> Unit,
+    onRefresh: () -> Unit = {}
 ) {
     Dialog(
         onDismissRequest = onDismiss,
         properties = DialogProperties(usePlatformDefaultWidth = false)
     ) {
+        com.lognext.nexterandroid.features.common.RefreshableContent(isLoading, onRefresh) {
         Card(
             backgroundColor = NexterColors.cardBackground(),
             shape = RoundedCornerShape(18.dp),
@@ -478,6 +494,7 @@ internal fun PersonDetailDialog(
                     }
                 }
             }
+        }
         }
     }
 }

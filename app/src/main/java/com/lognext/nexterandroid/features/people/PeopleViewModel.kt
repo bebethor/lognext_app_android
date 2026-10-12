@@ -59,6 +59,14 @@ class PeopleViewModel(
     var leadershipErrorMessage by mutableStateOf<String?>(null)
         private set
 
+    fun refresh() {
+        com.lognext.nexterandroid.core.AppDependencies.clearResponseCache()
+        hasLoaded = false
+        hasLoadedLeadership = false
+        loadIfNeeded()
+        loadLeadershipIfNeeded()
+    }
+
     fun loadLeadershipIfNeeded() {
         if (AppConfig.UseFakeLogin || hasLoadedLeadership || isLoadingLeadership) return
         isLoadingLeadership = true

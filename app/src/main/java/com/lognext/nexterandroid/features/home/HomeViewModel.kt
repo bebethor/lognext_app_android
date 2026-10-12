@@ -44,15 +44,12 @@ data class HomeUiState(
         get() = tasks.count { it.stableId !in completedTaskIds }
 
     val visibleMeetings: List<HomeCalendarEvent>
-        get() {
-            val now = Date()
-            return todayMeetings.filter { (it.endDate ?: Date(Long.MAX_VALUE)).after(now) }.take(3)
-        }
+        get() = todayMeetings
 
     val visibleAgendaEvents: List<HomeCalendarEvent>
         get() {
             val now = Date()
-            return agendaEvents.filter { (it.endDate ?: Date(Long.MAX_VALUE)).after(now) }
+            return if (agendaScope == AgendaScope.Today) agendaEvents else agendaEvents.filter { (it.endDate ?: Date(Long.MAX_VALUE)).after(now) }
         }
 }
 
@@ -71,6 +68,7 @@ class HomeViewModel(
     }
 
     fun refresh() {
+        if (mutableUiState.value.isLoading && mutableUiState.value.displayName.isNotBlank()) return
         if (AppConfig.UseFakeLogin) {
             hasLoaded = true
             mutableUiState.value = mockHomeState()
@@ -90,14 +88,14 @@ class HomeViewModel(
                 tasksLoadFailed = tasksResult.isFailure,
                 todayMeetings = meetingsResult.getOrNull()?.events?.sortedByStartDate()
                     ?: mutableUiState.value.todayMeetings,
-                tasks = tasksResult.getOrNull()?.tasks?.sortedByDueDate() ?: mutableUiState.value.tasks,
+                tasks = tasksResult.getOrNull()?.tasks?.sortedByCreationDate() ?: mutableUiState.value.tasks,
                 completedTaskIds = tasksResult.getOrNull()?.tasks?.filter { it.isDone }
                     ?.map { it.stableId }?.toSet() ?: mutableUiState.value.completedTaskIds
             )
 
             summaryResult.onSuccess { summary ->
-                val meetings = meetingsResult.getOrNull()?.events.orEmpty().sortedByStartDate()
-                val tasks = tasksResult.getOrNull()?.tasks.orEmpty().sortedByDueDate()
+                val meetings = meetingsResult.getOrNull()?.events?.sortedByStartDate() ?: mutableUiState.value.todayMeetings
+                val tasks = tasksResult.getOrNull()?.tasks?.sortedByCreationDate() ?: mutableUiState.value.tasks
                 val error = listOf(meetingsResult, tasksResult)
                     .firstOrNull { it.isFailure }
                     ?.exceptionOrNull()
@@ -128,6 +126,7 @@ class HomeViewModel(
     }
 
     fun loadAgenda(scope: AgendaScope, force: Boolean = false) {
+        if (force) com.lognext.nexterandroid.core.AppDependencies.clearResponseCache()
         if (AppConfig.UseFakeLogin) {
             mutableUiState.value = mutableUiState.value.copy(
                 agendaScope = scope,
@@ -224,7 +223,7 @@ class HomeViewModel(
                 isCompleted = false
             )
             mutableUiState.value = mutableUiState.value.copy(
-                tasks = (mutableUiState.value.tasks + created).sortedByDueDate(),
+                tasks = (mutableUiState.value.tasks + created.copy(createdDate = java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", java.util.Locale.US).apply { timeZone = java.util.TimeZone.getTimeZone("UTC") }.format(Date()))).sortedByCreationDate(),
                 createTaskErrorMessage = null
             )
             return
@@ -253,11 +252,12 @@ class HomeViewModel(
                     } ?: priority.toApiPriority(),
                     dueDate = task?.dueDate ?: dueDate?.takeIf { it.isNotBlank() },
                     isCompleted = task?.isCompleted ?: false,
+                    createdDate = task?.createdDate,
                     percentComplete = task?.percentComplete ?: 0
                 )
                 mutableUiState.value = mutableUiState.value.copy(
                     isCreatingTask = false,
-                    tasks = (mutableUiState.value.tasks + createdTask).sortedByDueDate()
+                    tasks = (mutableUiState.value.tasks + createdTask).sortedByCreationDate()
                 )
             }.onFailure {
                 mutableUiState.value = mutableUiState.value.copy(
@@ -266,6 +266,34 @@ class HomeViewModel(
                 )
             }
         }
+    }
+
+    suspend fun editTask(task: HomeTask, title: String, description: String, importance: String, dueDate: String?) {
+        check(updatingTaskIds.add(task.stableId)) { "La tarea se está actualizando" }
+        try {
+            if (AppConfig.UseFakeLogin) {
+                mutableUiState.value = mutableUiState.value.copy(tasks = mutableUiState.value.tasks.map {
+                    if (it.stableId == task.stableId) it.copy(title = title, description = description, importance = importance, dueDate = dueDate) else it
+                }.sortedByCreationDate())
+                return
+            }
+            service.editTask(task.stableId, title, description, importance, dueDate)
+            val updated = service.getTask(task.stableId)
+            mutableUiState.value = mutableUiState.value.copy(tasks = mutableUiState.value.tasks.map {
+                if (it.stableId == task.stableId) updated else it
+            }.sortedByCreationDate())
+        } finally { updatingTaskIds.remove(task.stableId) }
+    }
+
+    suspend fun createMeeting(request: CreateMeetingRequest) {
+        if (AppConfig.UseFakeLogin) {
+            val created = HomeCalendarEvent(request.transactionId, request.subject, request.start, request.end, request.location, request.isOnlineMeeting, null, request.attendees.size, null, request.attendees)
+            mutableUiState.value = mutableUiState.value.copy(todayMeetings = (mutableUiState.value.todayMeetings + created).sortedByStartDate(), agendaEvents = (mutableUiState.value.agendaEvents + created).sortedByStartDate())
+            return
+        }
+        service.createMeeting(request)
+        refresh()
+        loadAgenda(mutableUiState.value.agendaScope, force = true)
     }
 
     fun deleteTask(task: HomeTask) {
@@ -388,7 +416,7 @@ class HomeViewModel(
                     dueDate = null,
                     isCompleted = false
                 )
-            ).sortedByDueDate(),
+            ).sortedByCreationDate(),
             completedTaskIds = emptySet()
         )
     }
