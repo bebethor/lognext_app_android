@@ -25,17 +25,30 @@ class OkHttpAPIClient(
         }
         .build()
 ) : APIClient {
+    private val inFlight = SingleFlight<String>()
+
     override fun execute(request: Request, acceptedStatusCodes: IntRange): String {
         val account = (authRepository?.authState?.value as? com.lognext.nexterandroid.core.auth.AuthState.Authenticated)?.user?.username
         val cacheable = request.method == "GET" && account != null && request.url.encodedPath.startsWith("/api/v1/")
-        if (cacheable) cache?.read(account!!, request.url.toString())?.let { return it }
+        if (cacheable) {
+            return inFlight.execute("$account|${request.url}|$acceptedStatusCodes") {
+                // Re-check after becoming the owner: another request may have filled the cache.
+                cache?.read(account!!, request.url.toString())
+                    ?: fetch(request, acceptedStatusCodes, account, true)
+            }
+        }
+        return fetch(request, acceptedStatusCodes, account, false)
+    }
+
+    private fun fetch(request: Request, acceptedStatusCodes: IntRange, account: String?, cacheable: Boolean): String {
         try {
             client.newCall(request).execute().use { response ->
                 if (response.code !in acceptedStatusCodes) {
                     throw APIError.Http(response.code, response.serverMessage())
                 }
                 val body = response.body?.string() ?: throw APIError.InvalidResponse
-                if (cacheable) {
+                val currentAccount = (authRepository?.authState?.value as? com.lognext.nexterandroid.core.auth.AuthState.Authenticated)?.user?.username
+                if (cacheable && account == currentAccount) {
                     runCatching { cache?.write(account!!, request.url.toString(), body) }
                     cache?.markStale(request.url.toString(), false)
                 } else if (account != null && request.method != "GET") {
@@ -44,7 +57,8 @@ class OkHttpAPIClient(
                 return body
             }
         } catch (error: IOException) {
-            if (cacheable) {
+            val currentAccount = (authRepository?.authState?.value as? com.lognext.nexterandroid.core.auth.AuthState.Authenticated)?.user?.username
+            if (cacheable && account == currentAccount) {
                 cache?.read(account!!, request.url.toString(), maxAge = null)?.let {
                     cache.markStale(request.url.toString(), true)
                     return it

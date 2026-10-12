@@ -8,6 +8,8 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
 import java.util.Date
 import java.util.Locale
 
@@ -78,9 +80,12 @@ class HomeViewModel(
         viewModelScope.launch {
             mutableUiState.value = mutableUiState.value.copy(isLoading = true, errorMessage = null)
 
-            val summaryResult = runCatching { service.getSummary() }
-            val meetingsResult = runCatching { service.getTodayEvents() }
-            val tasksResult = runCatching { service.listTasks() }
+            val (summaryResult, meetingsResult, tasksResult) = coroutineScope {
+                val summary = async { loadResult { service.getSummary() } }
+                val meetings = async { loadResult { service.getTodayEvents() } }
+                val tasks = async { loadResult { service.listTasks() } }
+                Triple(summary.await(), meetings.await(), tasks.await())
+            }
 
             // A failed summary must not discard successfully loaded meetings or tasks.
             mutableUiState.value = mutableUiState.value.copy(
@@ -123,6 +128,14 @@ class HomeViewModel(
                 )
             }
         }
+    }
+
+    private suspend fun <T> loadResult(load: suspend () -> T): Result<T> = try {
+        Result.success(load())
+    } catch (cancel: kotlinx.coroutines.CancellationException) {
+        throw cancel
+    } catch (error: Exception) {
+        Result.failure(error)
     }
 
     fun loadAgenda(scope: AgendaScope, force: Boolean = false) {

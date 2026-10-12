@@ -39,6 +39,25 @@ object AppDependencies {
     lateinit var vacationService: VacationService
         private set
 
+    suspend fun preloadForSession() {
+        if (AppConfig.UseFakeLogin) return
+        StartupPreloader(
+            primary = listOf(
+                { homeService.getSummary(); Unit },
+                { peopleService.me(); Unit },
+                { homeService.listTasks(); Unit },
+                { homeService.getTodayEvents(); Unit }
+            ),
+            secondary = listOf(
+                { val me = peopleService.me(); peopleService.team(me.personCode.orEmpty()); Unit },
+                { peopleService.leadership(); Unit },
+                { vacationService.balance(); Unit },
+                { vacationService.currentYearHistory(); Unit },
+                { vacationService.plans(); Unit }
+            )
+        ).preload()
+    }
+
     fun initialize(context: Context) {
         if (initialized) return
 

@@ -69,6 +69,9 @@ fun NexterApp() {
     val authState by AppDependencies.authRepository.authState.collectAsState()
     val authenticatedState = authState as? AuthState.Authenticated
     var employeeCategory by remember(authenticatedState) { mutableStateOf<EmployeeCategory?>(null) }
+    LaunchedEffect(authenticatedState?.user?.username) {
+        if (authenticatedState != null) AppDependencies.preloadForSession()
+    }
     LaunchedEffect(authenticatedState) {
         if (authenticatedState != null && !com.lognext.nexterandroid.core.AppConfig.UseFakeLogin) {
             try {
