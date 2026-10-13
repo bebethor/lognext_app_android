@@ -1,5 +1,10 @@
 <resources xmlns:tools="http://schemas.android.com/tools">
-    <style name="Theme.NexterAndroid" parent="android:style/Theme.Material.NoActionBar">
+    <style name="Theme.NexterAndroid" parent="android:style/Theme.Material.Light.NoActionBar">
+        <item name="android:colorAccent">@color/nexter_action</item>
+        <item name="android:colorControlActivated">@color/nexter_action</item>
+        <item name="android:textColorPrimary">@color/nexter_primary_text</item>
+        <item name="android:textColorSecondary">@color/nexter_secondary_text</item>
+        <item name="android:colorBackground">@color/nexter_card</item>
         <item name="android:windowLightStatusBar">true</item>
         <item name="android:windowLightNavigationBar" tools:targetApi="o_mr1">true</item>
         <item name="android:windowBackground">@color/white</item>

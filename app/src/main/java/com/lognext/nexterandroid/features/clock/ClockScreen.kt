@@ -111,7 +111,7 @@ private fun WorkdayCard(viewModel: ClockViewModel) {
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(16.dp))
-            .background(NexterColors.Navy)
+            .background(Color(0xFF04042B))
     ) {
         Box(
             modifier = Modifier
@@ -151,11 +151,11 @@ private fun WorkdayCard(viewModel: ClockViewModel) {
                         modifier = Modifier
                             .size(6.dp)
                             .clip(CircleShape)
-                            .background(if (viewModel.isCheckedIn) Color.Green else Color.White.copy(alpha = 0.45f))
+                            .background(if (viewModel.isCheckedIn) NexterColors.systemGreen() else Color.White.copy(alpha = 0.45f))
                     )
                     Text(
                         text = clockStatusText(viewModel),
-                        color = if (viewModel.isCheckedIn) Color.Green else Color.White.copy(alpha = 0.55f),
+                        color = if (viewModel.isCheckedIn) NexterColors.systemGreen() else Color.White.copy(alpha = 0.55f),
                         fontSize = NexterTypography.Body,
                         fontWeight = FontWeight.SemiBold
                     )
@@ -170,7 +170,7 @@ private fun WorkdayCard(viewModel: ClockViewModel) {
 @Composable
 private fun ClockActionButton(viewModel: ClockViewModel) {
     val isExitAction = if (viewModel.isSubmittingAction) !viewModel.submittingClockIn else viewModel.isCheckedIn
-    val accent = if (isExitAction) NexterColors.Red else Color.Green
+    val accent = if (isExitAction) NexterColors.Red else NexterColors.systemGreen()
     val background = if (isExitAction) Color(0xFF37081F) else Color(0xFF083420)
 
     Row(
@@ -236,7 +236,7 @@ private fun TodayRecordCard(viewModel: ClockViewModel) {
 @Composable
 private fun RecordRow(row: ClockTimelineRow) {
     val isEntry = row.kind == ClockTimelineKind.Entry
-    val color = if (isEntry) Color.Green else NexterColors.Red
+    val color = if (isEntry) NexterColors.systemGreen() else NexterColors.systemRed()
 
     Row(
         modifier = Modifier
@@ -337,13 +337,13 @@ private fun WeekDayView(viewModel: ClockViewModel, dayOffset: Int, label: String
         else -> "–"
     }
     val foreground = when {
-        isToday -> NexterColors.Blue
-        hasWorkedTime -> Color.Green
-        else -> Color.Gray
+        isToday -> NexterColors.systemBlue()
+        hasWorkedTime -> NexterColors.systemGreen()
+        else -> NexterColors.SystemGray
     }
     val background = when {
-        isToday -> NexterColors.Blue.copy(alpha = 0.12f)
-        hasWorkedTime -> Color.Green.copy(alpha = 0.15f)
+        isToday -> NexterColors.systemBlue().copy(alpha = 0.12f)
+        hasWorkedTime -> NexterColors.systemGreen().copy(alpha = 0.15f)
         else -> subtleBackground()
     }
 
@@ -550,13 +550,7 @@ private fun EmptyBlock(title: String, subtitle: String) {
 }
 
 @Composable
-private fun subtleBackground(): Color {
-    return if (com.lognext.nexterandroid.ui.theme.isNexterDarkTheme()) {
-        Color.White.copy(alpha = 0.06f)
-    } else {
-        NexterColors.Navy.copy(alpha = 0.04f)
-    }
-}
+private fun subtleBackground(): Color = NexterColors.subtleBackground()
 
 private fun todayTimelineRows(viewModel: ClockViewModel): List<ClockTimelineRow> {
     return viewModel.todayEntries.flatMap { entry ->

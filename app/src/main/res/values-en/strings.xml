@@ -262,4 +262,36 @@
     <string name="parity_overdue_value">Overdue: %1$s</string>
     <string name="parity_attendees_value">Attendees (%1$d) %2$s</string>
     <string name="parity_cached_warning">Could not refresh. Showing the last saved information.</string>
+
+    <string name="meeting_searching">Searching people…</string>
+    <string name="meeting_no_matches">No matches found</string>
+    <string name="inventory_title">My equipment</string>
+    <string name="inventory_subtitle">View your assigned equipment</string>
+    <string name="inventory_back">Back</string>
+    <string name="inventory_refresh">Refresh</string>
+    <string name="inventory_retry">Retry</string>
+    <string name="inventory_loading">Loading equipment…</string>
+    <string name="inventory_empty">No equipment assigned</string>
+    <string name="inventory_empty_detail">There are no equipment records for your account in Cezanne.</string>
+    <string name="inventory_current">Currently assigned</string>
+    <string name="inventory_upcoming">Upcoming assignments</string>
+    <string name="inventory_history">History</string>
+    <string name="inventory_since">Since %1$s</string>
+    <string name="inventory_material">Equipment</string>
+    <string name="inventory_name">Name</string>
+    <string name="inventory_type">Type</string>
+    <string name="inventory_model">Model</string>
+    <string name="inventory_identifiers">Identifiers</string>
+    <string name="inventory_serial">Serial number</string>
+    <string name="inventory_asset">Asset number</string>
+    <string name="inventory_assignment">Assignment</string>
+    <string name="inventory_from">From</string>
+    <string name="inventory_to">To</string>
+    <string name="inventory_no_end">No end date specified</string>
+    <string name="inventory_not_available">Not available</string>
+    <string name="inventory_copy">Copy</string>
+    <string name="inventory_copied">Copied</string>
+    <string name="inventory_unavailable">Equipment lookup is not yet available on the server.</string>
+    <string name="inventory_unauthorized">Your equipment request could not be authorized. Sign in again and retry.</string>
+    <string name="inventory_error">Could not load your equipment. Please retry.</string>
 </resources>

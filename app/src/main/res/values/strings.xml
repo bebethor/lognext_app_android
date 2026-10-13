@@ -267,4 +267,36 @@
     <string name="parity_overdue_value">Venció: %1$s</string>
     <string name="parity_attendees_value">Asistentes (%1$d) %2$s</string>
     <string name="parity_cached_warning">No se pudo actualizar. Mostrando la última información guardada.</string>
+
+    <string name="meeting_searching">Buscando personas…</string>
+    <string name="meeting_no_matches">No se encontraron coincidencias</string>
+    <string name="inventory_title">Mi material</string>
+    <string name="inventory_subtitle">Consulta el material que tienes asignado</string>
+    <string name="inventory_back">Volver</string>
+    <string name="inventory_refresh">Actualizar</string>
+    <string name="inventory_retry">Reintentar</string>
+    <string name="inventory_loading">Cargando material…</string>
+    <string name="inventory_empty">Sin material asignado</string>
+    <string name="inventory_empty_detail">No hay registros de material para tu usuario en Cezanne.</string>
+    <string name="inventory_current">Asignado actualmente</string>
+    <string name="inventory_upcoming">Próximas asignaciones</string>
+    <string name="inventory_history">Historial</string>
+    <string name="inventory_since">Desde %1$s</string>
+    <string name="inventory_material">Material</string>
+    <string name="inventory_name">Nombre</string>
+    <string name="inventory_type">Tipo</string>
+    <string name="inventory_model">Modelo</string>
+    <string name="inventory_identifiers">Identificadores</string>
+    <string name="inventory_serial">Número de serie</string>
+    <string name="inventory_asset">Código de inventario</string>
+    <string name="inventory_assignment">Asignación</string>
+    <string name="inventory_from">Desde</string>
+    <string name="inventory_to">Hasta</string>
+    <string name="inventory_no_end">Sin fecha de fin indicada</string>
+    <string name="inventory_not_available">No disponible</string>
+    <string name="inventory_copy">Copiar</string>
+    <string name="inventory_copied">Copiado</string>
+    <string name="inventory_unavailable">La consulta de material todavía no está disponible en el servidor.</string>
+    <string name="inventory_unauthorized">No se pudo autorizar la consulta de tu material. Vuelve a iniciar sesión e inténtalo de nuevo.</string>
+    <string name="inventory_error">No se pudo cargar tu material. Inténtalo de nuevo.</string>
 </resources>

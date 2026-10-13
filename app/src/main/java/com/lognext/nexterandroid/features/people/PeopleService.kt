@@ -1,5 +1,8 @@
 package com.lognext.nexterandroid.features.people
 
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.ensureActive
 import com.google.gson.annotations.SerializedName
 import com.lognext.nexterandroid.core.network.APIClient
 import com.lognext.nexterandroid.core.network.RestService
@@ -42,9 +45,16 @@ class PeopleService(
         val seenPersonCodes = mutableSetOf<String>()
 
         candidates.forEach { candidate ->
-            runCatching {
+            currentCoroutineContext().ensureActive()
+            val response = try {
                 searchStaff(candidate)
-            }.getOrNull()
+            } catch (cancel: CancellationException) {
+                throw cancel
+            } catch (_: Exception) {
+                null
+            }
+            currentCoroutineContext().ensureActive()
+            response
                 ?.people
                 ?.filter { it.matches(query) }
                 ?.forEach { person ->

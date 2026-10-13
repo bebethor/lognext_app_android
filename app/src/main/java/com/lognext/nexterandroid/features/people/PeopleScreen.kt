@@ -774,10 +774,4 @@ private fun CurrentUserBadge() {
 }
 
 @Composable
-private fun subtleBackground(): Color {
-    return if (com.lognext.nexterandroid.ui.theme.isNexterDarkTheme()) {
-        Color.White.copy(alpha = 0.06f)
-    } else {
-        NexterColors.Navy.copy(alpha = 0.05f)
-    }
-}
+private fun subtleBackground(): Color = NexterColors.subtleBackground()

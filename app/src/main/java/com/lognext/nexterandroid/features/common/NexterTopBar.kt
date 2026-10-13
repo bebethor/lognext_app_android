@@ -76,7 +76,7 @@ fun NexterTopBar(
             Spacer(modifier = Modifier.weight(1f))
             Text(
                 text = date,
-                color = if (isDark) Color.White.copy(alpha = 0.72f) else NexterColors.Navy.copy(alpha = 0.35f),
+                color = NexterColors.tertiaryText(),
                 fontSize = NexterTypography.TopBarDate
             )
             Spacer(modifier = Modifier.width(10.dp))

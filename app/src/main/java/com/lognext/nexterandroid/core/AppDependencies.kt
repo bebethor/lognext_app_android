@@ -36,6 +36,9 @@ object AppDependencies {
     lateinit var peopleService: PeopleService
         private set
 
+    lateinit var inventoryService: com.lognext.nexterandroid.features.more.InventoryService
+        private set
+
     lateinit var vacationService: VacationService
         private set
 
@@ -68,6 +71,7 @@ object AppDependencies {
         clockService = ClockService(apiClient)
         peopleService = PeopleService(apiClient)
         vacationService = VacationService(apiClient)
+        inventoryService = com.lognext.nexterandroid.features.more.InventoryService(apiClient)
         initialized = true
     }
 }

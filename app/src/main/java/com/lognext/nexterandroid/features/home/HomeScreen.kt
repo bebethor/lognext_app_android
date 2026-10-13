@@ -63,6 +63,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
@@ -74,6 +75,7 @@ import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.withStyle
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.repeatOnLifecycle
@@ -376,7 +378,7 @@ private fun GreetingCard(uiState: HomeUiState, displayName: String) {
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(16.dp))
-            .background(NexterColors.Navy)
+            .background(Brush.linearGradient(listOf(Color(0xFF07073B), Color(0xFF040423))))
             .padding(horizontal = 18.dp, vertical = 20.dp)
     ) {
         Box(
@@ -385,7 +387,7 @@ private fun GreetingCard(uiState: HomeUiState, displayName: String) {
                 .offset(x = (-8).dp, y = (-52).dp)
                 .size(130.dp)
                 .rotate(-30f)
-                .border(BorderStroke(2.dp, NexterColors.Red.copy(alpha = 0.25f)), RoundedCornerShape(4.dp))
+                .border(BorderStroke(1.dp, Color(0xFF82173A)), RoundedCornerShape(4.dp))
         )
 
         Column {
@@ -485,9 +487,11 @@ private fun MeetingsCard(uiState: HomeUiState, onOpenAgenda: () -> Unit, onMeeti
 }
 
 @Composable
-private fun MeetingRow(meeting: HomeCalendarEvent, index: Int, onClick: () -> Unit = {}) {
-    val colors = listOf(NexterColors.Red, NexterColors.Blue, NexterColors.Green, NexterColors.Violet, NexterColors.Aqua)
-    Row(modifier = Modifier.fillMaxWidth().clickable(onClick = onClick).padding(vertical = 9.dp), verticalAlignment = Alignment.Top) {
+private fun MeetingRow(meeting: HomeCalendarEvent, index: Int, horizontalPadding: Dp = 0.dp, onClick: () -> Unit = {}) {
+    val isAgenda = horizontalPadding > 0.dp
+    val colors = if (isAgenda) listOf(NexterColors.Red, NexterColors.Blue, NexterColors.Green, NexterColors.Violet, NexterColors.Aqua)
+        else listOf(NexterColors.systemRed(), NexterColors.systemBlue(), NexterColors.systemGreen(), NexterColors.Violet, NexterColors.Aqua)
+    Row(modifier = Modifier.fillMaxWidth().clickable(onClick = onClick).padding(horizontal = horizontalPadding, vertical = 12.dp), verticalAlignment = Alignment.Top) {
         Text(
             text = meeting.startTimeText,
             color = NexterColors.tertiaryText(),
@@ -504,18 +508,20 @@ private fun MeetingRow(meeting: HomeCalendarEvent, index: Int, onClick: () -> Un
         )
         Spacer(modifier = Modifier.width(10.dp))
         Column(modifier = Modifier.weight(1f)) {
-            Text(meeting.subject, color = NexterColors.primaryText(), fontSize = NexterTypography.Callout, fontWeight = FontWeight.SemiBold, maxLines = 2)
+            Text(meeting.subject, color = NexterColors.primaryText(), fontSize = NexterTypography.Callout, fontWeight = FontWeight.SemiBold, maxLines = 2, overflow = TextOverflow.Ellipsis)
             Text(meeting.subtitle, color = NexterColors.tertiaryText(), fontSize = NexterTypography.Footnote, maxLines = 1, overflow = TextOverflow.Ellipsis)
         }
         meeting.tagText?.let {
+            Spacer(modifier = Modifier.width(8.dp))
             Text(
                 text = it,
-                color = if (meeting.isOnlineMeeting) Color(0xFF0E7070) else Color(0xFF2A8B3A),
+                color = if (isAgenda) { if (meeting.isOnlineMeeting) NexterColors.systemBlue() else NexterColors.systemGreen() }
+                    else if (meeting.isOnlineMeeting) Color(0xFF469BF5) else Color(0xFF2A8B3A),
                 fontSize = NexterTypography.Badge,
                 fontWeight = FontWeight.SemiBold,
                 modifier = Modifier
                     .clip(RoundedCornerShape(20.dp))
-                    .background((if (meeting.isOnlineMeeting) NexterColors.Aqua else NexterColors.Green).copy(alpha = 0.12f))
+                    .background((if (meeting.isOnlineMeeting) { if (isAgenda) NexterColors.systemBlue() else Color(0xFF469BF5) } else NexterColors.systemGreen()).copy(alpha = if (isAgenda) 0.10f else 0.14f))
                     .padding(horizontal = 7.dp, vertical = 2.dp)
             )
         }
@@ -570,8 +576,8 @@ private fun TaskRow(
                 .padding(top = 1.dp)
                 .size(22.dp)
                 .clip(CircleShape)
-                .background(if (isCompleted) NexterColors.Green else Color.Transparent)
-                .border(BorderStroke(2.dp, if (isCompleted) NexterColors.Green else NexterColors.tertiaryText()), CircleShape)
+                .background(if (isCompleted) NexterColors.systemGreen() else Color.Transparent)
+                .border(BorderStroke(2.dp, if (isCompleted) NexterColors.systemGreen() else NexterColors.tertiaryText()), CircleShape)
                 .clickable(onClick = onToggleCompleted),
             contentAlignment = Alignment.Center
         ) {
@@ -592,18 +598,18 @@ private fun TaskRow(
             task.creationDate?.let { Text(stringResource(R.string.parity_created_value, java.text.DateFormat.getDateInstance().format(it)), fontSize = NexterTypography.Footnote, color = NexterColors.tertiaryText()) }
             task.sortDueDate?.let { due ->
                 val overdue = !isCompleted && due.before(java.util.Calendar.getInstance().apply { set(java.util.Calendar.HOUR_OF_DAY, 0); set(java.util.Calendar.MINUTE, 0); set(java.util.Calendar.SECOND, 0); set(java.util.Calendar.MILLISECOND, 0) }.time)
-                Text(stringResource(if (overdue) R.string.parity_overdue_value else R.string.parity_due_value, java.text.DateFormat.getDateInstance().format(due)), color = if (overdue) NexterColors.Red else NexterColors.tertiaryText(), fontSize = NexterTypography.Footnote)
+                Text(stringResource(if (overdue) R.string.parity_overdue_value else R.string.parity_due_value, java.text.DateFormat.getDateInstance().format(due)), color = if (overdue) NexterColors.systemRed() else NexterColors.tertiaryText(), fontSize = NexterTypography.Footnote)
             }
         }
         if (isCompleted) {
             Text(
                 text = stringResource(R.string.delete),
-                color = NexterColors.Red,
+                color = NexterColors.systemRed(),
                 fontSize = NexterTypography.SmallButton,
                 fontWeight = FontWeight.SemiBold,
                 modifier = Modifier
                     .clip(RoundedCornerShape(10.dp))
-                    .background(NexterColors.Red.copy(alpha = 0.10f))
+                    .background(NexterColors.systemRed().copy(alpha = 0.10f))
                     .clickable(onClick = onDelete)
                     .padding(horizontal = 8.dp, vertical = 5.dp)
             )
@@ -739,16 +745,14 @@ private fun AgendaDialog(
                 elevation = 12.dp,
                 modifier = Modifier.fillMaxSize()
             ) {
-                Column {
-                    androidx.compose.material.TextButton(onClick = onCreateMeeting) { Text(stringResource(R.string.parity_new_meeting)) }
-                    AgendaDialogContent(
+                AgendaDialogContent(
                     uiState = uiState,
                     onDismiss = onDismiss,
                     onScopeSelected = onScopeSelected,
                     onRetry = onRetry,
-                    onMeetingSelected = onMeetingSelected
+                    onMeetingSelected = onMeetingSelected,
+                    onCreateMeeting = onCreateMeeting
                 )
-                }
             }
         }
     }
@@ -760,7 +764,8 @@ private fun AgendaDialogContent(
     onDismiss: () -> Unit,
     onScopeSelected: (AgendaScope) -> Unit,
     onRetry: () -> Unit,
-    onMeetingSelected: (HomeCalendarEvent) -> Unit
+    onMeetingSelected: (HomeCalendarEvent) -> Unit,
+    onCreateMeeting: () -> Unit
 ) {
     Column(modifier = Modifier.fillMaxSize()) {
         Row(
@@ -826,14 +831,14 @@ private fun AgendaDialogContent(
                         modifier = Modifier
                             .weight(1f)
                             .clip(RoundedCornerShape(10.dp))
-                            .background(if (selected) NexterColors.cardBackground() else Color.Transparent)
+                            .background(if (selected) NexterColors.primaryText() else NexterColors.cardBackground())
                             .clickable { onScopeSelected(scope) }
                             .padding(vertical = 10.dp),
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
                             text = stringResource(scope.titleRes),
-                            color = if (selected) NexterColors.Red else NexterColors.secondaryText(),
+                            color = if (selected) { if (com.lognext.nexterandroid.ui.theme.isNexterDarkTheme()) NexterColors.Navy else Color.White } else NexterColors.secondaryText(),
                             fontSize = NexterTypography.SmallButton,
                             fontWeight = FontWeight.SemiBold,
                             maxLines = 1,
@@ -843,6 +848,11 @@ private fun AgendaDialogContent(
                 }
             }
         }
+
+        androidx.compose.material.TextButton(
+            onClick = onCreateMeeting,
+            modifier = Modifier.padding(horizontal = 16.dp)
+        ) { Text(stringResource(R.string.parity_new_meeting)) }
 
         Box(
             modifier = Modifier
@@ -902,17 +912,17 @@ private fun AgendaDaySection(group: AgendaEventGroup, onMeetingSelected: (HomeCa
         border = BorderStroke(1.dp, NexterColors.border()),
         modifier = Modifier.fillMaxWidth()
     ) {
-        Column {
+        Column(Modifier.padding(bottom = 4.dp)) {
             Text(
                 group.title,
                 color = NexterColors.tertiaryText(),
                 fontSize = NexterTypography.Footnote,
                 fontWeight = FontWeight.SemiBold,
-                modifier = Modifier.padding(start = 14.dp, top = 14.dp, bottom = 6.dp)
+                modifier = Modifier.padding(start = 14.dp, top = 14.dp, end = 14.dp, bottom = 6.dp)
             )
             group.events.forEachIndexed { index, event ->
-                if (index > 0) Divider(color = NexterColors.border(), modifier = Modifier.padding(start = 86.dp))
-                MeetingRow(event, index) { onMeetingSelected(event) }
+                if (index > 0) Divider(color = NexterColors.border(), modifier = Modifier.padding(start = 72.dp, end = 14.dp))
+                MeetingRow(event, index, horizontalPadding = 14.dp) { onMeetingSelected(event) }
             }
         }
     }
@@ -1009,12 +1019,14 @@ private fun AddTaskDialog(
                         verticalArrangement = Arrangement.spacedBy(14.dp)
                     ) {
                         TextField(
+                            colors = com.lognext.nexterandroid.ui.theme.nexterTextFieldColors(),
                             value = title,
                             onValueChange = { title = it },
                             label = { Text(stringResource(R.string.title_label)) },
                             modifier = Modifier.fillMaxWidth()
                         )
                         TextField(
+                            colors = com.lognext.nexterandroid.ui.theme.nexterTextFieldColors(),
                             value = description,
                             onValueChange = { description = it },
                             label = { Text(stringResource(R.string.description_label)) },
@@ -1262,11 +1274,12 @@ private fun CenteredHomeShell(content: @Composable ColumnScope.() -> Unit) {
     )
 }
 
+@Composable
 private fun priorityColor(importance: String): Color {
     return when (importance.lowercase(Locale.ROOT)) {
-        "high" -> NexterColors.Red
-        "low" -> Color(0xFF185FA5)
-        else -> Color(0xFFE19A3B)
+        "high" -> NexterColors.systemRed()
+        "low" -> NexterColors.systemBlue()
+        else -> NexterColors.systemOrange()
     }
 }
 

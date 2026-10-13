@@ -262,4 +262,36 @@
     <string name="parity_overdue_value">Échue : %1$s</string>
     <string name="parity_attendees_value">Participants (%1$d) %2$s</string>
     <string name="parity_cached_warning">Impossible d’actualiser. Affichage des dernières informations enregistrées.</string>
+
+    <string name="meeting_searching">Recherche de personnes…</string>
+    <string name="meeting_no_matches">Aucun résultat</string>
+    <string name="inventory_title">Mon matériel</string>
+    <string name="inventory_subtitle">Consultez le matériel qui vous est attribué</string>
+    <string name="inventory_back">Retour</string>
+    <string name="inventory_refresh">Actualiser</string>
+    <string name="inventory_retry">Réessayer</string>
+    <string name="inventory_loading">Chargement du matériel…</string>
+    <string name="inventory_empty">Aucun matériel attribué</string>
+    <string name="inventory_empty_detail">Aucun matériel enregistré pour votre compte dans Cezanne.</string>
+    <string name="inventory_current">Actuellement attribué</string>
+    <string name="inventory_upcoming">Prochaines attributions</string>
+    <string name="inventory_history">Historique</string>
+    <string name="inventory_since">Depuis le %1$s</string>
+    <string name="inventory_material">Matériel</string>
+    <string name="inventory_name">Nom</string>
+    <string name="inventory_type">Type</string>
+    <string name="inventory_model">Modèle</string>
+    <string name="inventory_identifiers">Identifiants</string>
+    <string name="inventory_serial">Numéro de série</string>
+    <string name="inventory_asset">Code inventaire</string>
+    <string name="inventory_assignment">Attribution</string>
+    <string name="inventory_from">Du</string>
+    <string name="inventory_to">Au</string>
+    <string name="inventory_no_end">Aucune date de fin indiquée</string>
+    <string name="inventory_not_available">Non disponible</string>
+    <string name="inventory_copy">Copier</string>
+    <string name="inventory_copied">Copié</string>
+    <string name="inventory_unavailable">La consultation du matériel est indisponible sur le serveur.</string>
+    <string name="inventory_unauthorized">La consultation du matériel ne peut pas être autorisée. Reconnectez-vous et réessayez.</string>
+    <string name="inventory_error">Impossible de charger votre matériel. Réessayez.</string>
 </resources>

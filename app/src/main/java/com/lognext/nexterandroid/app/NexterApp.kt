@@ -161,7 +161,7 @@ fun NexterApp() {
                         val itemColor = if (selected) {
                             NexterColors.Red
                         } else {
-                            NexterColors.tertiaryText()
+                            NexterColors.navigationText()
                         }
                         BottomNavigationItem(
                             selected = selected,
@@ -173,8 +173,8 @@ fun NexterApp() {
                                 }
                             },
                             selectedContentColor = NexterColors.Red,
-                            unselectedContentColor = NexterColors.tertiaryText(),
-                            label = { Text(label, fontSize = NexterTypography.Caption) },
+                            unselectedContentColor = NexterColors.navigationText(),
+                            label = { Text(label, color = itemColor, fontSize = NexterTypography.Caption) },
                             icon = {
                                 Icon(
                                     painter = painterResource(id = destination.iconRes()),

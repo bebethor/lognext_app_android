@@ -26,7 +26,7 @@ val SpaceGrotesk = FontFamily(
 object NexterColors {
     val Navy = Color(0xFF000029)
     val Red = Color(0xFFFA3C0F)
-    val PageBackground = Color(0xFFF0F2F5)
+    val PageBackground = Color(0xFFF2F2F7)
     val DarkPageBackground = Color(0xFF090A16)
     val DarkCardBackground = Color(0xFF1A1B26)
     val White = Color.White
@@ -54,6 +54,18 @@ object NexterColors {
 
     @Composable
     fun border(): Color = if (isNexterDarkTheme()) White.copy(alpha = 0.10f) else Navy.copy(alpha = 0.08f)
+
+    @Composable
+    fun subtleBackground(): Color = if (isNexterDarkTheme()) Color(0xFF262836) else Navy.copy(alpha = 0.05f)
+
+    // SwiftUI system colors used by the iOS app, distinct from brand accents.
+    @Composable fun systemRed(): Color = if (isNexterDarkTheme()) Color(0xFFFF453A) else Color(0xFFFF3B30)
+    @Composable fun systemBlue(): Color = if (isNexterDarkTheme()) Color(0xFF0A84FF) else Color(0xFF007AFF)
+    @Composable fun systemGreen(): Color = if (isNexterDarkTheme()) Color(0xFF30D158) else Color(0xFF34C759)
+    @Composable fun systemOrange(): Color = if (isNexterDarkTheme()) Color(0xFFFF9F0A) else Color(0xFFFF9500)
+    val SystemGray = Color(0xFF8E8E93)
+    @Composable fun navigationText(): Color = if (isNexterDarkTheme()) White else Navy
+
 }
 
 object NexterTypography {
@@ -79,15 +91,16 @@ object NexterTypography {
 }
 
 private val NexterLightColorScheme = lightColors(
-    primary = NexterColors.Navy,
-    primaryVariant = Color(0xFF040423),
+    primary = NexterColors.Red,
+    primaryVariant = NexterColors.Red,
     secondary = NexterColors.Red,
     background = NexterColors.PageBackground,
     surface = Color.White,
     onPrimary = Color.White,
     onSecondary = Color.White,
     onBackground = NexterColors.Navy,
-    onSurface = NexterColors.Navy
+    onSurface = NexterColors.Navy,
+    error = Color(0xFFFF3B30)
 )
 
 private val NexterDarkColorScheme = darkColors(
@@ -99,7 +112,8 @@ private val NexterDarkColorScheme = darkColors(
     onPrimary = Color.White,
     onSecondary = Color.White,
     onBackground = Color.White,
-    onSurface = Color.White
+    onSurface = Color.White,
+    error = Color(0xFFFF453A)
 )
 
 private val NexterMaterialTypography = Typography(
@@ -111,7 +125,12 @@ fun NexterTheme(content: @Composable () -> Unit) {
     MaterialTheme(
         colors = if (isNexterDarkTheme()) NexterDarkColorScheme else NexterLightColorScheme,
         typography = NexterMaterialTypography,
-        content = content
+        content = {
+            // Keep card colors stable in dark mode rather than applying Material's elevation tint.
+            androidx.compose.runtime.CompositionLocalProvider(
+                androidx.compose.material.LocalElevationOverlay provides null
+            ) { content() }
+        }
     )
 }
 
@@ -120,4 +139,25 @@ fun isNexterDarkTheme(): Boolean {
     val configuration = LocalConfiguration.current
     val uiModeNight = configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK
     return uiModeNight == Configuration.UI_MODE_NIGHT_YES || isSystemInDarkTheme()
+}
+
+@Composable
+fun nexterTextFieldColors(outlined: Boolean = false): androidx.compose.material.TextFieldColors {
+    return androidx.compose.material.TextFieldDefaults.textFieldColors(
+        textColor = NexterColors.primaryText(),
+        disabledTextColor = NexterColors.tertiaryText(),
+        backgroundColor = if (outlined) Color.Transparent else NexterColors.subtleBackground(),
+        cursorColor = NexterColors.Red,
+        errorCursorColor = NexterColors.systemRed(),
+        focusedIndicatorColor = NexterColors.Red,
+        unfocusedIndicatorColor = NexterColors.border(),
+        disabledIndicatorColor = NexterColors.border(),
+        errorIndicatorColor = NexterColors.systemRed(),
+        focusedLabelColor = NexterColors.Red,
+        unfocusedLabelColor = NexterColors.secondaryText(),
+        disabledLabelColor = NexterColors.tertiaryText(),
+        errorLabelColor = NexterColors.systemRed(),
+        placeholderColor = NexterColors.tertiaryText(),
+        disabledPlaceholderColor = NexterColors.tertiaryText()
+    )
 }

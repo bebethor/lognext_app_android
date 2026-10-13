@@ -24,12 +24,20 @@ import com.lognext.nexterandroid.features.people.*
 import com.lognext.nexterandroid.ui.theme.NexterColors
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.ensureActive
+import androidx.compose.foundation.ScrollState
+import androidx.compose.foundation.relocation.BringIntoViewRequester
+import androidx.compose.foundation.relocation.bringIntoViewRequester
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.platform.LocalDensity
 import java.text.DateFormat
 import java.text.SimpleDateFormat
 import java.util.*
 
 @Composable
-private fun DetailFrame(title: String, busy: Boolean = false, onDismiss: () -> Unit, body: @Composable ColumnScope.() -> Unit) {
+private fun DetailFrame(title: String, busy: Boolean = false, onDismiss: () -> Unit, scrollState: ScrollState? = null, body: @Composable ColumnScope.() -> Unit) {
     Dialog(onDismissRequest = { if (!busy) onDismiss() }, properties = DialogProperties(usePlatformDefaultWidth = false)) {
         Surface(color = NexterColors.cardBackground(), modifier = Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding().imePadding().padding(12.dp)) {
             Column(Modifier.padding(16.dp)) {
@@ -37,7 +45,7 @@ private fun DetailFrame(title: String, busy: Boolean = false, onDismiss: () -> U
                     Text(title, style = MaterialTheme.typography.h6)
                     TextButton(onClick = onDismiss, enabled = !busy) { Text(stringResource(R.string.parity_close)) }
                 }
-                Column(Modifier.weight(1f).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp), content = body)
+                Column(Modifier.weight(1f).verticalScroll(scrollState ?: rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp), content = body)
             }
         }
     }
@@ -83,7 +91,7 @@ internal fun MeetingDetailDialog(meeting: HomeCalendarEvent, onDismiss: () -> Un
                 if (loadingEmail == attendee.email) CircularProgressIndicator(Modifier.size(20.dp), strokeWidth = 2.dp)
             }
         }
-        error?.let { Text(it, color = NexterColors.Red) }
+        error?.let { Text(it, color = NexterColors.systemRed()) }
         meeting.joinUrl?.let { url ->
             val uri = Uri.parse(url)
             if (uri.scheme in listOf("https", "http") && !uri.host.isNullOrBlank()) {
@@ -99,7 +107,8 @@ internal fun MeetingDetailDialog(meeting: HomeCalendarEvent, onDismiss: () -> Un
 @Composable
 private fun PriorityDropdown(value: String, enabled: Boolean, onChange: (String) -> Unit) {
     var expanded by remember { mutableStateOf(false) }
-    fun color(key: String) = when (key) { "high" -> Color.Red; "low" -> Color(0xFF2196F3); else -> Color(0xFFFF9800) }
+    val priorityColors = mapOf("high" to NexterColors.systemRed(), "low" to NexterColors.systemBlue(), "normal" to NexterColors.systemOrange())
+    fun color(key: String) = priorityColors[key] ?: priorityColors.getValue("normal")
     val titles = mapOf("high" to stringResource(R.string.priority_high), "low" to stringResource(R.string.priority_low), "normal" to stringResource(R.string.priority_normal))
     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
         Text(stringResource(R.string.parity_priority))
@@ -123,13 +132,13 @@ internal fun TaskEditorDialog(task: HomeTask, onDismiss: () -> Unit, onSave: sus
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     DetailFrame(stringResource(R.string.parity_task_details), busy, onDismiss) {
-        TextField(title, { title = it }, enabled = !busy, label = { Text(stringResource(R.string.parity_title)) }, modifier = Modifier.fillMaxWidth())
-        TextField(description, { description = it }, enabled = !busy, label = { Text(stringResource(R.string.parity_description)) }, modifier = Modifier.fillMaxWidth())
+        TextField(title, { title = it }, enabled = !busy, colors = com.lognext.nexterandroid.ui.theme.nexterTextFieldColors(), label = { Text(stringResource(R.string.parity_title)) }, modifier = Modifier.fillMaxWidth())
+        TextField(description, { description = it }, enabled = !busy, colors = com.lognext.nexterandroid.ui.theme.nexterTextFieldColors(), label = { Text(stringResource(R.string.parity_description)) }, modifier = Modifier.fillMaxWidth())
         PriorityDropdown(priority, !busy) { priority = it }
         task.creationDate?.let { Text(stringResource(R.string.parity_created_value, DateFormat.getDateTimeInstance().format(it))) }
         TextButton(onClick = { pickDateTime(context, due ?: Date()) { due = it } }, enabled = !busy) { Text(due?.let { context.getString(R.string.parity_due_value, DateFormat.getDateTimeInstance().format(it)) } ?: context.getString(R.string.parity_add_due)) }
         if (due != null) TextButton(onClick = { due = null }, enabled = !busy) { Text(stringResource(R.string.parity_remove_due)) }
-        error?.let { Text(it, color = NexterColors.Red) }
+        error?.let { Text(it, color = NexterColors.systemRed()) }
         Button(enabled = title.isNotBlank() && !busy, onClick = {
             scope.launch {
                 busy = true
@@ -143,6 +152,7 @@ internal fun TaskEditorDialog(task: HomeTask, onDismiss: () -> Unit, onSave: sus
     }
 }
 
+@OptIn(androidx.compose.foundation.ExperimentalFoundationApi::class)
 @Composable
 internal fun CreateMeetingDialog(onDismiss: () -> Unit, onCreate: suspend (CreateMeetingRequest) -> Unit) {
     var title by remember { mutableStateOf("") }
@@ -150,11 +160,17 @@ internal fun CreateMeetingDialog(onDismiss: () -> Unit, onCreate: suspend (Creat
     var location by remember { mutableStateOf("") }
     var start by remember { mutableStateOf(Date()) }
     var end by remember { mutableStateOf(Date(System.currentTimeMillis() + 3600000)) }
-    var online by remember { mutableStateOf(true) }
+    var online by remember { mutableStateOf(false) }
     var query by remember { mutableStateOf("") }
     var attendees by remember { mutableStateOf(emptyList<MeetingAttendee>()) }
     var results by remember { mutableStateOf(emptyList<PersonSummaryResponse>()) }
     var searching by remember { mutableStateOf(false) }
+    var hasSearched by remember { mutableStateOf(false) }
+    var searchError by remember { mutableStateOf<String?>(null) }
+    var searchFocused by remember { mutableStateOf(false) }
+    val submitRequester = remember { BringIntoViewRequester() }
+    val scrollState = rememberScrollState()
+    val keyboardHeight = WindowInsets.ime.getBottom(LocalDensity.current)
     var busy by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf<String?>(null) }
     val scope = rememberCoroutineScope()
@@ -167,33 +183,56 @@ internal fun CreateMeetingDialog(onDismiss: () -> Unit, onCreate: suspend (Creat
             attendees = attendees + clean; query = ""; results = emptyList()
         }
     }
-    DetailFrame(stringResource(R.string.parity_new_meeting), busy, onDismiss) {
-        TextField(title, { title = it }, enabled = !busy, label = { Text(stringResource(R.string.parity_title)) })
+    LaunchedEffect(query) {
+        results = emptyList()
+        searching = false
+        hasSearched = false
+        searchError = null
+        val searchQuery = query.trim()
+        if (searchQuery.length < 2 || searchQuery.contains('@')) return@LaunchedEffect
+        try {
+            delay(300)
+            searching = true
+            val found = AppDependencies.peopleService.searchStaffSmart(searchQuery).people
+            coroutineContext.ensureActive()
+            results = found.filter { person -> attendees.none { it.email.equals(person.email.orEmpty(), true) } }
+            hasSearched = true
+            searching = false
+        } catch (cancel: CancellationException) { throw cancel }
+        catch (_: Exception) {
+            searching = false
+            searchError = context.getString(R.string.parity_search_error)
+        }
+    }
+    LaunchedEffect(searchFocused, keyboardHeight, results.size) {
+        if (searchFocused && keyboardHeight > 0) {
+            delay(100)
+            submitRequester.bringIntoView()
+        }
+    }
+    DetailFrame(stringResource(R.string.parity_new_meeting), busy, onDismiss, scrollState) {
+        TextField(title, { title = it }, enabled = !busy, colors = com.lognext.nexterandroid.ui.theme.nexterTextFieldColors(), modifier = Modifier.fillMaxWidth(), label = { Text(stringResource(R.string.parity_title)) })
         TextButton(enabled = !busy, onClick = { pickDateTime(context, start) { start = it } }) { Text(stringResource(R.string.parity_start_value, DateFormat.getDateTimeInstance().format(start))) }
         TextButton(enabled = !busy, onClick = { pickDateTime(context, end) { end = it } }) { Text(stringResource(R.string.parity_end_value, DateFormat.getDateTimeInstance().format(end))) }
         Text(TimeZone.getDefault().displayName, style = MaterialTheme.typography.caption)
-        TextField(description, { description = it }, enabled = !busy, label = { Text(stringResource(R.string.parity_description)) })
-        TextField(location, { location = it }, enabled = !busy, label = { Text(stringResource(R.string.parity_location)) })
+        TextField(description, { description = it }, enabled = !busy, colors = com.lognext.nexterandroid.ui.theme.nexterTextFieldColors(), modifier = Modifier.fillMaxWidth(), label = { Text(stringResource(R.string.parity_description)) })
+        TextField(location, { location = it }, enabled = !busy, colors = com.lognext.nexterandroid.ui.theme.nexterTextFieldColors(), modifier = Modifier.fillMaxWidth(), label = { Text(stringResource(R.string.parity_location)) })
         Row { Text(stringResource(R.string.parity_teams)); Switch(online, { online = it }, enabled = !busy) }
         Text(stringResource(R.string.parity_attendees))
         attendees.forEach { attendee -> Row { Text(attendee.name.ifBlank { attendee.email }, modifier = Modifier.weight(1f)); TextButton(enabled = !busy, onClick = { attendees = attendees - attendee }) { Text(stringResource(R.string.parity_remove)) } } }
-        TextField(query, { query = it }, enabled = !busy, label = { Text(stringResource(R.string.parity_attendee_input)) })
+        TextField(query, { query = it }, enabled = !busy, colors = com.lognext.nexterandroid.ui.theme.nexterTextFieldColors(), modifier = Modifier.fillMaxWidth().onFocusChanged { searchFocused = it.isFocused }, label = { Text(stringResource(R.string.parity_attendee_input)) })
         if (query.contains('@')) TextButton(enabled = !busy && android.util.Patterns.EMAIL_ADDRESS.matcher(query.trim()).matches(), onClick = { add(MeetingAttendee(email = query)) }) { Text(stringResource(R.string.parity_add_email)) }
-        else TextButton(enabled = query.isNotBlank() && !busy && !searching, onClick = {
-            scope.launch {
-                searching = true; error = null
-                val searchQuery = query
-                try { val found = AppDependencies.peopleService.searchStaffSmart(searchQuery).people; if (query == searchQuery) results = found }
-                catch (cancel: CancellationException) { throw cancel }
-                catch (_: Exception) { error = context.getString(R.string.parity_search_error) }
-                finally { searching = false }
-            }
-        }) { Text(stringResource(R.string.parity_search_people)) }
-        if (searching) CircularProgressIndicator(Modifier.size(20.dp))
+        if (searching) Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
+            CircularProgressIndicator(Modifier.size(20.dp), strokeWidth = 2.dp)
+            Spacer(Modifier.width(8.dp))
+            Text(stringResource(R.string.meeting_searching))
+        }
+        searchError?.let { Text(it, color = NexterColors.systemRed()) }
+        if (hasSearched && results.isEmpty() && searchError == null) Text(stringResource(R.string.meeting_no_matches), style = MaterialTheme.typography.caption)
         results.forEach { person -> TextButton(enabled = !busy, onClick = { add(MeetingAttendee(person.fullName.orEmpty(), person.email.orEmpty())) }) { Text("${person.fullName} · ${person.email}") } }
-        error?.let { Text(it, color = NexterColors.Red) }
+        error?.let { Text(it, color = NexterColors.systemRed()) }
         Text(stringResource(R.string.parity_invite_notice), style = MaterialTheme.typography.caption)
-        Button(enabled = title.isNotBlank() && end.after(start) && !busy, onClick = {
+        Button(modifier = Modifier.fillMaxWidth().bringIntoViewRequester(submitRequester), enabled = title.isNotBlank() && end.after(start) && !busy, onClick = {
             scope.launch {
                 busy = true; error = null
                 try {
@@ -205,7 +244,7 @@ internal fun CreateMeetingDialog(onDismiss: () -> Unit, onCreate: suspend (Creat
                 catch (failure: Exception) { error = failure.message ?: context.getString(R.string.parity_create_error) }
                 finally { busy = false }
             }
-        }) { if (busy) CircularProgressIndicator(Modifier.size(20.dp)) else Text(stringResource(R.string.parity_create_send)) }
+        }) { if (busy) CircularProgressIndicator(Modifier.size(20.dp)) else Text(stringResource(R.string.parity_create_send).uppercase(Locale.getDefault())) }
     }
 }
 

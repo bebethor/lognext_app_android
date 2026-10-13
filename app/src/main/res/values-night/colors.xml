@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="nexter_primary_text">#FFFFFF</color>
+    <color name="nexter_secondary_text">#ADFFFFFF</color>
+    <color name="nexter_card">#1A1B26</color>
+</resources>
