@@ -10,6 +10,7 @@ import com.microsoft.identity.client.IAuthenticationResult
 import com.microsoft.identity.client.ISingleAccountPublicClientApplication
 import com.microsoft.identity.client.IPublicClientApplication
 import com.microsoft.identity.client.PublicClientApplication
+import com.microsoft.identity.client.Prompt
 import com.microsoft.identity.client.exception.MsalException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.CancellationException
@@ -121,7 +122,7 @@ class MsalAuthRepository(
                 app.acquireTokenSilent(arrayOf("Calendars.ReadWrite"), resolvedAccount.authority)
             }
         } catch (error: com.microsoft.identity.client.exception.MsalUiRequiredException) {
-            val result = app.signInAwait(activity, listOf("Calendars.ReadWrite"))
+            val result = app.signInAwait(activity, listOf("Calendars.ReadWrite"), resolvedAccount)
             check(result.account.username.equals(resolvedAccount.username, ignoreCase = true)) {
                 "Debes autorizar con la misma cuenta con la que has iniciado sesión."
             }
@@ -138,7 +139,7 @@ class MsalAuthRepository(
             }
         } catch (required: com.microsoft.identity.client.exception.MsalUiRequiredException) {
             if (activity == null) throw GraphConsentRequiredException()
-            val result = app.signInAwait(activity, listOf(scope))
+            val result = app.signInAwait(activity, listOf(scope), resolvedAccount)
             check(result.account.username.equals(resolvedAccount.username, ignoreCase = true)) {
                 "Debes autorizar con la misma cuenta con la que has iniciado sesión."
             }
@@ -183,13 +184,21 @@ class MsalAuthRepository(
 
     private suspend fun ISingleAccountPublicClientApplication.signInAwait(
         activity: Activity,
-        scopes: List<String>
+        scopes: List<String>,
+        permissionAccount: IAccount? = null
     ): IAuthenticationResult {
         return suspendCancellableCoroutine { continuation ->
             val builder = AcquireTokenParameters.Builder()
                 .startAuthorizationFromActivity(activity)
                 .withScopes(scopes)
             account?.let { builder.withLoginHint(it.username) }
+            permissionAccount?.let {
+                // Additional permissions belong to the existing session. Let Microsoft
+                // reuse its session instead of asking the user to select an account again.
+                builder.forAccount(it)
+                    .fromAuthority(it.authority)
+                    .withPrompt(Prompt.WHEN_REQUIRED)
+            }
 
             val parameters = builder
                 .withCallback(
