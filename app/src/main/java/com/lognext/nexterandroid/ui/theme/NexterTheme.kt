@@ -61,6 +61,7 @@ object NexterColors {
     // SwiftUI system colors used by the iOS app, distinct from brand accents.
     @Composable fun systemRed(): Color = if (isNexterDarkTheme()) Color(0xFFFF453A) else Color(0xFFFF3B30)
     @Composable fun systemBlue(): Color = if (isNexterDarkTheme()) Color(0xFF0A84FF) else Color(0xFF007AFF)
+    @Composable fun systemPurple(): Color = if (isNexterDarkTheme()) Color(0xFFBF5AF2) else Color(0xFFAF52DE)
     @Composable fun systemGreen(): Color = if (isNexterDarkTheme()) Color(0xFF30D158) else Color(0xFF34C759)
     @Composable fun systemOrange(): Color = if (isNexterDarkTheme()) Color(0xFFFF9F0A) else Color(0xFFFF9500)
     val SystemGray = Color(0xFF8E8E93)

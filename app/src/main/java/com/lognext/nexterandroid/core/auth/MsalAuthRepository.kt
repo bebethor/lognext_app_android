@@ -128,6 +128,24 @@ class MsalAuthRepository(
         }
     }
 
+    override suspend fun graphReadToken(scope: String, activity: Activity?): String {
+        require(scope in setOf("Calendars.Read", "Place.Read.All"))
+        val app = getApplication()
+        val resolvedAccount = account ?: error("Vuelve a iniciar sesión")
+        return try {
+            withContext(Dispatchers.IO) {
+                app.acquireTokenSilent(arrayOf(scope), resolvedAccount.authority).accessToken
+            }
+        } catch (required: com.microsoft.identity.client.exception.MsalUiRequiredException) {
+            if (activity == null) throw GraphConsentRequiredException()
+            val result = app.signInAwait(activity, listOf(scope))
+            check(result.account.username.equals(resolvedAccount.username, ignoreCase = true)) {
+                "Debes autorizar con la misma cuenta con la que has iniciado sesión."
+            }
+            result.accessToken
+        }
+    }
+
     private suspend fun getApplication(): ISingleAccountPublicClientApplication {
         application?.let { return it }
 

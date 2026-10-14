@@ -27,6 +27,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.Dp
+import androidx.compose.foundation.shape.CircleShape
 import com.lognext.nexterandroid.R
 import com.lognext.nexterandroid.ui.theme.NexterColors
 import com.lognext.nexterandroid.ui.theme.NexterTypography
@@ -34,14 +36,30 @@ import java.text.DateFormat
 import java.util.Date
 
 @Composable
-internal fun MeetingCreationFrame(busy: Boolean, onDismiss: () -> Unit, scrollState: ScrollState, content: @Composable ColumnScope.() -> Unit) {
+internal fun MeetingCreationFrame(busy: Boolean, onDismiss: () -> Unit, scrollState: ScrollState,
+    title: String = stringResource(R.string.parity_new_meeting), content: @Composable ColumnScope.(Dp) -> Unit) {
     Dialog(onDismissRequest = { if (!busy) onDismiss() }, properties = DialogProperties(usePlatformDefaultWidth = false, dismissOnBackPress = !busy, dismissOnClickOutside = !busy)) {
         Surface(color = NexterColors.pageBackground(), modifier = Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding().imePadding()) {
             Column {
-                TextButton(onClick = onDismiss, enabled = !busy, modifier = Modifier.padding(horizontal = 8.dp)) { Text(stringResource(R.string.cancel)) }
-                Text(stringResource(R.string.parity_new_meeting), fontSize = NexterTypography.ScreenTitle, fontWeight = FontWeight.Bold,
-                    color = NexterColors.primaryText(), modifier = Modifier.padding(start = 20.dp, end = 20.dp, bottom = 16.dp))
-                Column(Modifier.weight(1f).verticalScroll(scrollState).padding(horizontal = 20.dp).padding(bottom = 28.dp), verticalArrangement = Arrangement.spacedBy(16.dp), content = content)
+                Column(Modifier.fillMaxWidth().background(NexterColors.cardBackground())) {
+                    Box(Modifier.fillMaxWidth().padding(top = 8.dp), contentAlignment = Alignment.Center) {
+                        Box(Modifier.size(36.dp, 5.dp).background(NexterColors.secondaryText().copy(alpha = 0.35f), RoundedCornerShape(3.dp)))
+                    }
+                    Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp).padding(top = 16.dp, bottom = 14.dp),
+                        verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                        val closeLabel = stringResource(R.string.parity_close)
+                        Box(Modifier.size(38.dp).background(NexterColors.Red.copy(alpha = 0.10f), CircleShape)
+                            .clickable(enabled = !busy, onClick = onDismiss).semantics { contentDescription = closeLabel }, contentAlignment = Alignment.Center) {
+                            AgendaHeaderGlyph(plus = false, label = closeLabel)
+                        }
+                        Text(title, fontSize = NexterTypography.ScreenTitle, fontWeight = FontWeight.Bold, color = NexterColors.primaryText())
+                    }
+                }
+                BoxWithConstraints(Modifier.weight(1f)) {
+                    val viewportHeight = maxHeight
+                    Column(Modifier.fillMaxSize().verticalScroll(scrollState).padding(horizontal = 20.dp).padding(top = 16.dp, bottom = 28.dp),
+                        verticalArrangement = Arrangement.spacedBy(16.dp)) { content(viewportHeight) }
+                }
             }
         }
     }

@@ -8,6 +8,12 @@ import android.app.TimePickerDialog
 import android.content.Intent
 import android.net.Uri
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.platform.LocalFocusManager
+import com.lognext.nexterandroid.core.auth.GraphConsentRequiredException
+import com.lognext.nexterandroid.ui.theme.NexterTypography
 import androidx.compose.foundation.border
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.shape.CircleShape
@@ -173,7 +179,18 @@ internal fun CreateMeetingDialog(onDismiss: () -> Unit, onCreate: suspend (Creat
     var hasSearched by remember { mutableStateOf(false) }
     var searchError by remember { mutableStateOf<String?>(null) }
     var searchFocused by remember { mutableStateOf(false) }
-    val submitRequester = remember { BringIntoViewRequester() }
+    val searchRequester = remember { BringIntoViewRequester() }
+    var resultsQuery by remember { mutableStateOf("") }
+    var showLocations by remember { mutableStateOf(false) }
+    var showDiscardConfirmation by remember { mutableStateOf(false) }
+    var availability by remember { mutableStateOf(emptyMap<String, MeetingAvailability>()) }
+    var checkingAvailability by remember { mutableStateOf(false) }
+    var availabilityError by remember { mutableStateOf<String?>(null) }
+    var availabilityConsentRequired by remember { mutableStateOf(false) }
+    var availabilityReload by remember { mutableStateOf(0) }
+    var availabilityInteractive by remember { mutableStateOf(false) }
+    val graphService = remember { MeetingGraphService() }
+    val focusManager = LocalFocusManager.current
     val scrollState = rememberScrollState()
     val keyboardHeight = WindowInsets.ime.getBottom(LocalDensity.current)
     var busy by remember { mutableStateOf(false) }
@@ -182,6 +199,40 @@ internal fun CreateMeetingDialog(onDismiss: () -> Unit, onCreate: suspend (Creat
     val context = LocalContext.current
     val fingerprint = listOf(title, description, location, start.time, end.time, online, attendees).toString()
     val transactionId = remember(fingerprint) { UUID.randomUUID().toString() }
+    val initialFingerprint = remember { fingerprint }
+    val requestDismiss = {
+        focusManager.clearFocus()
+        if (fingerprint != initialFingerprint || query.isNotEmpty()) showDiscardConfirmation = true else onDismiss()
+    }
+    val availabilityFingerprint = listOf(start.time, end.time, attendees.map { it.email.lowercase(Locale.ROOT) }.sorted(), availabilityReload).toString()
+    LaunchedEffect(availabilityFingerprint) {
+        availability = emptyMap()
+        availabilityError = null
+        availabilityConsentRequired = false
+        checkingAvailability = false
+        if (attendees.isEmpty()) return@LaunchedEffect
+        if (!start.before(end) || end.time - start.time >= 62L * 24 * 60 * 60 * 1000) {
+            availabilityError = context.getString(R.string.meeting_availability_interval)
+            return@LaunchedEffect
+        }
+        checkingAvailability = true
+        try {
+            delay(400)
+            val activity = if (availabilityInteractive) context.findActivity() else null
+            availabilityInteractive = false
+            val token = AppDependencies.authRepository.graphReadToken("Calendars.Read", activity)
+            availability = graphService.availability(token, attendees.map { it.email }, start, end)
+            checkingAvailability = false
+        } catch (cancel: CancellationException) { throw cancel }
+        catch (_: GraphConsentRequiredException) {
+            checkingAvailability = false
+            availabilityConsentRequired = true
+            availabilityError = context.getString(R.string.meeting_availability_consent)
+        } catch (_: Exception) {
+            checkingAvailability = false
+            availabilityError = context.getString(R.string.meeting_availability_error)
+        }
+    }
     fun add(person: MeetingAttendee) {
         val clean = person.copy(email = person.email.trim())
         if (android.util.Patterns.EMAIL_ADDRESS.matcher(clean.email).matches() && attendees.none { it.email.equals(clean.email, true) }) {
@@ -189,18 +240,22 @@ internal fun CreateMeetingDialog(onDismiss: () -> Unit, onCreate: suspend (Creat
         }
     }
     LaunchedEffect(query) {
-        results = emptyList()
         searching = false
         hasSearched = false
         searchError = null
         val searchQuery = query.trim()
-        if (searchQuery.length < 2 || searchQuery.contains('@')) return@LaunchedEffect
+        if (searchQuery.length < 2 || searchQuery.contains('@')) {
+            results = emptyList()
+            resultsQuery = ""
+            return@LaunchedEffect
+        }
+        searching = true
         try {
             delay(300)
-            searching = true
             val found = AppDependencies.peopleService.searchStaffSmart(searchQuery).people
             coroutineContext.ensureActive()
             results = found.filter { person -> attendees.none { it.email.equals(person.email.orEmpty(), true) } }
+            resultsQuery = searchQuery
             hasSearched = true
             searching = false
         } catch (cancel: CancellationException) { throw cancel }
@@ -209,13 +264,23 @@ internal fun CreateMeetingDialog(onDismiss: () -> Unit, onCreate: suspend (Creat
             searchError = context.getString(R.string.parity_search_error)
         }
     }
-    LaunchedEffect(searchFocused, keyboardHeight, results.size) {
+    LaunchedEffect(searchFocused, keyboardHeight, results.size, searching, checkingAvailability, attendees.size) {
         if (searchFocused && keyboardHeight > 0) {
             delay(100)
-            submitRequester.bringIntoView()
+            searchRequester.bringIntoView()
         }
     }
-    MeetingCreationFrame(busy, onDismiss, scrollState) {
+    if (showDiscardConfirmation) AlertDialog(onDismissRequest = { showDiscardConfirmation = false },
+        title = { Text(stringResource(R.string.meeting_discard_title)) },
+        text = { Text(stringResource(R.string.meeting_discard_message)) },
+        confirmButton = { TextButton(onClick = { showDiscardConfirmation = false; onDismiss() }) { Text(stringResource(R.string.meeting_discard), color = NexterColors.systemRed()) } },
+        dismissButton = { TextButton(onClick = { showDiscardConfirmation = false }) { Text(stringResource(R.string.meeting_keep_editing)) } })
+    if (showLocations) MeetingLocationDialog(location, onDismiss = { showLocations = false }) {
+        location = it.locationName
+        showLocations = false
+    }
+    val fontScale = LocalDensity.current.fontScale
+    MeetingCreationFrame(busy, requestDismiss, scrollState) { viewportHeight ->
         MeetingFormSection(stringResource(R.string.parity_meeting)) {
             MeetingFormText(title, { title = it }, stringResource(R.string.parity_title), !busy)
             MeetingFormDivider()
@@ -244,48 +309,76 @@ internal fun CreateMeetingDialog(onDismiss: () -> Unit, onCreate: suspend (Creat
                 )
             }
             MeetingFormDivider()
-            MeetingFormText(location, { location = it }, stringResource(R.string.parity_location), !busy)
+            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                Box(Modifier.weight(1f)) { MeetingFormText(location, { location = it }, stringResource(R.string.parity_location), !busy) }
+                val searchLabel = stringResource(R.string.meeting_locations_search)
+                IconButton(onClick = { focusManager.clearFocus(); showLocations = true }, enabled = !busy) { LocationSearchGlyph(searchLabel) }
+            }
         }
         MeetingFormSection(stringResource(R.string.parity_attendees)) {
             attendees.forEach { attendee ->
                 Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Text(attendee.name.ifBlank { attendee.email }, modifier = Modifier.weight(1f), color = NexterColors.primaryText())
+                    Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(5.dp)) {
+                        Text(attendee.name.ifBlank { attendee.email }, color = NexterColors.primaryText())
+                        MeetingAvailabilityLabel(availability[attendee.email.lowercase(Locale.ROOT)] ?: MeetingAvailability.Unknown, checkingAvailability)
+                    }
                     val removeLabel = stringResource(R.string.parity_remove)
                     Box(Modifier.padding(start = 12.dp).size(28.dp).border(BorderStroke(1.dp, NexterColors.Red), CircleShape)
                         .clickable(enabled = !busy) { attendees = attendees - attendee }.semantics { contentDescription = removeLabel }, contentAlignment = Alignment.Center) { Text("−", color = NexterColors.Red) }
                 }
                 MeetingFormDivider()
             }
-            MeetingFormText(query, { query = it }, stringResource(R.string.parity_attendee_input), !busy,
-                modifier = Modifier.onFocusChanged { searchFocused = it.isFocused }, attendeeSearch = true)
-            if (query.contains('@')) {
-                MeetingFormDivider()
-                TextButton(modifier = Modifier.fillMaxWidth(), enabled = !busy && android.util.Patterns.EMAIL_ADDRESS.matcher(query.trim()).matches(), onClick = { add(MeetingAttendee(email = query)) }) { Text(stringResource(R.string.parity_add_email)) }
+            Column(Modifier.fillMaxWidth().bringIntoViewRequester(searchRequester)) {
+                MeetingFormText(query, { query = it }, stringResource(R.string.parity_attendee_input), !busy,
+                    modifier = Modifier.onFocusChanged { searchFocused = it.isFocused }, attendeeSearch = true)
+                if (query.contains('@')) {
+                    MeetingFormDivider()
+                    TextButton(modifier = Modifier.fillMaxWidth(), enabled = !busy && android.util.Patterns.EMAIL_ADDRESS.matcher(query.trim()).matches(), onClick = { add(MeetingAttendee(email = query)) }) { Text(stringResource(R.string.parity_add_email)) }
+                } else if (searchFocused || query.isNotBlank()) {
+                    if (searching) Row(Modifier.fillMaxWidth().padding(14.dp), horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
+                        CircularProgressIndicator(Modifier.size(20.dp), strokeWidth = 2.dp)
+                        Spacer(Modifier.width(8.dp))
+                        Text(stringResource(R.string.meeting_searching), color = NexterColors.secondaryText())
+                    } else if (query.trim().length < 2) Text(stringResource(R.string.meeting_search_hint), style = MaterialTheme.typography.caption,
+                        color = NexterColors.secondaryText(), modifier = Modifier.padding(16.dp))
+                    searchError?.let { Text(it, color = NexterColors.systemRed(), modifier = Modifier.padding(16.dp)) }
+                    if (hasSearched && results.isEmpty() && searchError == null) Text(stringResource(R.string.meeting_no_matches), style = MaterialTheme.typography.caption, color = NexterColors.secondaryText(), modifier = Modifier.padding(16.dp))
+                    if (results.isNotEmpty()) {
+                        val rowHeight = (62 * fontScale).dp
+                        val panelHeight = (rowHeight * results.size).coerceAtMost((viewportHeight - (140 * fontScale).dp).coerceAtLeast(rowHeight))
+                        LazyColumn(Modifier.fillMaxWidth().height(panelHeight)) {
+                            items(results) { person ->
+                                Column(Modifier.fillMaxWidth().height(rowHeight).clickable(enabled = !busy && !searching && resultsQuery == query.trim() && android.util.Patterns.EMAIL_ADDRESS.matcher(person.email.orEmpty()).matches()) {
+                                    add(MeetingAttendee(person.fullName.orEmpty(), person.email.orEmpty()))
+                                }.padding(horizontal = 16.dp), verticalArrangement = Arrangement.Center) {
+                                    Text(person.fullName.orEmpty(), color = NexterColors.Red, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                    Text(person.email.orEmpty(), style = MaterialTheme.typography.caption, color = NexterColors.secondaryText(), maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                }
+                            }
+                        }
+                    }
+                }
             }
-            if (searching) Row(Modifier.fillMaxWidth().padding(14.dp), horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
-                CircularProgressIndicator(Modifier.size(20.dp), strokeWidth = 2.dp)
-                Spacer(Modifier.width(8.dp))
-                Text(stringResource(R.string.meeting_searching), color = NexterColors.secondaryText())
-            }
-            searchError?.let { Text(it, color = NexterColors.systemRed(), modifier = Modifier.padding(16.dp)) }
-            if (hasSearched && results.isEmpty() && searchError == null) Text(stringResource(R.string.meeting_no_matches), style = MaterialTheme.typography.caption, color = NexterColors.secondaryText(), modifier = Modifier.padding(16.dp))
-            results.forEach { person ->
-                MeetingFormDivider()
-                Column(Modifier.fillMaxWidth().clickable(enabled = !busy && android.util.Patterns.EMAIL_ADDRESS.matcher(person.email.orEmpty()).matches()) {
-                    add(MeetingAttendee(person.fullName.orEmpty(), person.email.orEmpty()))
-                }.padding(horizontal = 16.dp, vertical = 12.dp)) {
-                    Text(person.fullName.orEmpty(), color = NexterColors.Red)
-                    Text(person.email.orEmpty(), style = MaterialTheme.typography.caption, color = NexterColors.secondaryText())
+        }
+        if (attendees.isNotEmpty()) {
+            Column(Modifier.padding(horizontal = 16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                Text(stringResource(R.string.meeting_availability_notice), color = NexterColors.secondaryText(), style = MaterialTheme.typography.caption)
+                if (availability.values.any { it.hasConflict }) Text(stringResource(R.string.meeting_availability_conflict), color = NexterColors.systemOrange(), style = MaterialTheme.typography.caption)
+                availabilityError?.let {
+                    Text(it, color = NexterColors.secondaryText(), style = MaterialTheme.typography.caption)
+                    TextButton(onClick = { availabilityInteractive = availabilityConsentRequired; availabilityReload++ }, enabled = !busy) {
+                        Text(stringResource(if (availabilityConsentRequired) R.string.meeting_availability_authorize else R.string.meeting_availability_retry))
+                    }
                 }
             }
         }
         error?.let { MeetingFormSection { Text(it, color = NexterColors.systemRed(), modifier = Modifier.padding(16.dp)) } }
         MeetingFormSection {
-        TextButton(modifier = Modifier.fillMaxWidth().bringIntoViewRequester(submitRequester).padding(vertical = 6.dp), enabled = title.isNotBlank() && end.after(start) && !busy, onClick = {
+        TextButton(modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp), enabled = title.isNotBlank() && end.after(start) && !busy, onClick = {
             scope.launch {
                 busy = true; error = null
                 try {
-                    val activity = context as? Activity ?: error("No hay una actividad disponible")
+                    val activity = context.findActivity() ?: error("No hay una actividad disponible")
                     AppDependencies.authRepository.requestCalendarWritePermission(activity)
                     onCreate(CreateMeetingRequest(title.trim(), apiDate(start), apiDate(end), description, location, online, attendees, transactionId))
                     onDismiss()

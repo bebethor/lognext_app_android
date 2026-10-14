@@ -23,5 +23,10 @@ interface AuthRepository {
     suspend fun signIn(activity: Activity)
     suspend fun signOut()
     suspend fun requestCalendarWritePermission(activity: Activity) { error("No se puede autorizar la creación de reuniones") }
+    suspend fun graphReadToken(scope: String, activity: Activity? = null): String {
+        error("Microsoft Graph no está disponible")
+    }
     suspend fun currentBffToken(): String?
 }
+
+class GraphConsentRequiredException : Exception()
