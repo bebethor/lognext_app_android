@@ -326,8 +326,24 @@
     <string name="meeting_locations_empty">Microsoft n’a renvoyé aucun lieu enregistré. Vous pouvez saisir le lieu manuellement.</string>
     <string name="meeting_locations_no_matches">Aucun lieu ne correspond à votre recherche.</string>
     <string name="meeting_locations_partial">Les lieux disponibles sont affichés. Certains bâtiments peuvent ne pas être configurés dans Microsoft Places.</string>
-    <string name="meeting_locations_notice">Sélectionner une salle renseigne le lieu de la réunion ; cela ne réserve pas la salle.</string>
+    <string name="meeting_locations_notice">La salle est réservée lors de la création de la réunion, après acceptation par Microsoft. Les bureaux et groupes de salles indiquent uniquement le lieu.</string>
     <string name="meeting_locations_capacity">Capacité : %1$d personnes</string>
     <string name="meeting_locations_forbidden">Microsoft refuse l’accès au répertoire des lieux. Une approbation de l’administrateur peut être nécessaire.</string>
     <string name="meeting_locations_error">Impossible de charger les salles et bureaux. Vous pouvez réessayer ou saisir le lieu manuellement.</string>
+    <string name="meeting_location_required">Indiquez un lieu ou activez Teams pour créer la réunion.</string>
+    <string name="meeting_room_booking">Réservation de salle</string>
+    <string name="meeting_room_no_mailbox">Cette salle n’a pas de boîte aux lettres réservable. Choisissez une autre salle.</string>
+    <string name="meeting_room_busy">La salle est occupée à cette heure. Modifiez le créneau ou choisissez une autre salle.</string>
+    <string name="meeting_room_confirmation_notice">La réservation est confirmée uniquement lorsque Microsoft accepte la salle.</string>
+    <string name="meeting_room_office_notice">Ce lieu est un bureau ou un groupe de salles ; il ne réserve pas de salle précise.</string>
+    <string name="meeting_room_manual_notice">Un lieu saisi manuellement ne réserve pas de salle. Sélectionnez-la dans la recherche pour la réserver.</string>
+    <string name="meeting_room_unknown">Impossible de vérifier la disponibilité de la salle. Réessayez avant de réserver.</string>
+    <string name="meeting_room_changed">La salle n’est plus disponible ou n’a pas pu être vérifiée. Modifiez le créneau ou choisissez une autre salle.</string>
+    <string name="meeting_room_backend_unavailable">Le serveur doit être mis à jour pour réserver des salles. La réunion n’a pas été créée.</string>
+    <string name="meeting_room_accepted">Salle réservée</string>
+    <string name="meeting_room_declined">Réservation refusée</string>
+    <string name="meeting_room_pending">Réservation en attente</string>
+    <string name="meeting_room_accepted_message">Microsoft a confirmé la réservation de la salle pour ce créneau.</string>
+    <string name="meeting_room_declined_message">La réunion a été créée, mais Microsoft a refusé la réservation de la salle. La salle n’est pas réservée ; vérifiez la réunion et choisissez un autre lieu.</string>
+    <string name="meeting_room_pending_message">La réunion a été créée et la réservation a été envoyée à Microsoft. Elle attend confirmation ; nous ne pouvons pas encore confirmer que la salle est réservée.</string>
 </resources>

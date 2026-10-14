@@ -46,7 +46,8 @@ data class HomeCalendarEvent(
     @SerializedName("join_url") val joinUrl: String?,
     @SerializedName("attendees_count") val attendeesCount: Int?,
     val organizer: String?,
-    val attendees: List<MeetingAttendee>? = null
+    val attendees: List<MeetingAttendee>? = null,
+    @SerializedName("room_reservation") val roomReservation: RoomReservation? = null
 ) {
     val startDate: Date?
         get() = parseIsoDate(start)
@@ -229,10 +230,26 @@ data class MeetingAttendee(val name: String = "", val email: String = "")
 fun List<HomeTask>.sortedByCreationDate(): List<HomeTask> =
     sortedWith(compareByDescending<HomeTask> { it.creationDate?.time ?: Long.MIN_VALUE }.thenBy { it.stableId })
 
+data class MeetingRoom(val email: String, val name: String)
+data class RoomReservation(val email: String, val name: String, val status: String)
+class RoomBookingUnavailableException : Exception()
+
+internal fun RoomReservation.titleResource(): Int = when (status) {
+    "accepted" -> com.lognext.nexterandroid.R.string.meeting_room_accepted
+    "declined" -> com.lognext.nexterandroid.R.string.meeting_room_declined
+    else -> com.lognext.nexterandroid.R.string.meeting_room_pending
+}
+internal fun RoomReservation.messageResource(): Int = when (status) {
+    "accepted" -> com.lognext.nexterandroid.R.string.meeting_room_accepted_message
+    "declined" -> com.lognext.nexterandroid.R.string.meeting_room_declined_message
+    else -> com.lognext.nexterandroid.R.string.meeting_room_pending_message
+}
+
 data class CreateMeetingRequest(
     val subject: String, val start: String, val end: String,
     val description: String, val location: String,
     @SerializedName("is_online_meeting") val isOnlineMeeting: Boolean,
     val attendees: List<MeetingAttendee>,
-    @SerializedName("transaction_id") val transactionId: String
+    @SerializedName("transaction_id") val transactionId: String,
+    val room: MeetingRoom? = null
 )

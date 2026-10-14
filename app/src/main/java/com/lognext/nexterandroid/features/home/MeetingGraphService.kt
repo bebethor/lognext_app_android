@@ -102,7 +102,7 @@ internal data class GraphSchedule(val scheduleId: String?, val availabilityView:
 }
 internal enum class MeetingLocationKind { Room, Office, RoomGroup }
 internal data class MeetingLocation(val id: String, val displayName: String, val kind: MeetingLocationKind,
-    val building: String? = null, val city: String? = null, val capacity: Int? = null) {
+    val building: String? = null, val city: String? = null, val capacity: Int? = null, val emailAddress: String? = null) {
     val locationName: String get() {
         val context = listOfNotNull(building, city).firstOrNull { it.isNotBlank() }
         return if (kind == MeetingLocationKind.Room && context != null && !displayName.contains(context, true)) "$displayName · $context" else displayName
@@ -115,7 +115,7 @@ internal data class MeetingLocation(val id: String, val displayName: String, val
 }
 internal data class MeetingLocationCatalog(val locations: List<MeetingLocation>, val isPartial: Boolean)
 private data class GraphPlaces(val value: List<GraphPlaceRecord>?, @SerializedName("@odata.nextLink") val nextLink: String?)
-private data class GraphPlaceRecord(val id: String?, val displayName: String?, val building: String?, val capacity: Int?, val address: Address?) {
+private data class GraphPlaceRecord(val id: String?, val displayName: String?, val building: String?, val capacity: Int?, val address: Address?, val emailAddress: String?) {
     data class Address(val city: String?)
 }
 private data class GraphSchedules(val value: List<GraphSchedule>?)
@@ -146,7 +146,7 @@ internal class MeetingGraphService(private val transport: MeetingGraphTransport 
         val places = mutableListOf<MeetingLocation>()
         var partial = false
         for ((type, kind) in listOf("room" to MeetingLocationKind.Room, "building" to MeetingLocationKind.Office, "roomList" to MeetingLocationKind.RoomGroup)) {
-            val select = if (type == "room") "id,displayName,building,capacity,address" else "id,displayName"
+            val select = if (type == "room") "id,displayName,emailAddress,building,capacity,address" else "id,displayName"
             var url: HttpUrl? = "https://graph.microsoft.com/v1.0/places/microsoft.graph.$type".toHttpUrl().newBuilder()
                 .addQueryParameter("\$select", select).addQueryParameter("\$top", "100").build()
             val visited = mutableSetOf<HttpUrl>()
@@ -159,7 +159,7 @@ internal class MeetingGraphService(private val transport: MeetingGraphTransport 
                     currentCoroutineContext().ensureActive()
                     val records = response.value ?: throw IOException("Missing places")
                     places += records.filter { !it.id.isNullOrBlank() && !it.displayName.isNullOrBlank() }.map {
-                        MeetingLocation("$type|${it.id}", it.displayName!!, kind, it.building, it.address?.city, it.capacity)
+                        MeetingLocation("$type|${it.id}", it.displayName!!, kind, it.building, it.address?.city, it.capacity, it.emailAddress)
                     }
                     url = response.nextLink?.let { link ->
                         val next = link.toHttpUrlOrNull()

@@ -298,15 +298,16 @@ class HomeViewModel(
         } finally { updatingTaskIds.remove(task.stableId) }
     }
 
-    suspend fun createMeeting(request: CreateMeetingRequest) {
+    suspend fun createMeeting(request: CreateMeetingRequest): HomeCalendarEvent {
         if (AppConfig.UseFakeLogin) {
             val created = HomeCalendarEvent(request.transactionId, request.subject, request.start, request.end, request.location, request.isOnlineMeeting, null, request.attendees.size, null, request.attendees)
             mutableUiState.value = mutableUiState.value.copy(todayMeetings = (mutableUiState.value.todayMeetings + created).sortedByStartDate(), agendaEvents = (mutableUiState.value.agendaEvents + created).sortedByStartDate())
-            return
+            return created
         }
-        service.createMeeting(request)
+        val created = service.createMeeting(request)
         refresh()
         loadAgenda(mutableUiState.value.agendaScope, force = true)
+        return created
     }
 
     fun deleteTask(task: HomeTask) {

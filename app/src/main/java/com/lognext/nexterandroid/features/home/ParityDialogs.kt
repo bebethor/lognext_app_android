@@ -78,6 +78,17 @@ internal fun MeetingDetailDialog(meeting: HomeCalendarEvent, onDismiss: () -> Un
         if (meeting.isOnlineMeeting) Text(stringResource(R.string.parity_online_teams))
         meeting.organizer?.takeIf { it.isNotBlank() }?.let { Text(stringResource(R.string.parity_organizer_value, it)) }
         meeting.location?.takeIf { it.isNotBlank() }?.let { Text(stringResource(R.string.parity_location_value, it)) }
+        meeting.roomReservation?.let { reservation ->
+            MeetingFormSection(stringResource(R.string.meeting_room_booking)) {
+                Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Text(reservation.name.ifBlank { reservation.email }, color = NexterColors.primaryText())
+                    Text(stringResource(reservation.titleResource()), color = when (reservation.status) {
+                        "accepted" -> NexterColors.systemGreen(); "declined" -> NexterColors.systemRed(); else -> NexterColors.systemOrange()
+                    })
+                    Text(stringResource(reservation.messageResource()), color = NexterColors.secondaryText(), style = MaterialTheme.typography.caption)
+                }
+            }
+        }
         val attendees = meeting.attendees.orEmpty()
         TextButton(onClick = { expanded = !expanded }, enabled = attendees.isNotEmpty()) {
             Text(stringResource(R.string.parity_attendees_value, meeting.attendeesCount ?: attendees.size, if (expanded) "▴" else "▾"))
@@ -165,7 +176,7 @@ internal fun TaskEditorDialog(task: HomeTask, onDismiss: () -> Unit, onSave: sus
 
 @OptIn(androidx.compose.foundation.ExperimentalFoundationApi::class)
 @Composable
-internal fun CreateMeetingDialog(onDismiss: () -> Unit, onCreate: suspend (CreateMeetingRequest) -> Unit) {
+internal fun CreateMeetingDialog(onDismiss: () -> Unit, onCreate: suspend (CreateMeetingRequest) -> HomeCalendarEvent) {
     var title by remember { mutableStateOf("") }
     var description by remember { mutableStateOf("") }
     var location by remember { mutableStateOf("") }
@@ -182,6 +193,14 @@ internal fun CreateMeetingDialog(onDismiss: () -> Unit, onCreate: suspend (Creat
     val searchRequester = remember { BringIntoViewRequester() }
     var resultsQuery by remember { mutableStateOf("") }
     var showLocations by remember { mutableStateOf(false) }
+    var selectedLocation by remember { mutableStateOf<MeetingLocation?>(null) }
+    var roomAvailability by remember { mutableStateOf(MeetingAvailability.Unknown) }
+    var checkingRoom by remember { mutableStateOf(false) }
+    var roomError by remember { mutableStateOf<String?>(null) }
+    var roomReload by remember { mutableStateOf(0) }
+    var roomConsentRequired by remember { mutableStateOf(false) }
+    var roomInteractive by remember { mutableStateOf(false) }
+    var bookingResult by remember { mutableStateOf<RoomReservation?>(null) }
     var showDiscardConfirmation by remember { mutableStateOf(false) }
     var availability by remember { mutableStateOf(emptyMap<String, MeetingAvailability>()) }
     var checkingAvailability by remember { mutableStateOf(false) }
@@ -197,7 +216,38 @@ internal fun CreateMeetingDialog(onDismiss: () -> Unit, onCreate: suspend (Creat
     var error by remember { mutableStateOf<String?>(null) }
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
-    val fingerprint = listOf(title, description, location, start.time, end.time, online, attendees).toString()
+    val selectedRoom = selectedLocation?.takeIf { it.kind == MeetingLocationKind.Room }?.let { place ->
+        place.emailAddress?.trim()?.takeIf { android.util.Patterns.EMAIL_ADDRESS.matcher(it).matches() }?.let { MeetingRoom(it, place.displayName) }
+    }
+    val fingerprint = listOf(title, description, location, start.time, end.time, online, attendees, selectedRoom?.email).toString()
+    val roomFingerprint = listOf(selectedRoom?.email, start.time, end.time, roomReload).toString()
+    LaunchedEffect(roomFingerprint) {
+        roomAvailability = MeetingAvailability.Unknown
+        roomError = null; roomConsentRequired = false; checkingRoom = false
+        if (selectedRoom == null) return@LaunchedEffect
+        if (!start.before(end) || end.time - start.time >= 62L * 24 * 60 * 60 * 1000) {
+            roomError = context.getString(R.string.meeting_availability_interval)
+            return@LaunchedEffect
+        }
+        checkingRoom = true
+        try {
+            delay(400)
+            val activity = if (roomInteractive) context.findActivity() else null
+            roomInteractive = false
+            val token = AppDependencies.authRepository.graphReadToken("Calendars.Read", activity)
+            val statuses = graphService.availability(token, listOf(selectedRoom.email), start, end)
+            roomAvailability = statuses[selectedRoom.email.lowercase(Locale.ROOT)] ?: MeetingAvailability.Unknown
+            if (roomAvailability == MeetingAvailability.Unknown) roomError = context.getString(R.string.meeting_room_unknown)
+            checkingRoom = false
+        } catch (cancel: CancellationException) { throw cancel }
+        catch (_: GraphConsentRequiredException) {
+            checkingRoom = false; roomConsentRequired = true
+            roomError = context.getString(R.string.meeting_availability_consent)
+        } catch (_: Exception) {
+            checkingRoom = false
+            roomError = context.getString(R.string.meeting_room_unknown)
+        }
+    }
     val transactionId = remember(fingerprint) { UUID.randomUUID().toString() }
     val initialFingerprint = remember { fingerprint }
     val requestDismiss = {
@@ -276,8 +326,14 @@ internal fun CreateMeetingDialog(onDismiss: () -> Unit, onCreate: suspend (Creat
         confirmButton = { TextButton(onClick = { showDiscardConfirmation = false; onDismiss() }) { Text(stringResource(R.string.meeting_discard), color = NexterColors.systemRed()) } },
         dismissButton = { TextButton(onClick = { showDiscardConfirmation = false }) { Text(stringResource(R.string.meeting_keep_editing)) } })
     if (showLocations) MeetingLocationDialog(location, onDismiss = { showLocations = false }) {
+        selectedLocation = it
         location = it.locationName
         showLocations = false
+    }
+    bookingResult?.let { reservation ->
+        AlertDialog(onDismissRequest = { onDismiss() }, title = { Text(stringResource(reservation.titleResource())) },
+            text = { Text(stringResource(reservation.messageResource())) },
+            confirmButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.parity_close)) } })
     }
     val fontScale = LocalDensity.current.fontScale
     MeetingCreationFrame(busy, requestDismiss, scrollState) { viewportHeight ->
@@ -310,11 +366,32 @@ internal fun CreateMeetingDialog(onDismiss: () -> Unit, onCreate: suspend (Creat
             }
             MeetingFormDivider()
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                Box(Modifier.weight(1f)) { MeetingFormText(location, { location = it }, stringResource(R.string.parity_location), !busy) }
+                Box(Modifier.weight(1f)) { MeetingFormText(location, { location = it; if (selectedLocation?.locationName != it) selectedLocation = null }, stringResource(R.string.parity_location), !busy) }
                 val searchLabel = stringResource(R.string.meeting_locations_search)
                 IconButton(onClick = { focusManager.clearFocus(); showLocations = true }, enabled = !busy) { LocationSearchGlyph(searchLabel) }
             }
         }
+        selectedLocation?.let { place ->
+            MeetingFormSection(stringResource(R.string.meeting_room_booking)) {
+                Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    if (place.kind == MeetingLocationKind.Room) {
+                        if (selectedRoom == null) Text(stringResource(R.string.meeting_room_no_mailbox), color = NexterColors.secondaryText())
+                        else {
+                            MeetingAvailabilityLabel(roomAvailability, checkingRoom)
+                            if (roomAvailability.hasConflict) Text(stringResource(R.string.meeting_room_busy), color = NexterColors.systemRed())
+                            roomError?.let {
+                                Text(it, color = NexterColors.secondaryText(), style = MaterialTheme.typography.caption)
+                                TextButton(onClick = { roomInteractive = roomConsentRequired; roomReload++ }) {
+                                    Text(stringResource(if (roomConsentRequired) R.string.meeting_availability_authorize else R.string.meeting_availability_retry))
+                                }
+                            }
+                        }
+                        Text(stringResource(R.string.meeting_room_confirmation_notice), color = NexterColors.secondaryText(), style = MaterialTheme.typography.caption)
+                    } else Text(stringResource(R.string.meeting_room_office_notice), color = NexterColors.secondaryText(), style = MaterialTheme.typography.caption)
+                }
+            }
+        }
+        if (selectedLocation == null && location.isNotBlank()) Text(stringResource(R.string.meeting_room_manual_notice), color = NexterColors.secondaryText(), style = MaterialTheme.typography.caption)
         MeetingFormSection(stringResource(R.string.parity_attendees)) {
             attendees.forEach { attendee ->
                 Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -374,16 +451,28 @@ internal fun CreateMeetingDialog(onDismiss: () -> Unit, onCreate: suspend (Creat
         }
         error?.let { MeetingFormSection { Text(it, color = NexterColors.systemRed(), modifier = Modifier.padding(16.dp)) } }
         MeetingFormSection {
-        TextButton(modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp), enabled = title.isNotBlank() && end.after(start) && !busy, onClick = {
+        TextButton(modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp), enabled = title.isNotBlank() && end.after(start) && !busy && (online || location.isNotBlank())
+            && (selectedLocation?.kind != MeetingLocationKind.Room || (selectedRoom != null && roomAvailability == MeetingAvailability.Available && !checkingRoom)), onClick = {
             scope.launch {
                 busy = true; error = null
                 try {
                     val activity = context.findActivity() ?: error("No hay una actividad disponible")
                     AppDependencies.authRepository.requestCalendarWritePermission(activity)
-                    onCreate(CreateMeetingRequest(title.trim(), apiDate(start), apiDate(end), description, location, online, attendees, transactionId))
-                    onDismiss()
+                    if (selectedRoom != null) {
+                        val token = AppDependencies.authRepository.graphReadToken("Calendars.Read")
+                        val statuses = graphService.availability(token, listOf(selectedRoom.email), start, end)
+                        val fresh = statuses[selectedRoom.email.lowercase(Locale.ROOT)] ?: MeetingAvailability.Unknown
+                        if (fresh != MeetingAvailability.Available) {
+                            roomAvailability = fresh
+                            error = context.getString(R.string.meeting_room_changed)
+                            return@launch
+                        }
+                    }
+                    val created = onCreate(CreateMeetingRequest(title.trim(), apiDate(start), apiDate(end), description, location, online, attendees, transactionId, selectedRoom))
+                    if (selectedRoom != null) bookingResult = created.roomReservation ?: RoomReservation(selectedRoom.email, selectedRoom.name, "pending")
+                    else onDismiss()
                 } catch (cancel: CancellationException) { throw cancel }
-                catch (failure: Exception) { error = failure.message ?: context.getString(R.string.parity_create_error) }
+                catch (failure: Exception) { error = if (failure is RoomBookingUnavailableException) context.getString(R.string.meeting_room_backend_unavailable) else failure.message ?: context.getString(R.string.parity_create_error) }
                 finally { busy = false }
             }
         }) {
@@ -391,6 +480,7 @@ internal fun CreateMeetingDialog(onDismiss: () -> Unit, onCreate: suspend (Creat
             Text(stringResource(R.string.parity_create_send).uppercase(Locale.getDefault()))
         }
         }
+        Text(stringResource(R.string.meeting_location_required), style = MaterialTheme.typography.caption, color = NexterColors.secondaryText(), modifier = Modifier.padding(horizontal = 16.dp))
         Text(stringResource(R.string.parity_invite_notice), style = MaterialTheme.typography.caption, color = NexterColors.secondaryText(), modifier = Modifier.padding(horizontal = 16.dp))
     }
 }

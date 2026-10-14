@@ -326,8 +326,24 @@
     <string name="meeting_locations_empty">Microsoft returned no registered locations. You can enter the location manually.</string>
     <string name="meeting_locations_no_matches">No locations match your search.</string>
     <string name="meeting_locations_partial">Available locations are shown. Some buildings may not be configured in Microsoft Places.</string>
-    <string name="meeting_locations_notice">Selecting a room fills in the meeting location; it does not reserve the room.</string>
+    <string name="meeting_locations_notice">The room is reserved when the meeting is created and Microsoft accepts it. Offices and room groups only specify the location.</string>
     <string name="meeting_locations_capacity">Capacity: %1$d people</string>
     <string name="meeting_locations_forbidden">Microsoft does not allow access to the places directory. Administrator approval may be required.</string>
     <string name="meeting_locations_error">Rooms and offices could not be loaded. You can retry or enter the location manually.</string>
+    <string name="meeting_location_required">Enter a location or enable Teams to create the meeting.</string>
+    <string name="meeting_room_booking">Room booking</string>
+    <string name="meeting_room_no_mailbox">This room has no bookable mailbox. Choose another room.</string>
+    <string name="meeting_room_busy">The room is busy at this time. Change the time or choose another room.</string>
+    <string name="meeting_room_confirmation_notice">The booking is confirmed only when Microsoft accepts the room.</string>
+    <string name="meeting_room_office_notice">This location is an office or room group; it does not reserve a specific room.</string>
+    <string name="meeting_room_manual_notice">Entering a location manually does not book a room. Select it in the search to reserve it.</string>
+    <string name="meeting_room_unknown">The room availability could not be checked. Retry before booking.</string>
+    <string name="meeting_room_changed">The room is no longer available or could not be checked. Change the time or choose another room.</string>
+    <string name="meeting_room_backend_unavailable">The server must be updated to book rooms. The meeting has not been created.</string>
+    <string name="meeting_room_accepted">Room booked</string>
+    <string name="meeting_room_declined">Booking declined</string>
+    <string name="meeting_room_pending">Booking pending</string>
+    <string name="meeting_room_accepted_message">Microsoft has confirmed the room booking for this time.</string>
+    <string name="meeting_room_declined_message">The meeting was created, but Microsoft declined the room booking. The room is not reserved; review the meeting and choose another location.</string>
+    <string name="meeting_room_pending_message">The meeting was created and the booking was sent to Microsoft. It is awaiting confirmation; we cannot yet confirm that the room is reserved.</string>
 </resources>

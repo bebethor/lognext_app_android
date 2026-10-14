@@ -64,8 +64,19 @@ class HomeService(
         patch("/api/v1/tasks/$taskId", body, 204..204)
     }
 
-    suspend fun createMeeting(request: CreateMeetingRequest): HomeCalendarEvent =
-        post("/api/v1/calendar/events", request, HomeCalendarEvent::class.java, 201..201)
+    private data class BookingCapabilities(@com.google.gson.annotations.SerializedName("resource_booking") val resourceBooking: Boolean)
+
+    suspend fun createMeeting(request: CreateMeetingRequest): HomeCalendarEvent {
+        require(request.isOnlineMeeting || request.location.isNotBlank())
+        if (request.room != null) {
+            try {
+                val capabilities = get("/api/v1/calendar/booking-capabilities", BookingCapabilities::class.java)
+                if (!capabilities.resourceBooking) throw RoomBookingUnavailableException()
+            } catch (cancel: kotlinx.coroutines.CancellationException) { throw cancel }
+            catch (_: Exception) { throw RoomBookingUnavailableException() }
+        }
+        return post("/api/v1/calendar/events", request, HomeCalendarEvent::class.java, 201..201)
+    }
 
     suspend fun deleteTask(taskId: String) {
         delete("/api/v1/tasks/$taskId", 204..204)

@@ -86,7 +86,7 @@ class MeetingGraphServiceTest {
             assertEquals("Bearer token", request.header("Authorization"))
             when {
                 request.url.queryParameter("page") == "2" -> """{"value":[{"id":"r2","displayName":"Sala Sur","address":{"city":"Sevilla"}}]}"""
-                request.url.encodedPath.endsWith(".room") -> """{"value":[{"id":"r1","displayName":"Sala Águila","building":"Madrid","capacity":8}],"@odata.nextLink":"https://graph.microsoft.com/v1.0/places/microsoft.graph.room?page=2"}"""
+                request.url.encodedPath.endsWith(".room") -> """{"value":[{"id":"r1","displayName":"Sala Águila","emailAddress":"sala@example.com","building":"Madrid","capacity":8}],"@odata.nextLink":"https://graph.microsoft.com/v1.0/places/microsoft.graph.room?page=2"}"""
                 request.url.encodedPath.endsWith(".building") -> """{"value":[{"id":"b1","displayName":"Madrid"}]}"""
                 else -> """{"value":[{"id":"g1","displayName":"Madrid"},{"id":"g2","displayName":"Barcelona"}]}"""
             }
@@ -98,6 +98,7 @@ class MeetingGraphServiceTest {
         val room = catalog.locations.single { it.matches("aguila MADRID") }
         assertEquals("Sala Águila · Madrid", room.locationName)
         assertEquals(8, room.capacity)
+        assertEquals("sala@example.com", room.emailAddress)
         assertEquals(MeetingLocationKind.Office, catalog.locations.single { it.displayName == "Madrid" }.kind)
     }
     @Test fun optionalPlacesFallbackButRoomPermissionErrorIsNotEmptyCatalog() = runBlocking {
