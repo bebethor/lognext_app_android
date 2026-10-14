@@ -294,4 +294,6 @@
     <string name="inventory_unavailable">La consultation du matériel est indisponible sur le serveur.</string>
     <string name="inventory_unauthorized">La consultation du matériel ne peut pas être autorisée. Reconnectez-vous et réessayez.</string>
     <string name="inventory_error">Impossible de charger votre matériel. Réessayez.</string>
+    <string name="meeting_start_label">Début</string>
+    <string name="meeting_end_label">Fin</string>
 </resources>

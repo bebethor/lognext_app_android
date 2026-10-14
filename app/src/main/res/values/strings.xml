@@ -299,4 +299,6 @@
     <string name="inventory_unavailable">La consulta de material todavía no está disponible en el servidor.</string>
     <string name="inventory_unauthorized">No se pudo autorizar la consulta de tu material. Vuelve a iniciar sesión e inténtalo de nuevo.</string>
     <string name="inventory_error">No se pudo cargar tu material. Inténtalo de nuevo.</string>
+    <string name="meeting_start_label">Inicio</string>
+    <string name="meeting_end_label">Fin</string>
 </resources>

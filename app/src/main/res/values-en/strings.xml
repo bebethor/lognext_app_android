@@ -294,4 +294,6 @@
     <string name="inventory_unavailable">Equipment lookup is not yet available on the server.</string>
     <string name="inventory_unauthorized">Your equipment request could not be authorized. Sign in again and retry.</string>
     <string name="inventory_error">Could not load your equipment. Please retry.</string>
+    <string name="meeting_start_label">Start</string>
+    <string name="meeting_end_label">End</string>
 </resources>

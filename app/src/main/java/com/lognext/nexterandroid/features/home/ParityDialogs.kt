@@ -8,6 +8,11 @@ import android.app.TimePickerDialog
 import android.content.Intent
 import android.net.Uri
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.border
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -210,29 +215,73 @@ internal fun CreateMeetingDialog(onDismiss: () -> Unit, onCreate: suspend (Creat
             submitRequester.bringIntoView()
         }
     }
-    DetailFrame(stringResource(R.string.parity_new_meeting), busy, onDismiss, scrollState) {
-        TextField(title, { title = it }, enabled = !busy, colors = com.lognext.nexterandroid.ui.theme.nexterTextFieldColors(), modifier = Modifier.fillMaxWidth(), label = { Text(stringResource(R.string.parity_title)) })
-        TextButton(enabled = !busy, onClick = { pickDateTime(context, start) { start = it } }) { Text(stringResource(R.string.parity_start_value, DateFormat.getDateTimeInstance().format(start))) }
-        TextButton(enabled = !busy, onClick = { pickDateTime(context, end) { end = it } }) { Text(stringResource(R.string.parity_end_value, DateFormat.getDateTimeInstance().format(end))) }
-        Text(TimeZone.getDefault().displayName, style = MaterialTheme.typography.caption)
-        TextField(description, { description = it }, enabled = !busy, colors = com.lognext.nexterandroid.ui.theme.nexterTextFieldColors(), modifier = Modifier.fillMaxWidth(), label = { Text(stringResource(R.string.parity_description)) })
-        TextField(location, { location = it }, enabled = !busy, colors = com.lognext.nexterandroid.ui.theme.nexterTextFieldColors(), modifier = Modifier.fillMaxWidth(), label = { Text(stringResource(R.string.parity_location)) })
-        Row { Text(stringResource(R.string.parity_teams)); Switch(online, { online = it }, enabled = !busy) }
-        Text(stringResource(R.string.parity_attendees))
-        attendees.forEach { attendee -> Row { Text(attendee.name.ifBlank { attendee.email }, modifier = Modifier.weight(1f)); TextButton(enabled = !busy, onClick = { attendees = attendees - attendee }) { Text(stringResource(R.string.parity_remove)) } } }
-        TextField(query, { query = it }, enabled = !busy, colors = com.lognext.nexterandroid.ui.theme.nexterTextFieldColors(), modifier = Modifier.fillMaxWidth().onFocusChanged { searchFocused = it.isFocused }, label = { Text(stringResource(R.string.parity_attendee_input)) })
-        if (query.contains('@')) TextButton(enabled = !busy && android.util.Patterns.EMAIL_ADDRESS.matcher(query.trim()).matches(), onClick = { add(MeetingAttendee(email = query)) }) { Text(stringResource(R.string.parity_add_email)) }
-        if (searching) Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
-            CircularProgressIndicator(Modifier.size(20.dp), strokeWidth = 2.dp)
-            Spacer(Modifier.width(8.dp))
-            Text(stringResource(R.string.meeting_searching))
+    MeetingCreationFrame(busy, onDismiss, scrollState) {
+        MeetingFormSection(stringResource(R.string.parity_meeting)) {
+            MeetingFormText(title, { title = it }, stringResource(R.string.parity_title), !busy)
+            MeetingFormDivider()
+            MeetingDateRow(stringResource(R.string.meeting_start_label), start, !busy) { pickDateTime(context, start) { start = it } }
+            MeetingFormDivider()
+            MeetingDateRow(stringResource(R.string.meeting_end_label), end, !busy) { pickDateTime(context, end) { end = it } }
+            Text(TimeZone.getDefault().displayName, color = NexterColors.secondaryText(), style = MaterialTheme.typography.caption, modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp))
+            MeetingFormDivider()
+            MeetingFormText(description, { description = it }, stringResource(R.string.parity_description), !busy, multiline = true)
+            MeetingFormDivider()
+            Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp), verticalAlignment = Alignment.CenterVertically) {
+                Text(stringResource(R.string.parity_teams), modifier = Modifier.weight(1f), color = NexterColors.primaryText())
+                val isDark = com.lognext.nexterandroid.ui.theme.isNexterDarkTheme()
+                Switch(
+                    checked = online,
+                    onCheckedChange = { online = it },
+                    enabled = !busy,
+                    colors = SwitchDefaults.colors(
+                        checkedThumbColor = Color.White,
+                        checkedTrackColor = NexterColors.Red,
+                        checkedTrackAlpha = 1f,
+                        uncheckedThumbColor = if (isDark) Color(0xFFD0D2DF) else Color.White,
+                        uncheckedTrackColor = if (isDark) Color(0xFF6B6E80) else Color(0xFFA4A5AF),
+                        uncheckedTrackAlpha = 1f
+                    )
+                )
+            }
+            MeetingFormDivider()
+            MeetingFormText(location, { location = it }, stringResource(R.string.parity_location), !busy)
         }
-        searchError?.let { Text(it, color = NexterColors.systemRed()) }
-        if (hasSearched && results.isEmpty() && searchError == null) Text(stringResource(R.string.meeting_no_matches), style = MaterialTheme.typography.caption)
-        results.forEach { person -> TextButton(enabled = !busy, onClick = { add(MeetingAttendee(person.fullName.orEmpty(), person.email.orEmpty())) }) { Text("${person.fullName} · ${person.email}") } }
-        error?.let { Text(it, color = NexterColors.systemRed()) }
-        Text(stringResource(R.string.parity_invite_notice), style = MaterialTheme.typography.caption)
-        Button(modifier = Modifier.fillMaxWidth().bringIntoViewRequester(submitRequester), enabled = title.isNotBlank() && end.after(start) && !busy, onClick = {
+        MeetingFormSection(stringResource(R.string.parity_attendees)) {
+            attendees.forEach { attendee ->
+                Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Text(attendee.name.ifBlank { attendee.email }, modifier = Modifier.weight(1f), color = NexterColors.primaryText())
+                    val removeLabel = stringResource(R.string.parity_remove)
+                    Box(Modifier.padding(start = 12.dp).size(28.dp).border(BorderStroke(1.dp, NexterColors.Red), CircleShape)
+                        .clickable(enabled = !busy) { attendees = attendees - attendee }.semantics { contentDescription = removeLabel }, contentAlignment = Alignment.Center) { Text("−", color = NexterColors.Red) }
+                }
+                MeetingFormDivider()
+            }
+            MeetingFormText(query, { query = it }, stringResource(R.string.parity_attendee_input), !busy,
+                modifier = Modifier.onFocusChanged { searchFocused = it.isFocused }, attendeeSearch = true)
+            if (query.contains('@')) {
+                MeetingFormDivider()
+                TextButton(modifier = Modifier.fillMaxWidth(), enabled = !busy && android.util.Patterns.EMAIL_ADDRESS.matcher(query.trim()).matches(), onClick = { add(MeetingAttendee(email = query)) }) { Text(stringResource(R.string.parity_add_email)) }
+            }
+            if (searching) Row(Modifier.fillMaxWidth().padding(14.dp), horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
+                CircularProgressIndicator(Modifier.size(20.dp), strokeWidth = 2.dp)
+                Spacer(Modifier.width(8.dp))
+                Text(stringResource(R.string.meeting_searching), color = NexterColors.secondaryText())
+            }
+            searchError?.let { Text(it, color = NexterColors.systemRed(), modifier = Modifier.padding(16.dp)) }
+            if (hasSearched && results.isEmpty() && searchError == null) Text(stringResource(R.string.meeting_no_matches), style = MaterialTheme.typography.caption, color = NexterColors.secondaryText(), modifier = Modifier.padding(16.dp))
+            results.forEach { person ->
+                MeetingFormDivider()
+                Column(Modifier.fillMaxWidth().clickable(enabled = !busy && android.util.Patterns.EMAIL_ADDRESS.matcher(person.email.orEmpty()).matches()) {
+                    add(MeetingAttendee(person.fullName.orEmpty(), person.email.orEmpty()))
+                }.padding(horizontal = 16.dp, vertical = 12.dp)) {
+                    Text(person.fullName.orEmpty(), color = NexterColors.Red)
+                    Text(person.email.orEmpty(), style = MaterialTheme.typography.caption, color = NexterColors.secondaryText())
+                }
+            }
+        }
+        error?.let { MeetingFormSection { Text(it, color = NexterColors.systemRed(), modifier = Modifier.padding(16.dp)) } }
+        MeetingFormSection {
+        TextButton(modifier = Modifier.fillMaxWidth().bringIntoViewRequester(submitRequester).padding(vertical = 6.dp), enabled = title.isNotBlank() && end.after(start) && !busy, onClick = {
             scope.launch {
                 busy = true; error = null
                 try {
@@ -244,7 +293,12 @@ internal fun CreateMeetingDialog(onDismiss: () -> Unit, onCreate: suspend (Creat
                 catch (failure: Exception) { error = failure.message ?: context.getString(R.string.parity_create_error) }
                 finally { busy = false }
             }
-        }) { if (busy) CircularProgressIndicator(Modifier.size(20.dp)) else Text(stringResource(R.string.parity_create_send).uppercase(Locale.getDefault())) }
+        }) {
+            if (busy) { CircularProgressIndicator(Modifier.size(20.dp), strokeWidth = 2.dp); Spacer(Modifier.width(8.dp)) }
+            Text(stringResource(R.string.parity_create_send).uppercase(Locale.getDefault()))
+        }
+        }
+        Text(stringResource(R.string.parity_invite_notice), style = MaterialTheme.typography.caption, color = NexterColors.secondaryText(), modifier = Modifier.padding(horizontal = 16.dp))
     }
 }
 

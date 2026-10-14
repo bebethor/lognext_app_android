@@ -37,6 +37,10 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.IconButton
+import androidx.compose.material.Surface
+import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.material.Button
 import androidx.compose.material.ButtonDefaults
 import androidx.compose.material.Card
@@ -726,34 +730,9 @@ private fun AgendaDialog(
     onMeetingSelected: (HomeCalendarEvent) -> Unit,
     onCreateMeeting: () -> Unit
 ) {
-    val topInset = WindowInsets.statusBars.asPaddingValues().calculateTopPadding() + 5.dp
-    val bottomInset = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding() + 5.dp
-
-    Dialog(
-        onDismissRequest = onDismiss,
-        properties = DialogProperties(usePlatformDefaultWidth = false)
-    ) {
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(start = 10.dp, top = topInset, end = 10.dp, bottom = bottomInset),
-            contentAlignment = Alignment.Center
-        ) {
-            Card(
-                backgroundColor = NexterColors.cardBackground(),
-                shape = RoundedCornerShape(18.dp),
-                elevation = 12.dp,
-                modifier = Modifier.fillMaxSize()
-            ) {
-                AgendaDialogContent(
-                    uiState = uiState,
-                    onDismiss = onDismiss,
-                    onScopeSelected = onScopeSelected,
-                    onRetry = onRetry,
-                    onMeetingSelected = onMeetingSelected,
-                    onCreateMeeting = onCreateMeeting
-                )
-            }
+    Dialog(onDismissRequest = onDismiss, properties = DialogProperties(usePlatformDefaultWidth = false)) {
+        Surface(color = NexterColors.pageBackground(), modifier = Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding()) {
+            AgendaDialogContent(uiState, onDismiss, onScopeSelected, onRetry, onMeetingSelected, onCreateMeeting)
         }
     }
 }
@@ -767,98 +746,47 @@ private fun AgendaDialogContent(
     onMeetingSelected: (HomeCalendarEvent) -> Unit,
     onCreateMeeting: () -> Unit
 ) {
-    Column(modifier = Modifier.fillMaxSize()) {
+    Column(modifier = Modifier.fillMaxSize().background(NexterColors.pageBackground())) {
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(NexterColors.cardBackground())
-                .padding(start = 18.dp, top = 18.dp, end = 12.dp, bottom = 14.dp),
-            verticalAlignment = Alignment.CenterVertically
+            modifier = Modifier.fillMaxWidth().background(NexterColors.cardBackground()).padding(horizontal = 16.dp, vertical = 14.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            Column(
-                modifier = Modifier
-                    .weight(1f)
-                    .padding(end = 10.dp)
-            ) {
-                Text(
-                    stringResource(R.string.agenda_title),
-                    color = NexterColors.primaryText(),
-                    fontSize = NexterTypography.ScreenTitle,
-                    fontWeight = FontWeight.Bold,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-                Text(
-                    stringResource(R.string.agenda_subtitle),
-                    color = NexterColors.secondaryText(),
-                    fontSize = NexterTypography.ScreenSubtitle,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.padding(top = 2.dp)
-                )
+            IconButton(onClick = onDismiss, modifier = Modifier.size(38.dp).clip(CircleShape).background(NexterColors.Red.copy(alpha = 0.10f))) {
+                AgendaHeaderGlyph(plus = false, label = stringResource(R.string.close))
             }
-            Text(
-                stringResource(R.string.close),
-                color = NexterColors.Red,
-                fontSize = NexterTypography.SmallButton,
-                fontWeight = FontWeight.SemiBold,
-                modifier = Modifier
-                    .clip(RoundedCornerShape(12.dp))
-                    .background(NexterColors.Red.copy(alpha = 0.10f))
-                    .clickable(onClick = onDismiss)
-                    .padding(horizontal = 12.dp, vertical = 8.dp)
-            )
-        }
-
-        Divider(color = NexterColors.border())
-
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 12.dp)
-        ) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(12.dp))
-                    .background(NexterColors.pageBackground())
-                    .padding(4.dp),
-                horizontalArrangement = Arrangement.spacedBy(4.dp)
-            ) {
-                AgendaScope.values().forEach { scope ->
-                    val selected = uiState.agendaScope == scope
-                    Box(
-                        modifier = Modifier
-                            .weight(1f)
-                            .clip(RoundedCornerShape(10.dp))
-                            .background(if (selected) NexterColors.primaryText() else NexterColors.cardBackground())
-                            .clickable { onScopeSelected(scope) }
-                            .padding(vertical = 10.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            text = stringResource(scope.titleRes),
-                            color = if (selected) { if (com.lognext.nexterandroid.ui.theme.isNexterDarkTheme()) NexterColors.Navy else Color.White } else NexterColors.secondaryText(),
-                            fontSize = NexterTypography.SmallButton,
-                            fontWeight = FontWeight.SemiBold,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
-                        )
-                    }
+            Column(Modifier.weight(1f)) {
+                Text(stringResource(R.string.agenda_title), color = NexterColors.primaryText(), fontSize = NexterTypography.ScreenTitle, fontWeight = FontWeight.Bold)
+                Text(stringResource(R.string.agenda_subtitle), color = NexterColors.secondaryText(), fontSize = NexterTypography.ScreenSubtitle, modifier = Modifier.padding(top = 2.dp))
+            }
+            IconButton(onClick = onCreateMeeting, modifier = Modifier.size(38.dp)) {
+                Box(Modifier.size(28.dp).clip(CircleShape).background(NexterColors.Red), contentAlignment = Alignment.Center) {
+                    AgendaHeaderGlyph(plus = true, label = stringResource(R.string.parity_new_meeting))
                 }
             }
         }
-
-        androidx.compose.material.TextButton(
-            onClick = onCreateMeeting,
-            modifier = Modifier.padding(horizontal = 16.dp)
-        ) { Text(stringResource(R.string.parity_new_meeting)) }
+        Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            AgendaScope.values().forEach { scope ->
+                val selected = uiState.agendaScope == scope
+                Box(
+                    modifier = Modifier.weight(1f).clip(RoundedCornerShape(10.dp))
+                        .background(if (selected) NexterColors.primaryText() else NexterColors.cardBackground())
+                        .border(BorderStroke(1.dp, NexterColors.border()), RoundedCornerShape(10.dp))
+                        .clickable { onScopeSelected(scope) }.padding(vertical = 12.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(stringResource(scope.titleRes), color = if (selected) {
+                        if (com.lognext.nexterandroid.ui.theme.isNexterDarkTheme()) NexterColors.Navy else Color.White
+                    } else NexterColors.secondaryText(), fontSize = NexterTypography.SmallButton, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                }
+            }
+        }
 
         Box(
             modifier = Modifier
                 .fillMaxWidth()
                 .weight(1f)
-                .padding(start = 16.dp, end = 16.dp, bottom = 16.dp)
+                .padding(start = 16.dp, end = 16.dp, bottom = 28.dp)
         ) {
             when {
                 (uiState.isLoadingAgenda || !uiState.hasLoadedAgenda) && uiState.agendaEvents.isEmpty() -> {
@@ -921,9 +849,29 @@ private fun AgendaDaySection(group: AgendaEventGroup, onMeetingSelected: (HomeCa
                 modifier = Modifier.padding(start = 14.dp, top = 14.dp, end = 14.dp, bottom = 6.dp)
             )
             group.events.forEachIndexed { index, event ->
-                if (index > 0) Divider(color = NexterColors.border(), modifier = Modifier.padding(start = 72.dp, end = 14.dp))
-                MeetingRow(event, index, horizontalPadding = 14.dp) { onMeetingSelected(event) }
+                if (index > 0) Divider(color = NexterColors.border(), modifier = Modifier.padding(start = 86.dp, end = 14.dp))
+                AgendaMeetingRow(event, index) { onMeetingSelected(event) }
             }
+        }
+    }
+}
+
+@Composable
+private fun AgendaMeetingRow(event: HomeCalendarEvent, index: Int, onClick: () -> Unit) {
+    val colors = listOf(NexterColors.Red, NexterColors.Blue, NexterColors.Green, NexterColors.Violet, NexterColors.Aqua)
+    Row(Modifier.fillMaxWidth().clickable(onClick = onClick).padding(horizontal = 14.dp, vertical = 15.dp), verticalAlignment = Alignment.Top, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+        Text(event.startTimeText, color = NexterColors.tertiaryText(), fontSize = NexterTypography.Footnote, fontWeight = FontWeight.SemiBold, modifier = Modifier.width(54.dp).padding(top = 2.dp))
+        Box(Modifier.width(3.dp).height(54.dp).clip(RoundedCornerShape(2.dp)).background(colors[index % colors.size]))
+        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            Text(event.subject, color = NexterColors.primaryText(), fontSize = NexterTypography.Body, fontWeight = FontWeight.SemiBold, maxLines = 2, overflow = TextOverflow.Ellipsis)
+            Text(event.subtitle, color = NexterColors.secondaryText(), fontSize = NexterTypography.Callout, fontWeight = FontWeight.Medium, maxLines = 2, overflow = TextOverflow.Ellipsis)
+        }
+        event.tagText?.let { tag ->
+            Text(tag, color = if (event.isOnlineMeeting) Color(0xFF185FA5) else Color(0xFF2A8B3A), fontSize = NexterTypography.Badge, fontWeight = FontWeight.SemiBold,
+                maxLines = 1, overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.padding(top = 2.dp).clip(CircleShape)
+                    .background((if (event.isOnlineMeeting) NexterColors.systemBlue() else NexterColors.systemGreen()).copy(alpha = 0.10f))
+                    .padding(horizontal = 9.dp, vertical = 5.dp))
         }
     }
 }
