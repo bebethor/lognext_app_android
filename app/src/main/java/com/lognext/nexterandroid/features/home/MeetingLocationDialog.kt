@@ -190,8 +190,6 @@ internal fun MeetingLocationDialog(initialQuery: String, start: Date, end: Date,
                                     RoomAvailabilityBadge(availability[place.emailAddress?.trim()?.lowercase(Locale.ROOT)] ?: MeetingAvailability.Unknown, checkingAvailability)
                                 }
                             }
-                            val details = listOfNotNull(place.building, place.city).filter { it.isNotBlank() }
-                            if (details.isNotEmpty()) Text(details.joinToString(" · "), color = NexterColors.secondaryText(), style = MaterialTheme.typography.caption)
                             place.capacity?.takeIf { it > 0 }?.let { Text(stringResource(R.string.meeting_locations_capacity, it), color = NexterColors.secondaryText(), style = MaterialTheme.typography.caption) }
                         }
                     }
@@ -200,7 +198,6 @@ internal fun MeetingLocationDialog(initialQuery: String, start: Date, end: Date,
             if (matches.isEmpty()) Text(stringResource(if (loaded.locations.isEmpty()) R.string.meeting_locations_empty else R.string.meeting_locations_no_matches), color = NexterColors.secondaryText())
             if (loaded.isPartial) Text(stringResource(R.string.meeting_locations_partial), color = NexterColors.secondaryText(), style = MaterialTheme.typography.caption)
         }
-        Text(stringResource(R.string.meeting_locations_notice), color = NexterColors.secondaryText(), style = MaterialTheme.typography.caption)
     }
 }
 
