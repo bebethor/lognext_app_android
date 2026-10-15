@@ -3,6 +3,10 @@ package com.lognext.nexterandroid.features.home
 import android.app.Activity
 import android.content.Context
 import android.content.ContextWrapper
+import java.util.Date
+import java.util.Locale
+import androidx.compose.foundation.background
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -102,9 +106,15 @@ private fun MeetingStatusGlyph(status: MeetingAvailability, color: Color) {
 }
 
 @Composable
-internal fun MeetingLocationDialog(initialQuery: String, onDismiss: () -> Unit, onSelect: (MeetingLocation) -> Unit) {
+internal fun MeetingLocationDialog(initialQuery: String, start: Date, end: Date, onDismiss: () -> Unit, onSelect: (MeetingLocation) -> Unit) {
     var query by remember { mutableStateOf(initialQuery) }
     var catalog by remember { mutableStateOf<MeetingLocationCatalog?>(null) }
+    var availability by remember { mutableStateOf(emptyMap<String, MeetingAvailability>()) }
+    var checkingAvailability by remember { mutableStateOf(false) }
+    var availabilityFailed by remember { mutableStateOf(false) }
+    var availabilityConsent by remember { mutableStateOf(false) }
+    var availabilityReload by remember { mutableStateOf(0) }
+    var availabilityInteractive by remember { mutableStateOf(false) }
     var loading by remember { mutableStateOf(false) }
     var consentRequired by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf<String?>(null) }
@@ -125,6 +135,21 @@ internal fun MeetingLocationDialog(initialQuery: String, onDismiss: () -> Unit, 
             error = context.getString(if (failure is MeetingGraphHttpException && failure.status == 403) R.string.meeting_locations_forbidden else R.string.meeting_locations_error)
         } finally { loading = false }
     }
+    LaunchedEffect(catalog, start.time, end.time, availabilityReload) {
+        availability = emptyMap(); availabilityFailed = false; availabilityConsent = false; checkingAvailability = false
+        val emails = catalog?.locations.orEmpty().filter { it.kind == MeetingLocationKind.Room }.mapNotNull { it.emailAddress?.trim()?.takeIf(String::isNotEmpty) }
+        if (emails.isEmpty()) return@LaunchedEffect
+        checkingAvailability = true
+        try {
+            val activity = if (availabilityInteractive) context.findActivity() else null
+            availabilityInteractive = false
+            val token = AppDependencies.authRepository.graphReadToken("Calendars.Read", activity)
+            availability = service.availability(token, emails, start, end)
+        } catch (cancel: CancellationException) { throw cancel }
+        catch (_: GraphConsentRequiredException) { availabilityConsent = true; availabilityFailed = true }
+        catch (_: Exception) { availabilityFailed = true }
+        finally { checkingAvailability = false }
+    }
     MeetingCreationFrame(false, onDismiss, rememberScrollState(), title = stringResource(R.string.meeting_locations_title)) { _ ->
         MeetingFormSection { MeetingFormText(query, { query = it }, stringResource(R.string.meeting_locations_hint), true) }
         if (loading) Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.Center) {
@@ -141,6 +166,13 @@ internal fun MeetingLocationDialog(initialQuery: String, onDismiss: () -> Unit, 
             TextButton(onClick = { reload++ }) { Text(stringResource(R.string.retry)) }
         }
         catalog?.let { loaded ->
+            Text(stringResource(R.string.meeting_availability_notice), color = NexterColors.secondaryText(), style = MaterialTheme.typography.caption)
+            if (availabilityFailed) {
+                Text(stringResource(if (availabilityConsent) R.string.meeting_availability_consent else R.string.meeting_availability_error), color = NexterColors.secondaryText(), style = MaterialTheme.typography.caption)
+                TextButton(onClick = { availabilityInteractive = availabilityConsent; availabilityReload++ }, enabled = !checkingAvailability) {
+                    Text(stringResource(if (availabilityConsent) R.string.meeting_availability_authorize else R.string.meeting_availability_retry))
+                }
+            }
             val matches = loaded.locations.filter { it.matches(query) }
             for (kind in MeetingLocationKind.values()) {
                 val group = matches.filter { it.kind == kind }
@@ -152,7 +184,12 @@ internal fun MeetingLocationDialog(initialQuery: String, onDismiss: () -> Unit, 
                     group.forEachIndexed { index, place ->
                         if (index > 0) MeetingFormDivider()
                         Column(Modifier.fillMaxWidth().clickable { onSelect(place) }.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                            Text(place.displayName, color = NexterColors.primaryText())
+                            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.Top, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                Text(place.displayName, color = NexterColors.primaryText(), modifier = Modifier.weight(1f))
+                                if (place.kind == MeetingLocationKind.Room) {
+                                    RoomAvailabilityBadge(availability[place.emailAddress?.trim()?.lowercase(Locale.ROOT)] ?: MeetingAvailability.Unknown, checkingAvailability)
+                                }
+                            }
                             val details = listOfNotNull(place.building, place.city).filter { it.isNotBlank() }
                             if (details.isNotEmpty()) Text(details.joinToString(" · "), color = NexterColors.secondaryText(), style = MaterialTheme.typography.caption)
                             place.capacity?.takeIf { it > 0 }?.let { Text(stringResource(R.string.meeting_locations_capacity, it), color = NexterColors.secondaryText(), style = MaterialTheme.typography.caption) }
@@ -165,4 +202,22 @@ internal fun MeetingLocationDialog(initialQuery: String, onDismiss: () -> Unit, 
         }
         Text(stringResource(R.string.meeting_locations_notice), color = NexterColors.secondaryText(), style = MaterialTheme.typography.caption)
     }
+}
+
+
+@Composable
+private fun RoomAvailabilityBadge(status: MeetingAvailability, loading: Boolean) {
+    val color = when {
+        status == MeetingAvailability.Available -> NexterColors.systemGreen()
+        status.hasConflict -> NexterColors.systemRed()
+        else -> NexterColors.secondaryText()
+    }
+    val text = when {
+        loading -> R.string.meeting_availability_loading
+        status == MeetingAvailability.Available -> R.string.meeting_availability_available
+        status.hasConflict -> R.string.meeting_room_occupied_badge
+        else -> R.string.meeting_room_unknown_badge
+    }
+    Text(stringResource(text), color = color, style = MaterialTheme.typography.caption,
+        modifier = Modifier.widthIn(max = 145.dp).background(color.copy(alpha = 0.12f), RoundedCornerShape(50)).padding(horizontal = 8.dp, vertical = 4.dp))
 }

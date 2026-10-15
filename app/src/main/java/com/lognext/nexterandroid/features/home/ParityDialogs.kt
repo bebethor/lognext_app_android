@@ -325,7 +325,7 @@ internal fun CreateMeetingDialog(onDismiss: () -> Unit, onCreate: suspend (Creat
         text = { Text(stringResource(R.string.meeting_discard_message)) },
         confirmButton = { TextButton(onClick = { showDiscardConfirmation = false; onDismiss() }) { Text(stringResource(R.string.meeting_discard), color = NexterColors.systemRed()) } },
         dismissButton = { TextButton(onClick = { showDiscardConfirmation = false }) { Text(stringResource(R.string.meeting_keep_editing)) } })
-    if (showLocations) MeetingLocationDialog(location, onDismiss = { showLocations = false }) {
+    if (showLocations) MeetingLocationDialog(location, start, end, onDismiss = { showLocations = false }) {
         selectedLocation = it
         location = it.locationName
         showLocations = false

@@ -316,7 +316,7 @@
     <string name="meeting_availability_authorize">Authorize availability checks</string>
     <string name="meeting_locations_search">Find rooms and offices</string>
     <string name="meeting_locations_title">Rooms and offices</string>
-    <string name="meeting_locations_hint">Name, building or city</string>
+    <string name="meeting_locations_hint">Search rooms</string>
     <string name="meeting_locations_loading">Loading rooms and offices…</string>
     <string name="meeting_locations_consent">To find rooms and offices, authorize access to the Microsoft places directory.</string>
     <string name="meeting_locations_authorize">Authorize location lookup</string>
@@ -346,4 +346,6 @@
     <string name="meeting_room_accepted_message">Microsoft has confirmed the room booking for this time.</string>
     <string name="meeting_room_declined_message">The meeting was created, but Microsoft declined the room booking. The room is not reserved; review the meeting and choose another location.</string>
     <string name="meeting_room_pending_message">The meeting was created and the booking was sent to Microsoft. It is awaiting confirmation; we cannot yet confirm that the room is reserved.</string>
+    <string name="meeting_room_occupied_badge">Occupied</string>
+    <string name="meeting_room_unknown_badge">No data</string>
 </resources>

@@ -321,7 +321,7 @@
     <string name="meeting_availability_authorize">Autorizar consulta de disponibilidad</string>
     <string name="meeting_locations_search">Buscar salas y oficinas</string>
     <string name="meeting_locations_title">Salas y oficinas</string>
-    <string name="meeting_locations_hint">Nombre, edificio o ciudad</string>
+    <string name="meeting_locations_hint">Buscar sala</string>
     <string name="meeting_locations_loading">Cargando salas y oficinas…</string>
     <string name="meeting_locations_consent">Para consultar salas y oficinas necesitas autorizar el acceso al directorio de ubicaciones de Microsoft.</string>
     <string name="meeting_locations_authorize">Autorizar consulta de ubicaciones</string>
@@ -351,4 +351,6 @@
     <string name="meeting_room_accepted_message">Microsoft ha confirmado la reserva de la sala para este horario.</string>
     <string name="meeting_room_declined_message">La reunión se ha creado, pero Microsoft ha rechazado la reserva de la sala. La sala no está reservada; revisa la reunión y elige otra ubicación.</string>
     <string name="meeting_room_pending_message">La reunión se ha creado y la reserva se ha enviado a Microsoft. Está pendiente de confirmación; aún no podemos asegurar que la sala esté reservada.</string>
+    <string name="meeting_room_occupied_badge">Ocupada</string>
+    <string name="meeting_room_unknown_badge">Sin datos</string>
 </resources>
