@@ -81,7 +81,6 @@ fun MoreScreen() {
     }
     val viewModel: MoreViewModel = viewModel(factory = factory)
     val context = LocalContext.current
-    var showInventory by remember { mutableStateOf(false) }
 
     LaunchedEffect(viewModel) {
         ClockNotificationScheduler.loadSettings(context, viewModel)
@@ -121,18 +120,6 @@ fun MoreScreen() {
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp)
     ) {
-        Card(
-            modifier = Modifier.fillMaxWidth().clickable { showInventory = true },
-            shape = RoundedCornerShape(14.dp), backgroundColor = NexterColors.cardBackground()
-        ) {
-            Row(Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
-                Column(Modifier.weight(1f)) {
-                    Text(stringResource(R.string.inventory_title), style = androidx.compose.material.MaterialTheme.typography.h6)
-                    Text(stringResource(R.string.inventory_subtitle), style = androidx.compose.material.MaterialTheme.typography.caption)
-                }
-                Text("›")
-            }
-        }
         VacationCard(viewModel)
         VacationHistoryCard(viewModel)
         // Notificaciones de jornada ocultas temporalmente; descomentar para recuperar la tarjeta.
@@ -147,8 +134,6 @@ fun MoreScreen() {
         //     }
         // )
     }
-
-    if (showInventory) InventoryDialog { showInventory = false }
 
     if (viewModel.showVacationRequest) {
         VacationRequestDialog(

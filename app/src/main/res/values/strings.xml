@@ -353,4 +353,12 @@
     <string name="meeting_room_pending_message">La reunión se ha creado y la reserva se ha enviado a Microsoft. Está pendiente de confirmación; aún no podemos asegurar que la sala esté reservada.</string>
     <string name="meeting_room_occupied_badge">Ocupada</string>
     <string name="meeting_room_unknown_badge">Sin datos</string>
+    <string name="nav_home">Inicio</string>
+    <string name="nav_vacations">Ausencias</string>
+    <string name="navigation_close_menu">Cerrar menú</string>
+    <string name="navigation_user">Usuario</string>
+    <string name="navigation_more_options">Más opciones</string>
+    <string name="navigation_employee">Empleado</string>
+    <string name="inventory_intro_title">Tu equipo, a mano.</string>
+    <string name="inventory_intro_subtitle">Material y accesorios asignados a ti</string>
 </resources>

@@ -348,4 +348,12 @@
     <string name="meeting_room_pending_message">The meeting was created and the booking was sent to Microsoft. It is awaiting confirmation; we cannot yet confirm that the room is reserved.</string>
     <string name="meeting_room_occupied_badge">Occupied</string>
     <string name="meeting_room_unknown_badge">No data</string>
+    <string name="nav_home">Home</string>
+    <string name="nav_vacations">Absences</string>
+    <string name="navigation_close_menu">Close menu</string>
+    <string name="navigation_user">User</string>
+    <string name="navigation_more_options">More options</string>
+    <string name="navigation_employee">Employee</string>
+    <string name="inventory_intro_title">Your equipment, at hand.</string>
+    <string name="inventory_intro_subtitle">Equipment and accessories assigned to you</string>
 </resources>
