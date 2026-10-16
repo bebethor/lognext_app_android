@@ -4,6 +4,7 @@ import android.app.Activity
 import android.content.Context
 import com.lognext.nexterandroid.core.AppConfig
 import com.microsoft.identity.client.AcquireTokenParameters
+import com.microsoft.identity.client.SilentAuthenticationCallback
 import com.microsoft.identity.client.AuthenticationCallback
 import com.microsoft.identity.client.IAccount
 import com.microsoft.identity.client.IAuthenticationResult
@@ -12,14 +13,10 @@ import com.microsoft.identity.client.IPublicClientApplication
 import com.microsoft.identity.client.PublicClientApplication
 import com.microsoft.identity.client.Prompt
 import com.microsoft.identity.client.exception.MsalException
-import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.suspendCancellableCoroutine
-import kotlinx.coroutines.withContext
-import kotlin.coroutines.resume
-import kotlin.coroutines.resumeWithException
 
 class MsalAuthRepository(
     private val context: Context
@@ -43,14 +40,21 @@ class MsalAuthRepository(
 
         runCatching {
             val app = getApplication()
-            val currentAccount = withContext(Dispatchers.IO) {
-                app.currentAccount.currentAccount
+            val currentAccount = awaitAuthCallback<IAccount?> { complete ->
+                app.getCurrentAccountAsync(object : ISingleAccountPublicClientApplication.CurrentAccountCallback {
+                    override fun onAccountLoaded(activeAccount: IAccount?) { complete(Result.success(activeAccount)) }
+                    override fun onAccountChanged(priorAccount: IAccount?, currentAccount: IAccount?) = Unit
+                    override fun onError(exception: MsalException) { complete(Result.failure(exception)) }
+                })
             }
             account = currentAccount
             if (currentAccount != null) acquireBffToken(app, currentAccount)
             mutableAuthState.value = currentAccount?.toAuthState() ?: AuthState.Unauthenticated
         }.onFailure { error ->
-            if (error is CancellationException) throw error
+            if (error is CancellationException && error !is TimeoutCancellationException) {
+                if (mutableAuthState.value == AuthState.Loading) mutableAuthState.value = AuthState.Unauthenticated
+                throw error
+            }
             mutableAuthState.value = AuthState.Error(error.authMessage())
         }
     }
@@ -76,6 +80,8 @@ class MsalAuthRepository(
             check(result.accessToken.isNotBlank()) { "Microsoft no ha devuelto un token de acceso a la API." }
             account = result.account
             mutableAuthState.value = result.account.toAuthState()
+        } catch (error: TimeoutCancellationException) {
+            mutableAuthState.value = AuthState.Error(error.authMessage())
         } catch (error: CancellationException) {
             throw error
         } catch (error: Exception) {
@@ -94,13 +100,20 @@ class MsalAuthRepository(
         }
 
         runCatching {
-            withContext(Dispatchers.IO) {
-                getApplication().signOut()
+            val app = getApplication()
+            awaitAuthCallback<Unit> { complete ->
+                app.signOut(object : ISingleAccountPublicClientApplication.SignOutCallback {
+                    override fun onSignOut() { complete(Result.success(Unit)) }
+                    override fun onError(exception: MsalException) { complete(Result.failure(exception)) }
+                })
             }
             account = null
             mutableAuthState.value = AuthState.Unauthenticated
         }.onFailure { error ->
-            if (error is CancellationException) throw error
+            if (error is CancellationException && error !is TimeoutCancellationException) {
+                if (mutableAuthState.value == AuthState.Loading) mutableAuthState.value = AuthState.Unauthenticated
+                throw error
+            }
             mutableAuthState.value = AuthState.Error(error.authMessage())
         }
     }
@@ -118,9 +131,7 @@ class MsalAuthRepository(
         val app = getApplication()
         val resolvedAccount = account ?: error("Vuelve a iniciar sesión")
         try {
-            withContext(Dispatchers.IO) {
-                app.acquireTokenSilent(arrayOf("Calendars.ReadWrite"), resolvedAccount.authority)
-            }
+            app.silentTokenAwait(listOf("Calendars.ReadWrite"), resolvedAccount)
         } catch (error: com.microsoft.identity.client.exception.MsalUiRequiredException) {
             val result = app.signInAwait(activity, listOf("Calendars.ReadWrite"), resolvedAccount)
             check(result.account.username.equals(resolvedAccount.username, ignoreCase = true)) {
@@ -134,9 +145,7 @@ class MsalAuthRepository(
         val app = getApplication()
         val resolvedAccount = account ?: error("Vuelve a iniciar sesión")
         return try {
-            withContext(Dispatchers.IO) {
-                app.acquireTokenSilent(arrayOf(scope), resolvedAccount.authority).accessToken
-            }
+            app.silentTokenAwait(listOf(scope), resolvedAccount).accessToken
         } catch (required: com.microsoft.identity.client.exception.MsalUiRequiredException) {
             if (activity == null) throw GraphConsentRequiredException()
             val result = app.signInAwait(activity, listOf(scope), resolvedAccount)
@@ -150,18 +159,18 @@ class MsalAuthRepository(
     private suspend fun getApplication(): ISingleAccountPublicClientApplication {
         application?.let { return it }
 
-        return suspendCancellableCoroutine { continuation ->
+        return awaitAuthCallback { complete ->
             PublicClientApplication.createSingleAccountPublicClientApplication(
                 context,
                 MsalSigningConfiguration.resourceForInstalledApp(context),
                 object : IPublicClientApplication.ISingleAccountApplicationCreatedListener {
                     override fun onCreated(application: ISingleAccountPublicClientApplication) {
                         this@MsalAuthRepository.application = application
-                        if (continuation.isActive) continuation.resume(application)
+                        complete(Result.success(application))
                     }
 
                     override fun onError(exception: MsalException) {
-                        if (continuation.isActive) continuation.resumeWithException(exception)
+                        complete(Result.failure(exception))
                     }
                 }
             )
@@ -174,12 +183,16 @@ class MsalAuthRepository(
     ): String {
         require(AppConfig.bffScopes.isNotEmpty()) { "No está configurado el acceso a la API de Lognext." }
 
-        return withContext(Dispatchers.IO) {
-            app.acquireTokenSilent(
-                AppConfig.bffScopes.toTypedArray(),
-                account.authority
-            ).accessToken
-        }
+        return app.silentTokenAwait(AppConfig.bffScopes, account).accessToken
+    }
+
+    private suspend fun ISingleAccountPublicClientApplication.silentTokenAwait(
+        scopes: List<String>, account: IAccount
+    ): IAuthenticationResult = awaitAuthCallback { complete ->
+        acquireTokenSilentAsync(scopes.toTypedArray(), account.authority, object : SilentAuthenticationCallback {
+            override fun onSuccess(result: IAuthenticationResult) { complete(Result.success(result)) }
+            override fun onError(exception: MsalException) { complete(Result.failure(exception)) }
+        })
     }
 
     private suspend fun ISingleAccountPublicClientApplication.signInAwait(
@@ -187,7 +200,7 @@ class MsalAuthRepository(
         scopes: List<String>,
         permissionAccount: IAccount? = null
     ): IAuthenticationResult {
-        return suspendCancellableCoroutine { continuation ->
+        return awaitAuthCallback(timeoutMillis = 180_000) { complete ->
             val builder = AcquireTokenParameters.Builder()
                 .startAuthorizationFromActivity(activity)
                 .withScopes(scopes)
@@ -204,15 +217,15 @@ class MsalAuthRepository(
                 .withCallback(
                     object : AuthenticationCallback {
                         override fun onSuccess(authenticationResult: IAuthenticationResult) {
-                            if (continuation.isActive) continuation.resume(authenticationResult)
+                            complete(Result.success(authenticationResult))
                         }
 
                         override fun onError(exception: MsalException) {
-                            if (continuation.isActive) continuation.resumeWithException(exception)
+                            complete(Result.failure(exception))
                         }
 
                         override fun onCancel() {
-                            if (continuation.isActive) continuation.resumeWithException(AuthCancelledException())
+                            complete(Result.failure(AuthCancelledException()))
                         }
                     }
                 )
@@ -234,6 +247,7 @@ class MsalAuthRepository(
 
     private fun Throwable.authMessage(): String {
         return when (this) {
+            is TimeoutCancellationException -> "Microsoft está tardando demasiado en responder. Comprueba la conexión y vuelve a intentarlo."
             is AuthCancelledException -> "Inicio de sesión cancelado."
             is MsalException -> listOfNotNull(
                 "No se pudo completar la autenticación.",
