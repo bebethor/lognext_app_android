@@ -26,7 +26,7 @@ import com.lognext.nexterandroid.ui.theme.NexterColors
 import com.lognext.nexterandroid.ui.theme.NexterTypography
 
 @Composable
-internal fun NexterMoreMenu(displayName: String, onDismiss: () -> Unit, onInventory: () -> Unit) {
+internal fun NexterMoreMenu(displayName: String, onDismiss: () -> Unit, onInventory: () -> Unit, onSystems: () -> Unit) {
     Column(Modifier.fillMaxSize().statusBarsPadding().padding(20.dp), verticalArrangement = Arrangement.spacedBy(24.dp)) {
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
             val name = displayName.ifBlank { stringResource(R.string.navigation_user) }
@@ -58,6 +58,14 @@ internal fun NexterMoreMenu(displayName: String, onDismiss: () -> Unit, onInvent
                 Icon(painterResource(R.drawable.ic_inventory_box), contentDescription = null, tint = NexterColors.Red, modifier = Modifier.size(22.dp))
                 Text(stringResource(R.string.inventory_title), color = NexterColors.primaryText(), fontSize = NexterTypography.Body,
                     modifier = Modifier.weight(1f))
+                Text("›", color = NexterColors.secondaryText())
+            }
+            Text(stringResource(R.string.support_it).uppercase(Locale.getDefault()), color = NexterColors.secondaryText(),
+                fontSize = NexterTypography.Caption, letterSpacing = 1.2.sp, modifier = Modifier.padding(horizontal = 14.dp).padding(top = 18.dp))
+            Row(Modifier.fillMaxWidth().clickable(onClick = onSystems).padding(14.dp).heightIn(min = 24.dp),
+                verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
+                Icon(painterResource(R.drawable.ic_inventory_headphones), contentDescription = null, tint = NexterColors.Red, modifier = Modifier.size(22.dp))
+                Text(stringResource(R.string.support_create_ticket), color = NexterColors.primaryText(), fontSize = NexterTypography.Body, modifier = Modifier.weight(1f))
                 Text("›", color = NexterColors.secondaryText())
             }
         }

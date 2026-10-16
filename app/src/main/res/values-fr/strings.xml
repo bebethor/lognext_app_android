@@ -356,4 +356,14 @@
     <string name="navigation_employee">Collaborateur</string>
     <string name="inventory_intro_title">Votre équipement, à portée de main.</string>
     <string name="inventory_intro_subtitle">Matériel et accessoires qui vous sont attribués</string>
+    <string name="support_it">Support informatique</string>
+    <string name="support_create_ticket">Créer un ticket au support informatique</string>
+    <string name="support_report_incident">Signaler un incident</string>
+    <string name="support_create_request">Créer une demande</string>
+    <string name="support_request_equipment">Demander du matériel informatique</string>
+    <string name="support_request_description">Demandez de l’aide ou un service au support informatique.</string>
+    <string name="support_equipment_description">Demandez le matériel informatique dont vous avez besoin.</string>
+    <string name="support_loading_profile">Chargement de votre profil…</string>
+    <string name="support_profile_error">Impossible d’identifier votre profil. Veuillez réessayer.</string>
+    <string name="support_browser_error">Impossible d’ouvrir le formulaire. Vérifiez qu’un navigateur est installé.</string>
 </resources>

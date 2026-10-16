@@ -1,6 +1,11 @@
 package com.lognext.nexterandroid.features.more
 
 import androidx.activity.compose.BackHandler
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.togetherWith
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.background
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -22,8 +27,6 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.window.Dialog
-import androidx.compose.ui.window.DialogProperties
 import android.widget.Toast
 import com.lognext.nexterandroid.R
 import com.lognext.nexterandroid.core.AppDependencies
@@ -35,7 +38,7 @@ import java.text.DateFormat
 
 @OptIn(ExperimentalMaterialApi::class)
 @Composable
-internal fun InventoryDialog(onDismiss: () -> Unit) {
+internal fun InventoryScreen(onBack: () -> Unit) {
     var selected by remember { mutableStateOf<InventoryAssignment?>(null) }
     var items by remember { mutableStateOf(emptyList<InventoryAssignment>()) }
     var loading by remember { mutableStateOf(true) }
@@ -64,57 +67,53 @@ internal fun InventoryDialog(onDismiss: () -> Unit) {
             refresh++
         }
     })
-    Dialog(onDismissRequest = { if (selected != null) selected = null else onDismiss() },
-        properties = DialogProperties(usePlatformDefaultWidth = false)) {
-        BackHandler(enabled = selected != null) { selected = null }
-        Surface(color = NexterColors.pageBackground(), modifier = Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding(), shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)) {
-            Column(Modifier.padding(horizontal = 24.dp)) {
-                Box(Modifier.align(Alignment.CenterHorizontally).padding(vertical = 10.dp).size(36.dp, 5.dp).background(NexterColors.secondaryText().copy(alpha = 0.3f), RoundedCornerShape(50)))
-                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                    Text(stringResource(R.string.inventory_title), modifier = Modifier.weight(1f), style = MaterialTheme.typography.h6)
-                    IconButton(onClick = { if (selected != null) selected = null else onDismiss() }) { Icon(painterResource(R.drawable.ic_inventory_down), contentDescription = stringResource(if (selected != null) R.string.inventory_back else R.string.parity_close), tint = NexterColors.Red) }
-                }
-                Box(Modifier.weight(1f).fillMaxWidth().pullRefresh(refreshState, enabled = selected == null && !loading)) {
-                key(selected?.id) {
-                    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                        Spacer(Modifier.height(4.dp))
-                        val detail = selected
-                        if (detail != null) {
-                            InventoryDetails(detail)
-                        } else {
-                            if (loading && !loaded) Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
-                                CircularProgressIndicator(Modifier.size(20.dp), strokeWidth = 2.dp)
-                                Spacer(Modifier.width(8.dp))
-                                Text(stringResource(R.string.inventory_loading))
-                            }
-                            error?.let {
-                                Text(it, color = NexterColors.systemRed())
-                                TextButton(onClick = { refresh++ }, enabled = !loading) { Text(stringResource(R.string.inventory_retry)) }
-                            }
-                            if (loaded && items.isEmpty() && error == null) {
-                                Text(stringResource(R.string.inventory_empty), style = MaterialTheme.typography.h6)
-                                Text(stringResource(R.string.inventory_empty_detail))
-                            }
-                            val today = Date()
-                            InventoryPeriod.entries.forEach { period ->
-                                val records = items.filter { it.period(today) == period }.sortedByDescending { it.start?.time }
-                                if (records.isNotEmpty()) {
-                                    Text(stringResource(when (period) {
-                                        InventoryPeriod.CURRENT -> R.string.inventory_current
-                                        InventoryPeriod.UPCOMING -> R.string.inventory_upcoming
-                                        InventoryPeriod.HISTORY -> R.string.inventory_history
-                                    }), style = MaterialTheme.typography.subtitle1)
-                                    records.forEach { item ->
-                                        Card(modifier = Modifier.fillMaxWidth().clickable { selected = item }, backgroundColor = NexterColors.cardBackground(), shape = RoundedCornerShape(18.dp), elevation = 0.dp) {
-                                            Row(Modifier.padding(17.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
-                                                InventoryIcon(item)
-                                                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(5.dp)) {
-                                                    Text(item.name, style = MaterialTheme.typography.subtitle1, fontWeight = FontWeight.SemiBold, color = NexterColors.primaryText())
-                                                    item.model?.takeIf { it.isNotBlank() }?.let { Text(it, style = MaterialTheme.typography.body2, color = NexterColors.secondaryText()) }
-                                                    item.assetNumber?.takeIf { it.isNotBlank() }?.let { Text(it, style = MaterialTheme.typography.caption, color = NexterColors.secondaryText()) }
-                                                }
-                                                Icon(painterResource(R.drawable.ic_inventory_next), contentDescription = null, tint = NexterColors.secondaryText(), modifier = Modifier.size(16.dp))
+    BackHandler { if (selected != null) selected = null else onBack() }
+    Surface(color = NexterColors.pageBackground(), modifier = Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding()) {
+        Column {
+            MenuScreenHeader(R.string.inventory_title, onBack = { if (selected != null) selected = null else onBack() })
+            Box(Modifier.weight(1f).fillMaxWidth().padding(horizontal = 24.dp).pullRefresh(refreshState, enabled = selected == null && !loading)) {
+            AnimatedContent(targetState = selected, transitionSpec = {
+                val direction = if (targetState == null) -1 else 1
+                slideInHorizontally(tween(300)) { it * direction } togetherWith
+                    slideOutHorizontally(tween(300)) { -it * direction }
+            }, label = "inventoryDetail") { detail ->
+                Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                    Spacer(Modifier.height(4.dp))
+                    if (detail != null) {
+                        InventoryDetails(detail)
+                    } else {
+                        if (loading && !loaded) Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
+                            CircularProgressIndicator(Modifier.size(20.dp), strokeWidth = 2.dp)
+                            Spacer(Modifier.width(8.dp))
+                            Text(stringResource(R.string.inventory_loading))
+                        }
+                        error?.let {
+                            Text(it, color = NexterColors.systemRed())
+                            TextButton(onClick = { refresh++ }, enabled = !loading) { Text(stringResource(R.string.inventory_retry)) }
+                        }
+                        if (loaded && items.isEmpty() && error == null) {
+                            Text(stringResource(R.string.inventory_empty), style = MaterialTheme.typography.h6)
+                            Text(stringResource(R.string.inventory_empty_detail))
+                        }
+                        val today = Date()
+                        InventoryPeriod.entries.forEach { period ->
+                            val records = items.filter { it.period(today) == period }.sortedByDescending { it.start?.time }
+                            if (records.isNotEmpty()) {
+                                Text(stringResource(when (period) {
+                                    InventoryPeriod.CURRENT -> R.string.inventory_current
+                                    InventoryPeriod.UPCOMING -> R.string.inventory_upcoming
+                                    InventoryPeriod.HISTORY -> R.string.inventory_history
+                                }), style = MaterialTheme.typography.subtitle1)
+                                records.forEach { item ->
+                                    Card(modifier = Modifier.fillMaxWidth().clickable { selected = item }, backgroundColor = NexterColors.cardBackground(), shape = RoundedCornerShape(18.dp), elevation = 0.dp) {
+                                        Row(Modifier.padding(17.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
+                                            InventoryIcon(item)
+                                            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(5.dp)) {
+                                                Text(item.name, style = MaterialTheme.typography.subtitle1, fontWeight = FontWeight.SemiBold, color = NexterColors.primaryText())
+                                                item.model?.takeIf { it.isNotBlank() }?.let { Text(it, style = MaterialTheme.typography.body2, color = NexterColors.secondaryText()) }
+                                                item.assetNumber?.takeIf { it.isNotBlank() }?.let { Text(it, style = MaterialTheme.typography.caption, color = NexterColors.secondaryText()) }
                                             }
+                                            Icon(painterResource(R.drawable.ic_inventory_next), contentDescription = null, tint = NexterColors.secondaryText(), modifier = Modifier.size(16.dp))
                                         }
                                     }
                                 }
@@ -122,8 +121,8 @@ internal fun InventoryDialog(onDismiss: () -> Unit) {
                         }
                     }
                 }
-                if (selected == null) PullRefreshIndicator(loading && loaded, refreshState, Modifier.align(Alignment.TopCenter))
-                }
+            }
+            if (selected == null) PullRefreshIndicator(loading && loaded, refreshState, Modifier.align(Alignment.TopCenter))
             }
         }
     }

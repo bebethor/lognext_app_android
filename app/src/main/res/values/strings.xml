@@ -361,4 +361,14 @@
     <string name="navigation_employee">Empleado</string>
     <string name="inventory_intro_title">Tu equipo, a mano.</string>
     <string name="inventory_intro_subtitle">Material y accesorios asignados a ti</string>
+    <string name="support_it">Soporte IT</string>
+    <string name="support_create_ticket">Crear Ticket a Sistemas</string>
+    <string name="support_report_incident">Reportar incidencia</string>
+    <string name="support_create_request">Crear petición</string>
+    <string name="support_request_equipment">Solicitar material IT</string>
+    <string name="support_request_description">Solicita ayuda o un servicio de Sistemas.</string>
+    <string name="support_equipment_description">Pide el material informático que necesitas.</string>
+    <string name="support_loading_profile">Cargando tu perfil…</string>
+    <string name="support_profile_error">No se ha podido identificar tu perfil. Inténtalo de nuevo.</string>
+    <string name="support_browser_error">No se pudo abrir el formulario. Comprueba que tienes un navegador instalado.</string>
 </resources>

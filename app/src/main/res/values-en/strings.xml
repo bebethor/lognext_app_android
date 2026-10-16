@@ -356,4 +356,14 @@
     <string name="navigation_employee">Employee</string>
     <string name="inventory_intro_title">Your equipment, at hand.</string>
     <string name="inventory_intro_subtitle">Equipment and accessories assigned to you</string>
+    <string name="support_it">IT Support</string>
+    <string name="support_create_ticket">Create an IT support ticket</string>
+    <string name="support_report_incident">Report an incident</string>
+    <string name="support_create_request">Create a request</string>
+    <string name="support_request_equipment">Request IT equipment</string>
+    <string name="support_request_description">Request help or a service from IT Support.</string>
+    <string name="support_equipment_description">Request the IT equipment you need.</string>
+    <string name="support_loading_profile">Loading your profile…</string>
+    <string name="support_profile_error">Your profile could not be identified. Please try again.</string>
+    <string name="support_browser_error">Could not open the form. Check that a browser is installed.</string>
 </resources>

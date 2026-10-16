@@ -6,7 +6,10 @@ import androidx.activity.compose.BackHandler
 import androidx.compose.material.ModalDrawer
 import androidx.compose.material.DrawerValue
 import androidx.compose.material.rememberDrawerState
-import com.lognext.nexterandroid.features.more.InventoryDialog
+import com.lognext.nexterandroid.features.more.InventoryScreen
+import com.lognext.nexterandroid.features.more.SystemsTicketsScreen
+import androidx.compose.animation.AnimatedContentTransitionScope
+import androidx.compose.animation.core.tween
 import com.lognext.nexterandroid.features.more.NexterMoreMenu
 import android.app.Activity
 import android.os.Build
@@ -124,124 +127,145 @@ fun NexterApp() {
     }
     val navController = rememberNavController()
     val drawerState = rememberDrawerState(DrawerValue.Closed)
-    var showInventory by remember { mutableStateOf(false) }
+    val menuNavController = rememberNavController()
     BackHandler(enabled = drawerState.isOpen) { scope.launch { drawerState.close() } }
     val hasStaleData by AppDependencies.responseCache.hasStaleData.collectAsState()
 
-    Scaffold(
-        bottomBar = {
-            val backStackEntry = navController.currentBackStackEntryAsState().value
-            val currentRoute = backStackEntry?.destination?.route
+    val returnToMenu: () -> Unit = {
+        if (menuNavController.popBackStack()) scope.launch { drawerState.open() }
+    }
+    NavHost(
+        navController = menuNavController,
+        startDestination = "tabs",
+        enterTransition = { slideIntoContainer(AnimatedContentTransitionScope.SlideDirection.Left, tween(300)) },
+        exitTransition = { slideOutOfContainer(AnimatedContentTransitionScope.SlideDirection.Left, tween(300)) },
+        popEnterTransition = { slideIntoContainer(AnimatedContentTransitionScope.SlideDirection.Right, tween(300)) },
+        popExitTransition = { slideOutOfContainer(AnimatedContentTransitionScope.SlideDirection.Right, tween(300)) }
+    ) {
+        composable("tabs") {
+            Scaffold(
+                bottomBar = {
+                    val backStackEntry = navController.currentBackStackEntryAsState().value
+                    val currentRoute = backStackEntry?.destination?.route
 
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(Color.Transparent)
-                    .padding(
-                        start = 26.dp,
-                        end = 26.dp,
-                        top = 8.dp,
-                        bottom = navigationBarHeight + 10.dp
-                    ),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                BottomNavigation(
-                    backgroundColor = NexterColors.cardBackground(),
-                    contentColor = NexterColors.Red,
-                    elevation = 14.dp,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .widthIn(max = 360.dp)
-                        .clip(RoundedCornerShape(100.dp))
-                        .border(BorderStroke(1.dp, NexterColors.border()), RoundedCornerShape(100.dp))
-                ) {
-                    destinations.forEach { destination ->
-                        val label = stringResource(destination.labelRes)
-                        val selected = if (drawerState.isOpen) destination == AppDestination.More else currentRoute == destination.route
-                        val itemColor = if (selected) {
-                            NexterColors.Red
-                        } else {
-                            NexterColors.navigationText()
-                        }
-                        BottomNavigationItem(
-                            selected = selected,
-                            onClick = {
-                                if (destination == AppDestination.More) {
-                                    scope.launch { if (drawerState.isOpen) drawerState.close() else drawerState.open() }
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(Color.Transparent)
+                            .padding(
+                                start = 26.dp,
+                                end = 26.dp,
+                                top = 8.dp,
+                                bottom = navigationBarHeight + 10.dp
+                            ),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        BottomNavigation(
+                            backgroundColor = NexterColors.cardBackground(),
+                            contentColor = NexterColors.Red,
+                            elevation = 14.dp,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .widthIn(max = 360.dp)
+                                .clip(RoundedCornerShape(100.dp))
+                                .border(BorderStroke(1.dp, NexterColors.border()), RoundedCornerShape(100.dp))
+                        ) {
+                            destinations.forEach { destination ->
+                                val label = stringResource(destination.labelRes)
+                                val selected = if (drawerState.isOpen) destination == AppDestination.More else currentRoute == destination.route
+                                val itemColor = if (selected) {
+                                    NexterColors.Red
                                 } else {
-                                    scope.launch { drawerState.close() }
-                                    navController.navigate(destination.route) {
-                                        launchSingleTop = true
-                                        restoreState = true
-                                        popUpTo(AppDestination.Home.route) { saveState = true }
-                                    }
+                                    NexterColors.navigationText()
                                 }
-                            },
-                            selectedContentColor = NexterColors.Red,
-                            unselectedContentColor = NexterColors.navigationText(),
-                            label = {
-                                Text(label, color = itemColor, fontSize = 10.sp, maxLines = 1, softWrap = false,
-                                    modifier = Modifier.wrapContentWidth(unbounded = true))
-                            },
-                            icon = {
-                                Icon(
-                                    painter = painterResource(id = destination.iconRes()),
-                                    contentDescription = label,
-                                    tint = itemColor
+                                BottomNavigationItem(
+                                    selected = selected,
+                                    modifier = Modifier.padding(horizontal = if (destination == AppDestination.Vacations) 0.dp else 5.dp, vertical = 5.dp)
+                                        .clip(RoundedCornerShape(100.dp))
+                                        .background(if (selected) NexterColors.primaryText().copy(alpha = 0.06f) else Color.Transparent),
+                                    onClick = {
+                                        if (destination == AppDestination.More) {
+                                            scope.launch { if (drawerState.isOpen) drawerState.close() else drawerState.open() }
+                                        } else {
+                                            scope.launch { drawerState.close() }
+                                            navController.navigate(destination.route) {
+                                                launchSingleTop = true
+                                                restoreState = true
+                                                popUpTo(AppDestination.Home.route) { saveState = true }
+                                            }
+                                        }
+                                    },
+                                    selectedContentColor = NexterColors.Red,
+                                    unselectedContentColor = NexterColors.navigationText(),
+                                    label = {
+                                        Text(label, color = itemColor, fontSize = 10.sp, maxLines = 1, softWrap = false,
+                                            modifier = Modifier.wrapContentWidth(unbounded = true))
+                                    },
+                                    icon = {
+                                        Icon(
+                                            painter = painterResource(id = destination.iconRes()),
+                                            contentDescription = label,
+                                            tint = itemColor
+                                        )
+                                    }
                                 )
                             }
-                        )
-                    }
-                }
-            }
-        }
-    ) { innerPadding ->
-        ModalDrawer(
-            drawerState = drawerState,
-            gesturesEnabled = drawerState.isOpen,
-            drawerBackgroundColor = NexterColors.cardBackground(),
-            drawerContentColor = NexterColors.primaryText(),
-            scrimColor = Color.Black.copy(alpha = 0.32f),
-            modifier = Modifier.padding(innerPadding),
-            drawerContent = {
-                NexterMoreMenu(
-                    displayName = authenticatedState.user.displayName,
-                    onDismiss = { scope.launch { drawerState.close() } },
-                    onInventory = { scope.launch { drawerState.close(); showInventory = true } }
-                )
-            }
-        ) {
-            Scaffold(
-                backgroundColor = NexterColors.pageBackground(),
-                topBar = {
-                    Column {
-                        NexterTopBar(
-                            employeeCategory = employeeCategory,
-                            displayName = authenticatedState.user.displayName,
-                            onSignOut = { scope.launch { AppDependencies.authRepository.signOut() } }
-                        )
-                        if (hasStaleData) {
-                            Text(stringResource(R.string.parity_cached_warning),
-                                modifier = Modifier.fillMaxWidth().padding(8.dp),
-                                style = androidx.compose.material.MaterialTheme.typography.caption)
                         }
                     }
                 }
-            ) { screenPadding ->
-                NavHost(
-                    navController = navController,
-                    startDestination = AppDestination.Home.route,
-                    modifier = Modifier.padding(screenPadding)
+            ) { innerPadding ->
+                ModalDrawer(
+                    drawerState = drawerState,
+                    gesturesEnabled = drawerState.isOpen,
+                    drawerBackgroundColor = NexterColors.cardBackground(),
+                    drawerContentColor = NexterColors.primaryText(),
+                    scrimColor = Color.Black.copy(alpha = 0.32f),
+                    modifier = Modifier.padding(innerPadding),
+                    drawerContent = {
+                        NexterMoreMenu(
+                            displayName = authenticatedState.user.displayName,
+                            onDismiss = { scope.launch { drawerState.close() } },
+                            onInventory = { scope.launch { drawerState.close(); menuNavController.navigate("inventory") { launchSingleTop = true } } },
+                            onSystems = { scope.launch { drawerState.close(); menuNavController.navigate("systems") { launchSingleTop = true } } }
+                        )
+                    }
                 ) {
-                    composable(AppDestination.Home.route) { HomeScreen() }
-                    // composable(AppDestination.Clock.route) { ClockScreen() }
-                    composable(AppDestination.People.route) { PeopleScreen() }
-                    composable(AppDestination.Vacations.route) { MoreScreen() }
+                    Scaffold(
+                        backgroundColor = NexterColors.pageBackground(),
+                        topBar = {
+                            Column {
+                                NexterTopBar(
+                                    employeeCategory = employeeCategory,
+                                    displayName = authenticatedState.user.displayName,
+                                    onSignOut = { scope.launch { AppDependencies.authRepository.signOut() } }
+                                )
+                                if (hasStaleData) {
+                                    Text(stringResource(R.string.parity_cached_warning),
+                                        modifier = Modifier.fillMaxWidth().padding(8.dp),
+                                        style = androidx.compose.material.MaterialTheme.typography.caption)
+                                }
+                            }
+                        }
+                    ) { screenPadding ->
+                        NavHost(
+                            navController = navController,
+                            startDestination = AppDestination.Home.route,
+                            modifier = Modifier.padding(screenPadding)
+                        ) {
+                            composable(AppDestination.Home.route) { HomeScreen() }
+                            // composable(AppDestination.Clock.route) { ClockScreen() }
+                            composable(AppDestination.People.route) { PeopleScreen() }
+                            composable(AppDestination.Vacations.route) { MoreScreen() }
+                        }
+                    }
                 }
             }
         }
+        composable("inventory") { InventoryScreen(onBack = returnToMenu) }
+        composable("systems") {
+            SystemsTicketsScreen(account = authenticatedState.user.username, initialCategory = employeeCategory, onCategoryResolved = { employeeCategory = it }, onBack = returnToMenu)
+        }
     }
-    if (showInventory) InventoryDialog { showInventory = false }
 }
 
 private fun AppDestination.iconRes(): Int {
