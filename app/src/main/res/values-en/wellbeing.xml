@@ -1,0 +1,11 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="wellbeing_title">Wellbeing</string>
+    <string name="wellbeing_hero">A space to look after yourself</string>
+    <string name="wellbeing_description">Explore wellbeing services and book an appointment.</string>
+    <string name="wellbeing_pending">Awaiting activation</string>
+    <string name="wellbeing_empty">Wellbeing services are not available in the app yet. They will appear here when bookings are enabled.</string>
+    <string name="wellbeing_services">Available services</string>
+    <string name="wellbeing_book">Check availability and book</string>
+    <string name="wellbeing_provider">Availability and appointment confirmation are handled on the service’s booking page.</string>
+</resources>

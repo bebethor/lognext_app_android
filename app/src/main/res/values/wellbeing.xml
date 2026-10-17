@@ -1,0 +1,11 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="wellbeing_title">Bienestar</string>
+    <string name="wellbeing_hero">Un espacio para cuidarte</string>
+    <string name="wellbeing_description">Consulta los servicios de bienestar y reserva tu cita.</string>
+    <string name="wellbeing_pending">Pendiente de activación</string>
+    <string name="wellbeing_empty">Los servicios de bienestar todavía no están disponibles en la app. Aparecerán aquí cuando se habiliten las reservas.</string>
+    <string name="wellbeing_services">Servicios disponibles</string>
+    <string name="wellbeing_book">Consultar disponibilidad y reservar</string>
+    <string name="wellbeing_provider">La disponibilidad y la confirmación de tu cita se gestionan en la página de reservas del servicio.</string>
+</resources>

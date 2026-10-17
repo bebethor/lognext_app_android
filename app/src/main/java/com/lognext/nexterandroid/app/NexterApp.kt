@@ -7,6 +7,7 @@ import androidx.compose.material.ModalDrawer
 import androidx.compose.material.DrawerValue
 import androidx.compose.material.rememberDrawerState
 import com.lognext.nexterandroid.features.more.InventoryScreen
+import com.lognext.nexterandroid.features.more.WellbeingScreen
 import com.lognext.nexterandroid.features.more.SystemsTicketsScreen
 import androidx.compose.animation.AnimatedContentTransitionScope
 import androidx.compose.animation.core.tween
@@ -129,7 +130,6 @@ fun NexterApp() {
     val drawerState = rememberDrawerState(DrawerValue.Closed)
     val menuNavController = rememberNavController()
     BackHandler(enabled = drawerState.isOpen) { scope.launch { drawerState.close() } }
-    val hasStaleData by AppDependencies.responseCache.hasStaleData.collectAsState()
 
     val returnToMenu: () -> Unit = {
         if (menuNavController.popBackStack()) scope.launch { drawerState.open() }
@@ -216,17 +216,18 @@ fun NexterApp() {
             ) { innerPadding ->
                 ModalDrawer(
                     drawerState = drawerState,
-                    gesturesEnabled = drawerState.isOpen,
+                    gesturesEnabled = true,
                     drawerBackgroundColor = NexterColors.cardBackground(),
                     drawerContentColor = NexterColors.primaryText(),
-                    scrimColor = Color.Black.copy(alpha = 0.32f),
+                    scrimColor = Color.Transparent,
                     modifier = Modifier.padding(innerPadding),
                     drawerContent = {
                         NexterMoreMenu(
                             displayName = authenticatedState.user.displayName,
                             onDismiss = { scope.launch { drawerState.close() } },
                             onInventory = { scope.launch { drawerState.close(); menuNavController.navigate("inventory") { launchSingleTop = true } } },
-                            onSystems = { scope.launch { drawerState.close(); menuNavController.navigate("systems") { launchSingleTop = true } } }
+                            onSystems = { scope.launch { drawerState.close(); menuNavController.navigate("systems") { launchSingleTop = true } } },
+                            onWellbeing = { scope.launch { drawerState.close(); menuNavController.navigate("wellbeing") { launchSingleTop = true } } }
                         )
                     }
                 ) {
@@ -239,11 +240,7 @@ fun NexterApp() {
                                     displayName = authenticatedState.user.displayName,
                                     onSignOut = { scope.launch { AppDependencies.authRepository.signOut() } }
                                 )
-                                if (hasStaleData) {
-                                    Text(stringResource(R.string.parity_cached_warning),
-                                        modifier = Modifier.fillMaxWidth().padding(8.dp),
-                                        style = androidx.compose.material.MaterialTheme.typography.caption)
-                                }
+
                             }
                         }
                     ) { screenPadding ->
@@ -261,6 +258,7 @@ fun NexterApp() {
                 }
             }
         }
+        composable("wellbeing") { WellbeingScreen(onBack = returnToMenu) }
         composable("inventory") { InventoryScreen(onBack = returnToMenu) }
         composable("systems") {
             SystemsTicketsScreen(account = authenticatedState.user.username, initialCategory = employeeCategory, onCategoryResolved = { employeeCategory = it }, onBack = returnToMenu)

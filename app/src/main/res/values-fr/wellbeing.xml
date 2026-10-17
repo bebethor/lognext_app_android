@@ -1,0 +1,11 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="wellbeing_title">Bien-être</string>
+    <string name="wellbeing_hero">Un espace pour prendre soin de vous</string>
+    <string name="wellbeing_description">Découvrez les services de bien-être et prenez rendez-vous.</string>
+    <string name="wellbeing_pending">En attente d’activation</string>
+    <string name="wellbeing_empty">Les services de bien-être ne sont pas encore disponibles dans l’application. Ils apparaîtront ici lorsque les réservations seront activées.</string>
+    <string name="wellbeing_services">Services disponibles</string>
+    <string name="wellbeing_book">Voir les disponibilités et réserver</string>
+    <string name="wellbeing_provider">Les disponibilités et la confirmation de votre rendez-vous sont gérées sur la page de réservation du service.</string>
+</resources>
