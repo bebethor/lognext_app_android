@@ -13,3 +13,7 @@
 .externalNativeBuild
 .cxx
 local.properties
+
+# Local deployment selection and generated distribution artifacts
+/.idea/deploymentTargetSelector.xml
+/app/release/
