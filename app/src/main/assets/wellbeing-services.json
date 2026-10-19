@@ -1,1 +1,14 @@
-[]
+[
+  {
+    "id": "manicure-pedicure",
+    "name": "Manicura y pedicura",
+    "summary": "Reserva tu cita de manicura y pedicura.",
+    "bookingURL": "https://bookings.cloud.microsoft/book/ReservaManicurayPedicura@lognext.onmicrosoft.com/?ismsaljsauthenabled"
+  },
+  {
+    "id": "physiotherapy",
+    "name": "Fisioterapia",
+    "summary": "Reserva tu sesión de fisioterapia.",
+    "bookingURL": "https://bookings.cloud.microsoft/book/ReservaFisio1@lognext.com/s/6hQX78lxnkOWQW43cYNVJg2?ismsaljsauthenabled=true"
+  }
+]

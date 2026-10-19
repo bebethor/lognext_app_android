@@ -8,4 +8,8 @@
     <string name="wellbeing_services">Servicios disponibles</string>
     <string name="wellbeing_book">Consultar disponibilidad y reservar</string>
     <string name="wellbeing_provider">La disponibilidad y la confirmación de tu cita se gestionan en la página de reservas del servicio.</string>
+    <string name="wellbeing_manicure">Manicura y pedicura</string>
+    <string name="wellbeing_physio">Fisioterapia</string>
+    <string name="wellbeing_manicure_summary">Reserva tu cita de manicura y pedicura.</string>
+    <string name="wellbeing_physio_summary">Reserva tu sesión de fisioterapia.</string>
 </resources>

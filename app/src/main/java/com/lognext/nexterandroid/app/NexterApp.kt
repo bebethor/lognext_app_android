@@ -7,7 +7,6 @@ import androidx.compose.material.ModalDrawer
 import androidx.compose.material.DrawerValue
 import androidx.compose.material.rememberDrawerState
 import com.lognext.nexterandroid.features.more.InventoryScreen
-import com.lognext.nexterandroid.features.more.WellbeingScreen
 import com.lognext.nexterandroid.features.more.SystemsTicketsScreen
 import androidx.compose.animation.AnimatedContentTransitionScope
 import androidx.compose.animation.core.tween
@@ -226,8 +225,7 @@ fun NexterApp() {
                             displayName = authenticatedState.user.displayName,
                             onDismiss = { scope.launch { drawerState.close() } },
                             onInventory = { scope.launch { drawerState.close(); menuNavController.navigate("inventory") { launchSingleTop = true } } },
-                            onSystems = { scope.launch { drawerState.close(); menuNavController.navigate("systems") { launchSingleTop = true } } },
-                            onWellbeing = { scope.launch { drawerState.close(); menuNavController.navigate("wellbeing") { launchSingleTop = true } } }
+                            onSystems = { scope.launch { drawerState.close(); menuNavController.navigate("systems") { launchSingleTop = true } } }
                         )
                     }
                 ) {
@@ -258,7 +256,6 @@ fun NexterApp() {
                 }
             }
         }
-        composable("wellbeing") { WellbeingScreen(onBack = returnToMenu) }
         composable("inventory") { InventoryScreen(onBack = returnToMenu) }
         composable("systems") {
             SystemsTicketsScreen(account = authenticatedState.user.username, initialCategory = employeeCategory, onCategoryResolved = { employeeCategory = it }, onBack = returnToMenu)

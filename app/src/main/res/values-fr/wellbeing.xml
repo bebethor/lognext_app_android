@@ -8,4 +8,8 @@
     <string name="wellbeing_services">Services disponibles</string>
     <string name="wellbeing_book">Voir les disponibilités et réserver</string>
     <string name="wellbeing_provider">Les disponibilités et la confirmation de votre rendez-vous sont gérées sur la page de réservation du service.</string>
+    <string name="wellbeing_manicure">Manucure et pédicure</string>
+    <string name="wellbeing_physio">Kinésithérapie</string>
+    <string name="wellbeing_manicure_summary">Réservez votre rendez-vous de manucure et pédicure.</string>
+    <string name="wellbeing_physio_summary">Réservez votre séance de kinésithérapie.</string>
 </resources>

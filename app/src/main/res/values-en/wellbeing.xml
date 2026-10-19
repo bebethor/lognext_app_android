@@ -8,4 +8,8 @@
     <string name="wellbeing_services">Available services</string>
     <string name="wellbeing_book">Check availability and book</string>
     <string name="wellbeing_provider">Availability and appointment confirmation are handled on the service’s booking page.</string>
+    <string name="wellbeing_manicure">Manicure and pedicure</string>
+    <string name="wellbeing_physio">Physiotherapy</string>
+    <string name="wellbeing_manicure_summary">Book your manicure and pedicure appointment.</string>
+    <string name="wellbeing_physio_summary">Book your physiotherapy session.</string>
 </resources>
