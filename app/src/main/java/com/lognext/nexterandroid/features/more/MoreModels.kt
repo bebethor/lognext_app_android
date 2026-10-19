@@ -34,6 +34,17 @@ data class VacationHistoryEntry(
     val id: String
         get() = eventGuid.ifBlank { "$typeName-$effectiveFrom-$effectiveTo" }
 
+    val isVisibleInHistory: Boolean
+        get() {
+            val normalized = java.text.Normalizer.normalize(status.trim().lowercase(Locale.ROOT), java.text.Normalizer.Form.NFD)
+                .replace(Regex("\\p{M}+"), "")
+            return normalized in setOf(
+                "approved", "aprobado", "aprobada", "accepted", "authorized", "authorised", "autorizado", "autorizada",
+                "pending", "submitted", "approval pending", "pending approval", "aprobacion pendiente", "pendiente",
+                "rejected", "rechazado", "rechazada"
+            )
+        }
+
     val formattedPeriod: String
         get() = formatVacationPeriod(effectiveFrom, effectiveTo) ?: "Fechas no disponibles"
 

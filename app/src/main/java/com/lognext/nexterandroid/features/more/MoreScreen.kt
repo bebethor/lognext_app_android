@@ -393,7 +393,7 @@ private fun VacationHistoryCard(viewModel: MoreViewModel) {
             ErrorBlock(message = localizedMoreMessage(message), onRetry = { viewModel.loadHistory(force = true) })
             return@SectionCard
         }
-        val items = viewModel.historyItems
+        val items = viewModel.historyItems.filter { it.isVisibleInHistory }
         if (items.isEmpty()) {
             Text(
                 stringResource(R.string.more_no_vacation_requests),
