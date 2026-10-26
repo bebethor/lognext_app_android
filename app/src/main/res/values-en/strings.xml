@@ -19,8 +19,8 @@
     <string name="home_today_meetings">Today’s meetings</string>
     <string name="home_view_agenda">View agenda</string>
     <string name="home_loading_meetings">Loading meetings</string>
-    <string name="home_no_meetings_today">You have no meetings today</string>
-    <string name="home_no_meetings_subtitle">Scheduled meetings will appear here.</string>
+    <string name="home_no_meetings_today">You have no more meetings today</string>
+    <string name="home_no_meetings_subtitle">Finished meetings are still available in the agenda.</string>
     <string name="home_pending_tasks">Pending tasks</string>
     <string name="home_add">Add</string>
     <string name="home_loading_tasks">Loading tasks</string>

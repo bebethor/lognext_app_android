@@ -8,14 +8,34 @@ import okhttp3.Request
 import okio.Buffer
 import org.junit.Assert.*
 import org.junit.Test
+import java.util.Date
 
 class HomeParityTest {
-    @Test fun todayIncludesMoreThanThreeAndFinishedMeetings() {
+    @Test fun homeHidesFinishedMeetingsButTodayAgendaKeepsThem() {
         val events = (1..6).map { HomeCalendarEvent("$it", "Meeting", "2020-10-12T08:00:00Z", "2020-10-12T09:00:00Z", null, false, null, 0, null) }
         val state = HomeUiState(todayMeetings = events, agendaEvents = events)
-        assertEquals(6, state.visibleMeetings.size)
+        assertTrue(state.visibleMeetings.isEmpty())
         assertEquals(6, state.visibleAgendaEvents.size)
         assertTrue(state.copy(agendaScope = AgendaScope.Week).visibleAgendaEvents.isEmpty())
+    }
+
+    @Test fun homeKeepsOngoingAndAllUpcomingMeetingsUntilTheirEndTime() {
+        val now = Date.from(java.time.Instant.parse("2026-10-26T12:00:00Z"))
+        fun event(id: String, start: String, end: String) =
+            HomeCalendarEvent(id, "Meeting", start, end, null, false, null, 0, null)
+        val ongoing = event("ongoing", "2026-10-26T13:30:00+02:00", "2026-10-26T14:30:00+02:00")
+        val ended = event("ended", "2026-10-26T10:00:00Z", "2026-10-26T11:00:00Z")
+        val justEnded = event("boundary", "2026-10-26T11:00:00Z", "2026-10-26T14:00:00+02:00")
+        val upcoming = (1..6).map { event("future-$it", "2026-10-26T13:00:00Z", "2026-10-26T14:00:00Z") }
+        val unknownEnd = event("unknown", "2026-10-26T11:00:00Z", "invalid")
+        val events = listOf(ended, justEnded, ongoing) + upcoming + unknownEnd
+        val state = HomeUiState(todayMeetings = events, agendaEvents = events)
+
+        assertEquals(listOf(ongoing) + upcoming + unknownEnd, state.visibleMeetingsAt(now))
+        assertEquals(events, state.visibleAgendaEvents)
+        assertEquals(upcoming + unknownEnd, state.visibleMeetingsAt(Date(now.time + 30 * 60 * 1000)))
+        assertEquals(listOf(unknownEnd), state.visibleMeetingsAt(Date(now.time + 2 * 60 * 60 * 1000)))
+        assertEquals(events, state.todayMeetings)
     }
 
     @Test fun tasksSortByCreationInsteadOfDueDateAndUnknownDatesLast() {

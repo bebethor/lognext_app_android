@@ -94,6 +94,7 @@ import com.lognext.nexterandroid.ui.theme.isNexterDarkTheme
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Calendar
+import java.util.Date
 import java.util.Locale
 import java.util.TimeZone
 
@@ -473,16 +474,27 @@ private fun HomeCardLoadingState(message: String) {
 
 @Composable
 private fun MeetingsCard(uiState: HomeUiState, onOpenAgenda: () -> Unit, onMeetingSelected: (HomeCalendarEvent) -> Unit) {
+    var now by remember { mutableStateOf(Date()) }
+    val lifecycleOwner = androidx.compose.ui.platform.LocalLifecycleOwner.current
+    LaunchedEffect(lifecycleOwner) {
+        lifecycleOwner.lifecycle.repeatOnLifecycle(androidx.lifecycle.Lifecycle.State.STARTED) {
+            while (true) {
+                now = Date()
+                kotlinx.coroutines.delay(30000)
+            }
+        }
+    }
+    val visibleMeetings = uiState.visibleMeetingsAt(now)
     HtmlCard(title = "📅", label = stringResource(R.string.home_today_meetings), action = stringResource(R.string.home_view_agenda), onAction = onOpenAgenda) {
         when {
             uiState.isLoading && uiState.todayMeetings.isEmpty() -> HomeCardLoadingState(stringResource(R.string.home_loading_meetings))
-            uiState.visibleMeetings.isEmpty() && uiState.meetingsLoadFailed ->
+            visibleMeetings.isEmpty() && uiState.meetingsLoadFailed ->
                 EmptyText(stringResource(R.string.home_meetings_load_failed), stringResource(R.string.home_loading_retry_hint))
-            uiState.visibleMeetings.isEmpty() -> EmptyText(
+            visibleMeetings.isEmpty() -> EmptyText(
                 text = stringResource(R.string.home_no_meetings_today),
                 subtitle = stringResource(R.string.home_no_meetings_subtitle)
             )
-            else -> uiState.visibleMeetings.forEachIndexed { index, meeting ->
+            else -> visibleMeetings.forEachIndexed { index, meeting ->
                 if (index > 0) Divider(color = NexterColors.border())
                 MeetingRow(meeting, index) { onMeetingSelected(meeting) }
             }

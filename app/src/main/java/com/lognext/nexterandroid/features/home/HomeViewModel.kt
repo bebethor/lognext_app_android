@@ -46,7 +46,10 @@ data class HomeUiState(
         get() = tasks.count { it.stableId !in completedTaskIds }
 
     val visibleMeetings: List<HomeCalendarEvent>
-        get() = todayMeetings
+        get() = visibleMeetingsAt(Date())
+
+    fun visibleMeetingsAt(now: Date): List<HomeCalendarEvent> =
+        todayMeetings.filter { (it.endDate ?: Date(Long.MAX_VALUE)).after(now) }
 
     val visibleAgendaEvents: List<HomeCalendarEvent>
         get() {

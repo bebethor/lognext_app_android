@@ -19,8 +19,8 @@
     <string name="home_today_meetings">Réunions du jour</string>
     <string name="home_view_agenda">Voir agenda</string>
     <string name="home_loading_meetings">Chargement des réunions</string>
-    <string name="home_no_meetings_today">Vous n’avez aucune réunion aujourd’hui</string>
-    <string name="home_no_meetings_subtitle">Vos réunions programmées apparaîtront ici.</string>
+    <string name="home_no_meetings_today">Vous n’avez plus de réunion aujourd’hui</string>
+    <string name="home_no_meetings_subtitle">Les réunions terminées restent disponibles dans l’agenda.</string>
     <string name="home_pending_tasks">Tâches en attente</string>
     <string name="home_add">Ajouter</string>
     <string name="home_loading_tasks">Chargement des tâches</string>
