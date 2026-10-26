@@ -100,7 +100,9 @@ internal fun MeetingDetailDialog(meeting: HomeCalendarEvent, onDismiss: () -> Un
             TextButton(onClick = { scope.launch {
                 loadEditingState()
                 if (editingSource?.canEdit == true && !editingSource?.etag.isNullOrBlank()) showEditor = true
-            } }) { Text(stringResource(R.string.meeting_edit)) }
+            } }, colors = ButtonDefaults.textButtonColors(contentColor = NexterColors.systemBlue())) {
+                Text(stringResource(R.string.meeting_edit))
+            }
         } else if (editLoadFailed) {
             Text(stringResource(R.string.meeting_edit_load_error), color = NexterColors.secondaryText())
             TextButton(onClick = { scope.launch { loadEditingState() } }) { Text(stringResource(R.string.retry)) }
