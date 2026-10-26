@@ -2,10 +2,32 @@ package com.lognext.nexterandroid.features.home
 
 import com.lognext.nexterandroid.core.network.APIClient
 import com.lognext.nexterandroid.core.network.RestService
+import okhttp3.HttpUrl.Companion.toHttpUrl
+import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.RequestBody.Companion.toRequestBody
 
 class HomeService(
     apiClient: APIClient
 ) : RestService(apiClient) {
+    private val editingApiClient = apiClient
+
+    private fun meetingRequest(id: String): okhttp3.Request.Builder = okhttp3.Request.Builder()
+        .url(com.lognext.nexterandroid.core.AppConfig.BaseUrl.trimEnd('/').toHttpUrl().newBuilder()
+            .addPathSegments("api/v1/calendar/events").addPathSegment(id).build())
+        .header("Accept", "application/json")
+
+    suspend fun getMeeting(id: String): HomeCalendarEvent = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+        com.google.gson.Gson().fromJson(editingApiClient.execute(meetingRequest(id)
+            .header("Cache-Control", "no-store").get().build()), HomeCalendarEvent::class.java)
+    }
+
+    suspend fun updateMeeting(id: String, changes: com.google.gson.JsonObject): HomeCalendarEvent =
+        kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+            val request = meetingRequest(id).header("Content-Type", "application/json")
+                .patch(changes.toString().toRequestBody("application/json".toMediaType())).build()
+            com.google.gson.Gson().fromJson(editingApiClient.execute(request, 200..200), HomeCalendarEvent::class.java)
+        }
+
     suspend fun getSummary(): HomeSummary {
         val homeSummary = runCatching {
             get("/api/v1/home/summary", HomeSummary::class.java)

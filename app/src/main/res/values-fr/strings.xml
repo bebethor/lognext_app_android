@@ -366,4 +366,15 @@
     <string name="support_loading_profile">Chargement de votre profil…</string>
     <string name="support_profile_error">Impossible d’identifier votre profil. Veuillez réessayer.</string>
     <string name="support_browser_error">Impossible d’ouvrir le formulaire. Vérifiez qu’un navigateur est installé.</string>
+    <string name="meeting_edit">Modifier la réunion</string>
+    <string name="meeting_edit_load_error">Impossible de vérifier si vous pouvez modifier cette réunion.</string>
+    <string name="meeting_edit_occurrence">Seule cette occurrence sera modifiée, pas toute la série.</string>
+    <string name="meeting_edit_remove_room">Retirer la salle</string>
+    <string name="meeting_edit_remove_attendee">Retirer le participant</string>
+    <string name="meeting_edit_email">Adresse e-mail du participant</string>
+    <string name="meeting_edit_add_attendee">Ajouter un participant</string>
+    <string name="meeting_edit_notice">Les modifications seront envoyées aux participants. La description et le lien Teams sont conservés.</string>
+    <string name="meeting_edit_room_notice">Microsoft confirmera à nouveau la réservation si vous changez la salle ou les horaires.</string>
+    <string name="meeting_edit_conflict">La réunion a changé. Fermez puis rouvrez ce formulaire avant d’enregistrer.</string>
+    <string name="meeting_edit_save_error">Impossible d’enregistrer. Vérifiez votre connexion et rouvrez la réunion avant de réessayer.</string>
 </resources>

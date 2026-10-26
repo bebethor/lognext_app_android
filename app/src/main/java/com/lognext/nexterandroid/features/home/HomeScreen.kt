@@ -347,7 +347,10 @@ private fun AuthenticatedHome(
     }
     }
 
-    selectedMeeting?.let { meeting -> MeetingDetailDialog(meeting, onDismiss = { selectedMeeting = null }) }
+    selectedMeeting?.let { meeting -> MeetingDetailDialog(meeting, onDismiss = { selectedMeeting = null }, onUpdated = {
+        viewModel.refresh()
+        viewModel.loadAgenda(uiState.agendaScope, force = true)
+    }) }
     selectedTask?.let { task -> TaskEditorDialog(task, onDismiss = { selectedTask = null }) { title, description, priority, due ->
         viewModel.editTask(task, title, description, priority, due)
     } }

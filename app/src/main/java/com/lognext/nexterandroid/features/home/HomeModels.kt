@@ -47,7 +47,10 @@ data class HomeCalendarEvent(
     @SerializedName("attendees_count") val attendeesCount: Int?,
     val organizer: String?,
     val attendees: List<MeetingAttendee>? = null,
-    @SerializedName("room_reservation") val roomReservation: RoomReservation? = null
+    @SerializedName("room_reservation") val roomReservation: RoomReservation? = null,
+    @SerializedName("can_edit") val canEdit: Boolean = false,
+    @SerializedName("event_type") val eventType: String? = null,
+    val etag: String? = null
 ) {
     val startDate: Date?
         get() = parseIsoDate(start)
@@ -253,3 +256,20 @@ data class CreateMeetingRequest(
     @SerializedName("transaction_id") val transactionId: String,
     val room: MeetingRoom? = null
 )
+
+internal fun meetingEditChanges(
+    original: HomeCalendarEvent, title: String, start: Date, end: Date, location: String,
+    attendees: List<MeetingAttendee>, room: MeetingRoom?, roomChanged: Boolean
+): com.google.gson.JsonObject = com.google.gson.JsonObject().apply {
+    fun utc(date: Date) = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", Locale.US).apply {
+        timeZone = TimeZone.getTimeZone("UTC")
+    }.format(date)
+    if (title.trim() != original.subject) addProperty("subject", title.trim())
+    if (start != original.startDate) addProperty("start", utc(start))
+    if (end != original.endDate) addProperty("end", utc(end))
+    if (location != original.location.orEmpty()) addProperty("location", location)
+    if (attendees.map { it.email.lowercase(Locale.ROOT) } != original.attendees.orEmpty().map { it.email.lowercase(Locale.ROOT) }) {
+        add("attendees", com.google.gson.Gson().toJsonTree(attendees))
+    }
+    if (roomChanged) add("room", if (room == null) com.google.gson.JsonNull.INSTANCE else com.google.gson.Gson().toJsonTree(room))
+}

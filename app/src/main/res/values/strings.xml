@@ -371,4 +371,15 @@
     <string name="support_loading_profile">Cargando tu perfil…</string>
     <string name="support_profile_error">No se ha podido identificar tu perfil. Inténtalo de nuevo.</string>
     <string name="support_browser_error">No se pudo abrir el formulario. Comprueba que tienes un navegador instalado.</string>
+    <string name="meeting_edit">Editar reunión</string>
+    <string name="meeting_edit_load_error">No se pudo comprobar si puedes editar esta reunión.</string>
+    <string name="meeting_edit_occurrence">Solo se modificará esta ocurrencia, no toda la serie.</string>
+    <string name="meeting_edit_remove_room">Quitar sala</string>
+    <string name="meeting_edit_remove_attendee">Quitar asistente</string>
+    <string name="meeting_edit_email">Correo del asistente</string>
+    <string name="meeting_edit_add_attendee">Añadir asistente</string>
+    <string name="meeting_edit_notice">Al guardar se enviarán las actualizaciones a los asistentes. La descripción y el enlace de Teams se conservan sin cambios.</string>
+    <string name="meeting_edit_room_notice">Microsoft volverá a confirmar la reserva si cambias la sala o el horario.</string>
+    <string name="meeting_edit_conflict">La reunión ha cambiado. Cierra este formulario y vuelve a abrirlo antes de guardar.</string>
+    <string name="meeting_edit_save_error">No se pudieron guardar los cambios. Comprueba la conexión y vuelve a abrir la reunión antes de reintentar.</string>
 </resources>
