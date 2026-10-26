@@ -67,8 +67,11 @@ internal fun MeetingDetailDialog(meeting: HomeCalendarEvent, onDismiss: () -> Un
     var currentMeeting by remember(meeting.id) { mutableStateOf(meeting) }
     var editingSource by remember(meeting.id) { mutableStateOf<HomeCalendarEvent?>(null) }
     var editLoadFailed by remember(meeting.id) { mutableStateOf(false) }
+    var isCheckingEditing by remember(meeting.id) { mutableStateOf(true) }
     var showEditor by remember { mutableStateOf(false) }
     suspend fun loadEditingState() {
+        isCheckingEditing = true
+        editLoadFailed = false
         editingSource = null
         try {
             val fresh = AppDependencies.homeService.getMeeting(meeting.id)
@@ -77,6 +80,7 @@ internal fun MeetingDetailDialog(meeting: HomeCalendarEvent, onDismiss: () -> Un
             editLoadFailed = false
         } catch (cancel: CancellationException) { throw cancel }
         catch (_: Exception) { editLoadFailed = true }
+        finally { isCheckingEditing = false }
     }
     LaunchedEffect(meeting.id) { loadEditingState() }
     val context = LocalContext.current
@@ -96,14 +100,18 @@ internal fun MeetingDetailDialog(meeting: HomeCalendarEvent, onDismiss: () -> Un
         return
     }
     DetailFrame(stringResource(R.string.parity_meeting), onDismiss = onDismiss) {
-        if (editingSource?.canEdit == true && !editingSource?.etag.isNullOrBlank()) {
-            TextButton(onClick = { scope.launch {
+        TextButton(enabled = !isCheckingEditing && editingSource?.canEdit == true && !editingSource?.etag.isNullOrBlank(),
+            onClick = { scope.launch {
                 loadEditingState()
                 if (editingSource?.canEdit == true && !editingSource?.etag.isNullOrBlank()) showEditor = true
             } }, colors = ButtonDefaults.textButtonColors(contentColor = NexterColors.systemBlue())) {
-                Text(stringResource(R.string.meeting_edit))
+            if (isCheckingEditing) {
+                CircularProgressIndicator(Modifier.size(16.dp), strokeWidth = 2.dp, color = NexterColors.systemBlue())
+                Spacer(Modifier.width(8.dp))
             }
-        } else if (editLoadFailed) {
+            Text(stringResource(R.string.meeting_edit))
+        }
+        if (editLoadFailed) {
             Text(stringResource(R.string.meeting_edit_load_error), color = NexterColors.secondaryText())
             TextButton(onClick = { scope.launch { loadEditingState() } }) { Text(stringResource(R.string.retry)) }
         }
