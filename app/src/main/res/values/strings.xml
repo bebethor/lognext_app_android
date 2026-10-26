@@ -21,8 +21,8 @@
     <string name="home_today_meetings">Reuniones de hoy</string>
     <string name="home_view_agenda">Ver agenda</string>
     <string name="home_loading_meetings">Cargando reuniones</string>
-    <string name="home_no_meetings_today">No tienes reuniones hoy</string>
-    <string name="home_no_meetings_subtitle">Cuando tengas reuniones programadas aparecerán aquí.</string>
+    <string name="home_no_meetings_today">No tienes más reuniones hoy</string>
+    <string name="home_no_meetings_subtitle">Las reuniones finalizadas siguen disponibles en la agenda.</string>
     <string name="home_pending_tasks">Tareas pendientes</string>
     <string name="home_add">Añadir</string>
     <string name="home_loading_tasks">Cargando tareas</string>
