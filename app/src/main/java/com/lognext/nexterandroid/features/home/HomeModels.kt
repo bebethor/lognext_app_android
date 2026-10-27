@@ -50,7 +50,8 @@ data class HomeCalendarEvent(
     @SerializedName("room_reservation") val roomReservation: RoomReservation? = null,
     @SerializedName("can_edit") val canEdit: Boolean = false,
     @SerializedName("event_type") val eventType: String? = null,
-    val etag: String? = null
+    val etag: String? = null,
+    @SerializedName("is_organizer") val isOrganizer: Boolean? = null
 ) {
     val startDate: Date?
         get() = parseIsoDate(start)
@@ -84,31 +85,28 @@ data class HomeCalendarEvent(
     val subtitle: String
         get() {
             val parts = mutableListOf<String>()
-            durationText()?.let { parts.add(it) }
-            when {
-                isOnlineMeeting -> parts.add("Teams")
-                !location.isNullOrBlank() -> parts.add(location.trim())
-            }
-            attendeesCount?.takeIf { it > 0 }?.let { parts.add("$it asistentes") }
+            durationText?.let { parts.add(it) }
+            attendeesCount?.takeIf { it >= 0 }?.let { parts.add("$it asistentes") }
             return if (parts.isEmpty()) "Reunión" else parts.joinToString(" · ")
         }
 
     val tagText: String?
-        get() = when {
-            isOnlineMeeting -> "Online"
-            !location.isNullOrBlank() -> "Presencial"
-            else -> null
+        get() = if (isOnlineMeeting) "Online" else "Presencial"
+
+    val organizerIsMe: Boolean
+        get() = isOrganizer ?: canEdit
+
+    val durationText: String?
+        get() {
+            val startDate = startDate ?: return null
+            val endDate = endDate ?: return null
+            val minutes = TimeUnit.MILLISECONDS.toMinutes((endDate.time - startDate.time).coerceAtLeast(0))
+            if (minutes < 60) return "$minutes min"
+            val hours = minutes / 60
+            val remainingMinutes = minutes % 60
+            return if (remainingMinutes == 0L) "${hours}h" else "${hours}h ${remainingMinutes}min"
         }
 
-    private fun durationText(): String? {
-        val startDate = startDate ?: return null
-        val endDate = endDate ?: return null
-        val minutes = TimeUnit.MILLISECONDS.toMinutes((endDate.time - startDate.time).coerceAtLeast(0))
-        if (minutes < 60) return "$minutes min"
-        val hours = minutes / 60
-        val remainingMinutes = minutes % 60
-        return if (remainingMinutes == 0L) "${hours}h" else "${hours}h ${remainingMinutes}min"
-    }
 }
 
 data class HomeTaskListResponse(

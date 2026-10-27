@@ -377,4 +377,7 @@
     <string name="meeting_edit_room_notice">Microsoft confirmera à nouveau la réservation si vous changez la salle ou les horaires.</string>
     <string name="meeting_edit_conflict">La réunion a changé. Fermez puis rouvrez ce formulaire avant d’enregistrer.</string>
     <string name="meeting_edit_save_error">Impossible d’enregistrer. Vérifiez votre connexion et rouvrez la réunion avant de réessayer.</string>
+    <string name="meeting_mode_online">En ligne</string>
+    <string name="meeting_mode_in_person">En présentiel</string>
+    <string name="meeting_organizer_me">moi</string>
 </resources>

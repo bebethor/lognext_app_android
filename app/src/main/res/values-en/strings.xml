@@ -377,4 +377,7 @@
     <string name="meeting_edit_room_notice">Microsoft will confirm the booking again if you change the room or time.</string>
     <string name="meeting_edit_conflict">The meeting has changed. Close and reopen this form before saving.</string>
     <string name="meeting_edit_save_error">Could not save changes. Check your connection and reopen the meeting before retrying.</string>
+    <string name="meeting_mode_online">Online</string>
+    <string name="meeting_mode_in_person">In person</string>
+    <string name="meeting_organizer_me">me</string>
 </resources>

@@ -382,4 +382,7 @@
     <string name="meeting_edit_room_notice">Microsoft volverá a confirmar la reserva si cambias la sala o el horario.</string>
     <string name="meeting_edit_conflict">La reunión ha cambiado. Cierra este formulario y vuelve a abrirlo antes de guardar.</string>
     <string name="meeting_edit_save_error">No se pudieron guardar los cambios. Comprueba la conexión y vuelve a abrir la reunión antes de reintentar.</string>
+    <string name="meeting_mode_online">Online</string>
+    <string name="meeting_mode_in_person">Presencial</string>
+    <string name="meeting_organizer_me">yo</string>
 </resources>
