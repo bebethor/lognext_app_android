@@ -100,16 +100,18 @@ internal fun MeetingDetailDialog(meeting: HomeCalendarEvent, onDismiss: () -> Un
         return
     }
     DetailFrame(stringResource(R.string.parity_meeting), onDismiss = onDismiss) {
-        TextButton(enabled = !isCheckingEditing && editingSource?.canEdit == true && !editingSource?.etag.isNullOrBlank(),
-            onClick = { scope.launch {
-                loadEditingState()
-                if (editingSource?.canEdit == true && !editingSource?.etag.isNullOrBlank()) showEditor = true
-            } }, colors = ButtonDefaults.textButtonColors(contentColor = NexterColors.systemBlue())) {
-            if (isCheckingEditing) {
-                CircularProgressIndicator(Modifier.size(16.dp), strokeWidth = 2.dp, color = NexterColors.systemBlue())
-                Spacer(Modifier.width(8.dp))
+        if (editingSource?.canEdit == true && !editingSource?.etag.isNullOrBlank()) {
+            TextButton(enabled = !isCheckingEditing && editingSource?.canEdit == true && !editingSource?.etag.isNullOrBlank(),
+                onClick = { scope.launch {
+                    loadEditingState()
+                    if (editingSource?.canEdit == true && !editingSource?.etag.isNullOrBlank()) showEditor = true
+                } }, colors = ButtonDefaults.textButtonColors(contentColor = NexterColors.systemBlue())) {
+                if (isCheckingEditing) {
+                    CircularProgressIndicator(Modifier.size(16.dp), strokeWidth = 2.dp, color = NexterColors.systemBlue())
+                    Spacer(Modifier.width(8.dp))
+                }
+                Text(stringResource(R.string.meeting_edit))
             }
-            Text(stringResource(R.string.meeting_edit))
         }
         if (editLoadFailed) {
             Text(stringResource(R.string.meeting_edit_load_error), color = NexterColors.secondaryText())
