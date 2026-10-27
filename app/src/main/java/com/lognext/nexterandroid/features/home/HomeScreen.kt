@@ -15,6 +15,8 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.IntrinsicSize
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
@@ -509,7 +511,7 @@ private fun MeetingsCard(uiState: HomeUiState, onOpenAgenda: () -> Unit, onMeeti
 @Composable
 private fun MeetingRow(meeting: HomeCalendarEvent, onClick: () -> Unit = {}) {
     val modalityColor = if (meeting.isOnlineMeeting) Color(0xFF469BF5) else Color(0xFF2A8B3A)
-    Row(modifier = Modifier.fillMaxWidth().clickable(onClick = onClick).padding(vertical = 12.dp), verticalAlignment = Alignment.Top) {
+    Row(modifier = Modifier.fillMaxWidth().clickable(onClick = onClick).padding(vertical = 12.dp).heightIn(min = 36.dp).height(IntrinsicSize.Min), verticalAlignment = Alignment.Top) {
         Text(
             text = meeting.startTimeText,
             color = NexterColors.tertiaryText(),
@@ -517,17 +519,18 @@ private fun MeetingRow(meeting: HomeCalendarEvent, onClick: () -> Unit = {}) {
             fontWeight = FontWeight.SemiBold,
             maxLines = 1,
             softWrap = false,
-            modifier = Modifier.widthIn(min = 38.dp)
+            modifier = Modifier.widthIn(min = 38.dp).padding(top = 2.dp)
         )
+        Spacer(modifier = Modifier.width(12.dp))
         Box(
             modifier = Modifier
                 .width(3.dp)
-                .height(34.dp)
+                .fillMaxHeight()
                 .clip(RoundedCornerShape(2.dp))
                 .background(modalityColor)
         )
-        Spacer(modifier = Modifier.width(10.dp))
-        Column(modifier = Modifier.weight(1f)) {
+        Spacer(modifier = Modifier.width(12.dp))
+        Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
             Text(meeting.subject, color = NexterColors.primaryText(), fontSize = NexterTypography.Callout, fontWeight = FontWeight.SemiBold, maxLines = 2, overflow = TextOverflow.Ellipsis)
             Text(meeting.subtitle, color = NexterColors.tertiaryText(), fontSize = NexterTypography.Footnote, maxLines = 1, overflow = TextOverflow.Ellipsis)
         }
@@ -876,9 +879,9 @@ private fun AgendaMeetingRow(event: HomeCalendarEvent, onClick: () -> Unit) {
     val modalityColor = if (event.isOnlineMeeting) Color(0xFF185FA5) else Color(0xFF2A8B3A)
     val organizer = if (event.organizerIsMe) stringResource(R.string.meeting_organizer_me).uppercase()
         else event.organizer?.trim()?.takeIf { it.isNotEmpty() } ?: stringResource(R.string.inventory_not_available)
-    Row(Modifier.fillMaxWidth().clickable(onClick = onClick).padding(horizontal = 14.dp, vertical = 15.dp), verticalAlignment = Alignment.Top, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+    Row(Modifier.fillMaxWidth().clickable(onClick = onClick).padding(horizontal = 14.dp, vertical = 15.dp).heightIn(min = 54.dp).height(IntrinsicSize.Min), verticalAlignment = Alignment.Top, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
         Text(event.startTimeText, color = NexterColors.tertiaryText(), fontSize = NexterTypography.Footnote, fontWeight = FontWeight.SemiBold, maxLines = 1, softWrap = false, modifier = Modifier.widthIn(min = 38.dp).padding(top = 2.dp))
-        Box(Modifier.width(3.dp).height(54.dp).clip(RoundedCornerShape(2.dp)).background(modalityColor))
+        Box(Modifier.width(3.dp).fillMaxHeight().clip(RoundedCornerShape(2.dp)).background(modalityColor))
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
             Text(event.subject, color = NexterColors.primaryText(), fontSize = NexterTypography.Body, fontWeight = FontWeight.SemiBold, maxLines = 2, overflow = TextOverflow.Ellipsis)
             event.durationText?.let { duration ->
