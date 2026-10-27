@@ -29,7 +29,8 @@ class OkHttpAPIClient(
 
     override fun execute(request: Request, acceptedStatusCodes: IntRange): String {
         val account = (authRepository?.authState?.value as? com.lognext.nexterandroid.core.auth.AuthState.Authenticated)?.user?.username
-        val cacheable = request.method == "GET" && account != null && request.url.encodedPath.startsWith("/api/v1/")
+        val cacheable = request.method == "GET" && account != null &&
+            request.header("Cache-Control") != "no-store" && request.url.encodedPath.startsWith("/api/v1/")
         if (cacheable) {
             return inFlight.execute("$account|${request.url}|$acceptedStatusCodes") {
                 // Re-check after becoming the owner: another request may have filled the cache.

@@ -47,7 +47,11 @@ data class HomeCalendarEvent(
     @SerializedName("attendees_count") val attendeesCount: Int?,
     val organizer: String?,
     val attendees: List<MeetingAttendee>? = null,
-    @SerializedName("room_reservation") val roomReservation: RoomReservation? = null
+    @SerializedName("room_reservation") val roomReservation: RoomReservation? = null,
+    @SerializedName("can_edit") val canEdit: Boolean = false,
+    @SerializedName("event_type") val eventType: String? = null,
+    val etag: String? = null,
+    @SerializedName("is_organizer") val isOrganizer: Boolean? = null
 ) {
     val startDate: Date?
         get() = parseIsoDate(start)
@@ -81,31 +85,28 @@ data class HomeCalendarEvent(
     val subtitle: String
         get() {
             val parts = mutableListOf<String>()
-            durationText()?.let { parts.add(it) }
-            when {
-                isOnlineMeeting -> parts.add("Teams")
-                !location.isNullOrBlank() -> parts.add(location.trim())
-            }
-            attendeesCount?.takeIf { it > 0 }?.let { parts.add("$it asistentes") }
+            durationText?.let { parts.add(it) }
+            attendeesCount?.takeIf { it >= 0 }?.let { parts.add("$it asistentes") }
             return if (parts.isEmpty()) "Reunión" else parts.joinToString(" · ")
         }
 
     val tagText: String?
-        get() = when {
-            isOnlineMeeting -> "Online"
-            !location.isNullOrBlank() -> "Presencial"
-            else -> null
+        get() = if (isOnlineMeeting) "Online" else "Presencial"
+
+    val organizerIsMe: Boolean
+        get() = isOrganizer ?: canEdit
+
+    val durationText: String?
+        get() {
+            val startDate = startDate ?: return null
+            val endDate = endDate ?: return null
+            val minutes = TimeUnit.MILLISECONDS.toMinutes((endDate.time - startDate.time).coerceAtLeast(0))
+            if (minutes < 60) return "$minutes min"
+            val hours = minutes / 60
+            val remainingMinutes = minutes % 60
+            return if (remainingMinutes == 0L) "${hours}h" else "${hours}h ${remainingMinutes}min"
         }
 
-    private fun durationText(): String? {
-        val startDate = startDate ?: return null
-        val endDate = endDate ?: return null
-        val minutes = TimeUnit.MILLISECONDS.toMinutes((endDate.time - startDate.time).coerceAtLeast(0))
-        if (minutes < 60) return "$minutes min"
-        val hours = minutes / 60
-        val remainingMinutes = minutes % 60
-        return if (remainingMinutes == 0L) "${hours}h" else "${hours}h ${remainingMinutes}min"
-    }
 }
 
 data class HomeTaskListResponse(
@@ -253,3 +254,20 @@ data class CreateMeetingRequest(
     @SerializedName("transaction_id") val transactionId: String,
     val room: MeetingRoom? = null
 )
+
+internal fun meetingEditChanges(
+    original: HomeCalendarEvent, title: String, start: Date, end: Date, location: String,
+    attendees: List<MeetingAttendee>, room: MeetingRoom?, roomChanged: Boolean
+): com.google.gson.JsonObject = com.google.gson.JsonObject().apply {
+    fun utc(date: Date) = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", Locale.US).apply {
+        timeZone = TimeZone.getTimeZone("UTC")
+    }.format(date)
+    if (title.trim() != original.subject) addProperty("subject", title.trim())
+    if (start != original.startDate) addProperty("start", utc(start))
+    if (end != original.endDate) addProperty("end", utc(end))
+    if (location != original.location.orEmpty()) addProperty("location", location)
+    if (attendees.map { it.email.lowercase(Locale.ROOT) } != original.attendees.orEmpty().map { it.email.lowercase(Locale.ROOT) }) {
+        add("attendees", com.google.gson.Gson().toJsonTree(attendees))
+    }
+    if (roomChanged) add("room", if (room == null) com.google.gson.JsonNull.INSTANCE else com.google.gson.Gson().toJsonTree(room))
+}

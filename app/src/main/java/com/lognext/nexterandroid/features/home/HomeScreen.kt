@@ -15,6 +15,8 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.IntrinsicSize
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
@@ -33,6 +35,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -347,7 +350,10 @@ private fun AuthenticatedHome(
     }
     }
 
-    selectedMeeting?.let { meeting -> MeetingDetailDialog(meeting, onDismiss = { selectedMeeting = null }) }
+    selectedMeeting?.let { meeting -> MeetingDetailDialog(meeting, onDismiss = { selectedMeeting = null }, onUpdated = {
+        viewModel.refresh()
+        viewModel.loadAgenda(uiState.agendaScope, force = true)
+    }) }
     selectedTask?.let { task -> TaskEditorDialog(task, onDismiss = { selectedTask = null }) { title, description, priority, due ->
         viewModel.editTask(task, title, description, priority, due)
     } }
@@ -496,48 +502,48 @@ private fun MeetingsCard(uiState: HomeUiState, onOpenAgenda: () -> Unit, onMeeti
             )
             else -> visibleMeetings.forEachIndexed { index, meeting ->
                 if (index > 0) Divider(color = NexterColors.border())
-                MeetingRow(meeting, index) { onMeetingSelected(meeting) }
+                MeetingRow(meeting) { onMeetingSelected(meeting) }
             }
         }
     }
 }
 
 @Composable
-private fun MeetingRow(meeting: HomeCalendarEvent, index: Int, horizontalPadding: Dp = 0.dp, onClick: () -> Unit = {}) {
-    val isAgenda = horizontalPadding > 0.dp
-    val colors = if (isAgenda) listOf(NexterColors.Red, NexterColors.Blue, NexterColors.Green, NexterColors.Violet, NexterColors.Aqua)
-        else listOf(NexterColors.systemRed(), NexterColors.systemBlue(), NexterColors.systemGreen(), NexterColors.Violet, NexterColors.Aqua)
-    Row(modifier = Modifier.fillMaxWidth().clickable(onClick = onClick).padding(horizontal = horizontalPadding, vertical = 12.dp), verticalAlignment = Alignment.Top) {
+private fun MeetingRow(meeting: HomeCalendarEvent, onClick: () -> Unit = {}) {
+    val modalityColor = if (meeting.isOnlineMeeting) Color(0xFF469BF5) else Color(0xFF2A8B3A)
+    Row(modifier = Modifier.fillMaxWidth().clickable(onClick = onClick).padding(vertical = 12.dp).heightIn(min = 36.dp).height(IntrinsicSize.Min), verticalAlignment = Alignment.Top) {
         Text(
             text = meeting.startTimeText,
             color = NexterColors.tertiaryText(),
             fontSize = NexterTypography.Footnote,
             fontWeight = FontWeight.SemiBold,
-            modifier = Modifier.width(40.dp)
+            maxLines = 1,
+            softWrap = false,
+            modifier = Modifier.widthIn(min = 38.dp).padding(top = 2.dp)
         )
+        Spacer(modifier = Modifier.width(12.dp))
         Box(
             modifier = Modifier
                 .width(3.dp)
-                .height(34.dp)
+                .fillMaxHeight()
                 .clip(RoundedCornerShape(2.dp))
-                .background(colors[index % colors.size])
+                .background(modalityColor)
         )
-        Spacer(modifier = Modifier.width(10.dp))
-        Column(modifier = Modifier.weight(1f)) {
+        Spacer(modifier = Modifier.width(12.dp))
+        Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
             Text(meeting.subject, color = NexterColors.primaryText(), fontSize = NexterTypography.Callout, fontWeight = FontWeight.SemiBold, maxLines = 2, overflow = TextOverflow.Ellipsis)
             Text(meeting.subtitle, color = NexterColors.tertiaryText(), fontSize = NexterTypography.Footnote, maxLines = 1, overflow = TextOverflow.Ellipsis)
         }
         meeting.tagText?.let {
             Spacer(modifier = Modifier.width(8.dp))
             Text(
-                text = it,
-                color = if (isAgenda) { if (meeting.isOnlineMeeting) NexterColors.systemBlue() else NexterColors.systemGreen() }
-                    else if (meeting.isOnlineMeeting) Color(0xFF469BF5) else Color(0xFF2A8B3A),
+                text = stringResource(if (meeting.isOnlineMeeting) R.string.meeting_mode_online else R.string.meeting_mode_in_person),
+                color = modalityColor,
                 fontSize = NexterTypography.Badge,
                 fontWeight = FontWeight.SemiBold,
                 modifier = Modifier
                     .clip(RoundedCornerShape(20.dp))
-                    .background((if (meeting.isOnlineMeeting) { if (isAgenda) NexterColors.systemBlue() else Color(0xFF469BF5) } else NexterColors.systemGreen()).copy(alpha = if (isAgenda) 0.10f else 0.14f))
+                    .background(modalityColor.copy(alpha = 0.14f))
                     .padding(horizontal = 7.dp, vertical = 2.dp)
             )
         }
@@ -862,27 +868,39 @@ private fun AgendaDaySection(group: AgendaEventGroup, onMeetingSelected: (HomeCa
             )
             group.events.forEachIndexed { index, event ->
                 if (index > 0) Divider(color = NexterColors.border(), modifier = Modifier.padding(start = 86.dp, end = 14.dp))
-                AgendaMeetingRow(event, index) { onMeetingSelected(event) }
+                AgendaMeetingRow(event) { onMeetingSelected(event) }
             }
         }
     }
 }
 
 @Composable
-private fun AgendaMeetingRow(event: HomeCalendarEvent, index: Int, onClick: () -> Unit) {
-    val colors = listOf(NexterColors.Red, NexterColors.Blue, NexterColors.Green, NexterColors.Violet, NexterColors.Aqua)
-    Row(Modifier.fillMaxWidth().clickable(onClick = onClick).padding(horizontal = 14.dp, vertical = 15.dp), verticalAlignment = Alignment.Top, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-        Text(event.startTimeText, color = NexterColors.tertiaryText(), fontSize = NexterTypography.Footnote, fontWeight = FontWeight.SemiBold, modifier = Modifier.width(54.dp).padding(top = 2.dp))
-        Box(Modifier.width(3.dp).height(54.dp).clip(RoundedCornerShape(2.dp)).background(colors[index % colors.size]))
+private fun AgendaMeetingRow(event: HomeCalendarEvent, onClick: () -> Unit) {
+    val modalityColor = if (event.isOnlineMeeting) Color(0xFF185FA5) else Color(0xFF2A8B3A)
+    val organizer = if (event.organizerIsMe) stringResource(R.string.meeting_organizer_me).uppercase()
+        else event.organizer?.trim()?.takeIf { it.isNotEmpty() } ?: stringResource(R.string.inventory_not_available)
+    Row(Modifier.fillMaxWidth().clickable(onClick = onClick).padding(horizontal = 14.dp, vertical = 15.dp).heightIn(min = 54.dp).height(IntrinsicSize.Min), verticalAlignment = Alignment.Top, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+        Text(event.startTimeText, color = NexterColors.tertiaryText(), fontSize = NexterTypography.Footnote, fontWeight = FontWeight.SemiBold, maxLines = 1, softWrap = false, modifier = Modifier.widthIn(min = 38.dp).padding(top = 2.dp))
+        Box(Modifier.width(3.dp).fillMaxHeight().clip(RoundedCornerShape(2.dp)).background(modalityColor))
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
             Text(event.subject, color = NexterColors.primaryText(), fontSize = NexterTypography.Body, fontWeight = FontWeight.SemiBold, maxLines = 2, overflow = TextOverflow.Ellipsis)
-            Text(event.subtitle, color = NexterColors.secondaryText(), fontSize = NexterTypography.Callout, fontWeight = FontWeight.Medium, maxLines = 2, overflow = TextOverflow.Ellipsis)
+            event.durationText?.let { duration ->
+                Text(duration, color = NexterColors.secondaryText(), fontSize = NexterTypography.Callout, fontWeight = FontWeight.Medium, maxLines = 1)
+            }
+            val organizerLabel = stringResource(R.string.parity_organizer_value, organizer)
+            Text(buildAnnotatedString {
+                append(organizerLabel)
+                if (event.organizerIsMe) {
+                    val start = organizerLabel.lastIndexOf(organizer)
+                    if (start >= 0) addStyle(SpanStyle(color = NexterColors.Red), start, start + organizer.length)
+                }
+            }, color = NexterColors.secondaryText(), fontSize = NexterTypography.Footnote, maxLines = 2, overflow = TextOverflow.Ellipsis)
         }
-        event.tagText?.let { tag ->
-            Text(tag, color = if (event.isOnlineMeeting) Color(0xFF185FA5) else Color(0xFF2A8B3A), fontSize = NexterTypography.Badge, fontWeight = FontWeight.SemiBold,
+        event.tagText?.let { _ ->
+            Text(stringResource(if (event.isOnlineMeeting) R.string.meeting_mode_online else R.string.meeting_mode_in_person), color = modalityColor, fontSize = NexterTypography.Badge, fontWeight = FontWeight.SemiBold,
                 maxLines = 1, overflow = TextOverflow.Ellipsis,
                 modifier = Modifier.padding(top = 2.dp).clip(CircleShape)
-                    .background((if (event.isOnlineMeeting) NexterColors.systemBlue() else NexterColors.systemGreen()).copy(alpha = 0.10f))
+                    .background(modalityColor.copy(alpha = 0.10f))
                     .padding(horizontal = 9.dp, vertical = 5.dp))
         }
     }

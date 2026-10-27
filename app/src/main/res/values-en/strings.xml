@@ -366,4 +366,18 @@
     <string name="support_loading_profile">Loading your profile…</string>
     <string name="support_profile_error">Your profile could not be identified. Please try again.</string>
     <string name="support_browser_error">Could not open the form. Check that a browser is installed.</string>
+    <string name="meeting_edit">Edit meeting</string>
+    <string name="meeting_edit_load_error">Could not check whether you can edit this meeting.</string>
+    <string name="meeting_edit_occurrence">Only this occurrence will change, not the entire series.</string>
+    <string name="meeting_edit_remove_room">Remove room</string>
+    <string name="meeting_edit_remove_attendee">Remove attendee</string>
+    <string name="meeting_edit_email">Attendee email</string>
+    <string name="meeting_edit_add_attendee">Add attendee</string>
+    <string name="meeting_edit_notice">Saving sends meeting updates to attendees. The description and Teams link are preserved.</string>
+    <string name="meeting_edit_room_notice">Microsoft will confirm the booking again if you change the room or time.</string>
+    <string name="meeting_edit_conflict">The meeting has changed. Close and reopen this form before saving.</string>
+    <string name="meeting_edit_save_error">Could not save changes. Check your connection and reopen the meeting before retrying.</string>
+    <string name="meeting_mode_online">Online</string>
+    <string name="meeting_mode_in_person">In person</string>
+    <string name="meeting_organizer_me">me</string>
 </resources>

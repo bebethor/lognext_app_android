@@ -63,7 +63,26 @@ private fun DetailFrame(title: String, busy: Boolean = false, onDismiss: () -> U
 }
 
 @Composable
-internal fun MeetingDetailDialog(meeting: HomeCalendarEvent, onDismiss: () -> Unit) {
+internal fun MeetingDetailDialog(meeting: HomeCalendarEvent, onDismiss: () -> Unit, onUpdated: () -> Unit = {}) {
+    var currentMeeting by remember(meeting.id) { mutableStateOf(meeting) }
+    var editingSource by remember(meeting.id) { mutableStateOf<HomeCalendarEvent?>(null) }
+    var editLoadFailed by remember(meeting.id) { mutableStateOf(false) }
+    var isCheckingEditing by remember(meeting.id) { mutableStateOf(true) }
+    var showEditor by remember { mutableStateOf(false) }
+    suspend fun loadEditingState() {
+        isCheckingEditing = true
+        editLoadFailed = false
+        editingSource = null
+        try {
+            val fresh = AppDependencies.homeService.getMeeting(meeting.id)
+            editingSource = fresh
+            currentMeeting = fresh
+            editLoadFailed = false
+        } catch (cancel: CancellationException) { throw cancel }
+        catch (_: Exception) { editLoadFailed = true }
+        finally { isCheckingEditing = false }
+    }
+    LaunchedEffect(meeting.id) { loadEditingState() }
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     var expanded by remember { mutableStateOf(false) }
@@ -71,14 +90,40 @@ internal fun MeetingDetailDialog(meeting: HomeCalendarEvent, onDismiss: () -> Un
     var error by remember { mutableStateOf<String?>(null) }
     val people = remember { PeopleViewModel(AppDependencies.peopleService) }
     DisposableEffect(people) { onDispose { people.dismissSelectedPerson() } }
+    if (showEditor) editingSource?.let { source ->
+        EditMeetingDialog(source, onDismiss = { showEditor = false }) { updated ->
+            currentMeeting = updated
+            editingSource = updated
+            showEditor = false
+            onUpdated()
+        }
+        return
+    }
     DetailFrame(stringResource(R.string.parity_meeting), onDismiss = onDismiss) {
-        Text(meeting.subject, style = MaterialTheme.typography.h6)
-        meeting.startDate?.let { Text(stringResource(R.string.parity_start_value, DateFormat.getDateTimeInstance().format(it))) }
-        meeting.endDate?.let { Text(stringResource(R.string.parity_end_value, DateFormat.getDateTimeInstance().format(it))) }
-        if (meeting.isOnlineMeeting) Text(stringResource(R.string.parity_online_teams))
-        meeting.organizer?.takeIf { it.isNotBlank() }?.let { Text(stringResource(R.string.parity_organizer_value, it)) }
-        meeting.location?.takeIf { it.isNotBlank() }?.let { Text(stringResource(R.string.parity_location_value, it)) }
-        meeting.roomReservation?.let { reservation ->
+        if (editingSource?.canEdit == true && !editingSource?.etag.isNullOrBlank()) {
+            TextButton(enabled = !isCheckingEditing && editingSource?.canEdit == true && !editingSource?.etag.isNullOrBlank(),
+                onClick = { scope.launch {
+                    loadEditingState()
+                    if (editingSource?.canEdit == true && !editingSource?.etag.isNullOrBlank()) showEditor = true
+                } }, colors = ButtonDefaults.textButtonColors(contentColor = NexterColors.systemBlue())) {
+                if (isCheckingEditing) {
+                    CircularProgressIndicator(Modifier.size(16.dp), strokeWidth = 2.dp, color = NexterColors.systemBlue())
+                    Spacer(Modifier.width(8.dp))
+                }
+                Text(stringResource(R.string.meeting_edit))
+            }
+        }
+        if (editLoadFailed) {
+            Text(stringResource(R.string.meeting_edit_load_error), color = NexterColors.secondaryText())
+            TextButton(onClick = { scope.launch { loadEditingState() } }) { Text(stringResource(R.string.retry)) }
+        }
+        Text(currentMeeting.subject, style = MaterialTheme.typography.h6)
+        currentMeeting.startDate?.let { Text(stringResource(R.string.parity_start_value, DateFormat.getDateTimeInstance().format(it))) }
+        currentMeeting.endDate?.let { Text(stringResource(R.string.parity_end_value, DateFormat.getDateTimeInstance().format(it))) }
+        if (currentMeeting.isOnlineMeeting) Text(stringResource(R.string.parity_online_teams))
+        currentMeeting.organizer?.takeIf { it.isNotBlank() }?.let { Text(stringResource(R.string.parity_organizer_value, it)) }
+        currentMeeting.location?.takeIf { it.isNotBlank() }?.let { Text(stringResource(R.string.parity_location_value, it)) }
+        currentMeeting.roomReservation?.let { reservation ->
             MeetingFormSection(stringResource(R.string.meeting_room_booking)) {
                 Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     Text(reservation.name.ifBlank { reservation.email }, color = NexterColors.primaryText())
@@ -89,9 +134,9 @@ internal fun MeetingDetailDialog(meeting: HomeCalendarEvent, onDismiss: () -> Un
                 }
             }
         }
-        val attendees = meeting.attendees.orEmpty()
+        val attendees = currentMeeting.attendees.orEmpty()
         TextButton(onClick = { expanded = !expanded }, enabled = attendees.isNotEmpty()) {
-            Text(stringResource(R.string.parity_attendees_value, meeting.attendeesCount ?: attendees.size, if (expanded) "▴" else "▾"))
+            Text(stringResource(R.string.parity_attendees_value, currentMeeting.attendeesCount ?: attendees.size, if (expanded) "▴" else "▾"))
         }
         if (expanded) attendees.forEach { attendee ->
             Row(Modifier.fillMaxWidth().clickable(enabled = loadingEmail == null && attendee.email.isNotBlank()) {
@@ -114,7 +159,7 @@ internal fun MeetingDetailDialog(meeting: HomeCalendarEvent, onDismiss: () -> Un
             }
         }
         error?.let { Text(it, color = NexterColors.systemRed()) }
-        meeting.joinUrl?.let { url ->
+        currentMeeting.joinUrl?.let { url ->
             val uri = Uri.parse(url)
             if (uri.scheme in listOf("https", "http") && !uri.host.isNullOrBlank()) {
                 Button(onClick = { context.startActivity(Intent(Intent.ACTION_VIEW, uri)) }) { Text(stringResource(R.string.parity_join)) }
@@ -492,4 +537,108 @@ private fun pickDateTime(context: android.content.Context, initial: Date, onPick
         calendar.set(year, month, day)
         TimePickerDialog(context, { _, hour, minute -> calendar.set(Calendar.HOUR_OF_DAY, hour); calendar.set(Calendar.MINUTE, minute); calendar.set(Calendar.SECOND, 0); onPicked(calendar.time) }, calendar.get(Calendar.HOUR_OF_DAY), calendar.get(Calendar.MINUTE), android.text.format.DateFormat.is24HourFormat(context)).show()
     }, calendar.get(Calendar.YEAR), calendar.get(Calendar.MONTH), calendar.get(Calendar.DAY_OF_MONTH)).show()
+}
+
+@Composable
+internal fun EditMeetingDialog(meeting: HomeCalendarEvent, onDismiss: () -> Unit, onSaved: (HomeCalendarEvent) -> Unit) {
+    var title by remember { mutableStateOf(meeting.subject) }
+    var start by remember { mutableStateOf(meeting.startDate ?: Date()) }
+    var end by remember { mutableStateOf(meeting.endDate ?: Date()) }
+    var location by remember { mutableStateOf(meeting.location.orEmpty()) }
+    var attendees by remember { mutableStateOf(meeting.attendees.orEmpty()) }
+    var room by remember { mutableStateOf(meeting.roomReservation?.let { MeetingRoom(it.email, it.name) }) }
+    var roomChanged by remember { mutableStateOf(false) }
+    var email by remember { mutableStateOf("") }
+    var showLocations by remember { mutableStateOf(false) }
+    var busy by remember { mutableStateOf(false) }
+    var conflict by remember { mutableStateOf(false) }
+    var error by remember { mutableStateOf<String?>(null) }
+    var discard by remember { mutableStateOf(false) }
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    val changes = meetingEditChanges(meeting, title, start, end, location, attendees, room, roomChanged)
+    val hasChanges = changes.size() > 0 || email.isNotEmpty()
+    val cleanEmail = email.trim()
+    val validEmail = android.util.Patterns.EMAIL_ADDRESS.matcher(cleanEmail).matches() &&
+        attendees.none { it.email.equals(cleanEmail, true) } && !room?.email.equals(cleanEmail, true) &&
+        attendees.size < (if (room == null) 500 else 499)
+    val canSave = meeting.canEdit && !meeting.etag.isNullOrBlank() && !conflict && !busy && changes.size() > 0 &&
+        title.isNotBlank() && title.length <= 255 && end.after(start) &&
+        (meeting.isOnlineMeeting || location.isNotBlank()) && email.isEmpty() &&
+        attendees.size <= (if (room == null) 500 else 499) && attendees.none { it.email.equals(room?.email, true) }
+
+    if (discard) AlertDialog(onDismissRequest = { discard = false },
+        title = { Text(stringResource(R.string.meeting_discard_title)) },
+        text = { Text(stringResource(R.string.meeting_discard_message)) },
+        confirmButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.meeting_discard)) } },
+        dismissButton = { TextButton(onClick = { discard = false }) { Text(stringResource(R.string.meeting_keep_editing)) } })
+    if (showLocations) MeetingLocationDialog("", start, end, onDismiss = { showLocations = false }) { place ->
+        if (place.kind == MeetingLocationKind.Room && place.emailAddress.isNullOrBlank()) {
+            error = context.getString(R.string.meeting_room_no_mailbox)
+        } else {
+            location = place.locationName
+            room = if (place.kind == MeetingLocationKind.Room) MeetingRoom(place.emailAddress!!, place.displayName) else null
+            roomChanged = true
+            showLocations = false
+        }
+    }
+    DetailFrame(stringResource(R.string.meeting_edit), busy, onDismiss = {
+        if (hasChanges) discard = true else onDismiss()
+    }) {
+        if (meeting.eventType in listOf("occurrence", "exception")) Text(stringResource(R.string.meeting_edit_occurrence))
+        TextField(title, { title = it }, enabled = !busy, label = { Text(stringResource(R.string.parity_title)) }, modifier = Modifier.fillMaxWidth())
+        TextButton(enabled = !busy, onClick = { pickDateTime(context, start) { start = it } }) {
+            Text(stringResource(R.string.parity_start_value, DateFormat.getDateTimeInstance().format(start)))
+        }
+        TextButton(enabled = !busy, onClick = { pickDateTime(context, end) { end = it } }) {
+            Text(stringResource(R.string.parity_end_value, DateFormat.getDateTimeInstance().format(end)))
+        }
+        TextField(location, { location = it }, enabled = !busy && room == null,
+            label = { Text(stringResource(R.string.parity_location)) }, modifier = Modifier.fillMaxWidth())
+        TextButton(enabled = !busy, onClick = { showLocations = true }) { Text(stringResource(R.string.meeting_locations_search)) }
+        room?.let {
+            TextButton(enabled = !busy, onClick = { room = null; roomChanged = true; location = "" }) {
+                Text(stringResource(R.string.meeting_edit_remove_room))
+            }
+        }
+        if (meeting.isOnlineMeeting) Text(stringResource(R.string.parity_online_teams))
+        Text(stringResource(R.string.parity_attendees_value, attendees.size, ""))
+        attendees.forEachIndexed { index, attendee ->
+            Row(Modifier.fillMaxWidth()) {
+                Text(attendee.email, modifier = Modifier.weight(1f))
+                TextButton(enabled = !busy, onClick = { attendees = attendees.filterIndexed { i, _ -> i != index } }) {
+                    Text(stringResource(R.string.meeting_edit_remove_attendee))
+                }
+            }
+        }
+        TextField(email, { email = it }, enabled = !busy, label = { Text(stringResource(R.string.meeting_edit_email)) },
+            keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Email),
+            modifier = Modifier.fillMaxWidth())
+        TextButton(enabled = !busy && validEmail, onClick = {
+            attendees = attendees + MeetingAttendee("", cleanEmail)
+            email = ""
+        }) { Text(stringResource(R.string.meeting_edit_add_attendee)) }
+        Text(stringResource(R.string.meeting_edit_notice), style = MaterialTheme.typography.caption)
+        if (room != null) Text(stringResource(R.string.meeting_edit_room_notice), style = MaterialTheme.typography.caption)
+        error?.let { Text(it, color = NexterColors.systemRed()) }
+        Button(enabled = canSave, onClick = {
+            scope.launch {
+                busy = true
+                error = null
+                try {
+                    val activity = context.findActivity() ?: error("Activity unavailable")
+                    AppDependencies.authRepository.requestCalendarWritePermission(activity)
+                    changes.addProperty("etag", meeting.etag)
+                    val updated = AppDependencies.homeService.updateMeeting(meeting.id, changes)
+                    onSaved(updated)
+                } catch (cancel: CancellationException) { throw cancel }
+                catch (failure: Exception) {
+                    conflict = failure is com.lognext.nexterandroid.core.network.APIError.Http && failure.statusCode == 409
+                    error = context.getString(if (conflict) R.string.meeting_edit_conflict else R.string.meeting_edit_save_error)
+                } finally { busy = false }
+            }
+        }) {
+            if (busy) CircularProgressIndicator(Modifier.size(20.dp)) else Text(stringResource(R.string.parity_save))
+        }
+    }
 }
