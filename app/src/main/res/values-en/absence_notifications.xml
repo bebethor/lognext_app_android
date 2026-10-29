@@ -1,0 +1,10 @@
+<resources>
+    <string name="absence_push_title">Absence notifications</string>
+    <string name="absence_push_approved">Your holiday request has been approved</string>
+    <string name="absence_push_rejected">Your holiday request has been rejected</string>
+    <string name="absence_push_body">Your holiday requests have been updated</string>
+    <string name="absence_push_explanation">Get notified when your holiday requests are approved or rejected.</string>
+    <string name="absence_push_settings">Open notification settings</string>
+    <string name="absence_push_error">Could not update notification settings.</string>
+    <string name="absence_push_retry">Retry</string>
+</resources>

@@ -38,6 +38,7 @@ import androidx.compose.material.Switch
 import androidx.compose.material.SwitchDefaults
 import androidx.compose.material.Text
 import androidx.compose.material.TextButton
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -87,6 +88,9 @@ fun MoreScreen() {
         viewModel.loadIfNeeded()
     }
 
+    val absenceRefresh by AppDependencies.absenceNotifications.refreshGeneration.collectAsState()
+    LaunchedEffect(absenceRefresh) { if (absenceRefresh > 0) viewModel.refresh() }
+
     var pendingNotificationId by remember { mutableStateOf<String?>(null) }
     val notificationPermissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission()
@@ -121,6 +125,7 @@ fun MoreScreen() {
         verticalArrangement = Arrangement.spacedBy(10.dp)
     ) {
         VacationCard(viewModel)
+        com.lognext.nexterandroid.features.notifications.AbsenceNotificationCard()
         VacationHistoryCard(viewModel)
         // Notificaciones de jornada ocultas temporalmente; descomentar para recuperar la tarjeta.
         // ClockNotificationsCard(

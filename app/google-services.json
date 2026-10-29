@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "95510715689",
+    "project_id": "nexter-4694c",
+    "storage_bucket": "nexter-4694c.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:95510715689:android:14e04349e69e3fbaf76b38",
+        "android_client_info": {
+          "package_name": "com.lognext.nexterandroid"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCypSwrN5V5z7XAiaOf7CDgpvRuFR8dSdI"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

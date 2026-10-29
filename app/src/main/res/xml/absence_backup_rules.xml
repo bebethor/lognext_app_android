@@ -1,0 +1,3 @@
+<full-backup-content>
+    <exclude domain="sharedpref" path="absence_push.xml" />
+</full-backup-content>

@@ -81,7 +81,7 @@ fun NexterApp() {
     val authenticatedState = authState as? AuthState.Authenticated
     var employeeCategory by remember(authenticatedState) { mutableStateOf<EmployeeCategory?>(null) }
     LaunchedEffect(authenticatedState?.user?.username) {
-        if (authenticatedState != null) AppDependencies.preloadForSession()
+        if (authenticatedState != null) { AppDependencies.absenceNotifications.refresh(); AppDependencies.preloadForSession() }
     }
     LaunchedEffect(authenticatedState) {
         if (authenticatedState != null && !com.lognext.nexterandroid.core.AppConfig.UseFakeLogin) {
@@ -129,6 +129,19 @@ fun NexterApp() {
     val drawerState = rememberDrawerState(DrawerValue.Closed)
     val menuNavController = rememberNavController()
     BackHandler(enabled = drawerState.isOpen) { scope.launch { drawerState.close() } }
+
+    val pendingAbsence by AppDependencies.absenceNotifications.pendingOpen.collectAsState()
+    LaunchedEffect(pendingAbsence, authenticatedState) {
+        if (pendingAbsence != null && AppDependencies.absenceNotifications.consumeOpen()) {
+            menuNavController.popBackStack("tabs", false)
+            drawerState.close()
+            AppDependencies.clearResponseCache()
+            navController.navigate(AppDestination.Vacations.route) {
+                launchSingleTop = true
+                popUpTo(AppDestination.Home.route) { saveState = true }
+            }
+        }
+    }
 
     val returnToMenu: () -> Unit = {
         if (menuNavController.popBackStack()) scope.launch { drawerState.open() }

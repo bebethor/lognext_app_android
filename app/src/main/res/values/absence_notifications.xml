@@ -1,0 +1,10 @@
+<resources>
+    <string name="absence_push_title">Avisos de ausencias</string>
+    <string name="absence_push_approved">Tu solicitud de vacaciones ha sido aprobada</string>
+    <string name="absence_push_rejected">Tu solicitud de vacaciones ha sido rechazada</string>
+    <string name="absence_push_body">Hay novedades en tus solicitudes de vacaciones</string>
+    <string name="absence_push_explanation">Recibe un aviso cuando se aprueben o rechacen tus solicitudes de vacaciones.</string>
+    <string name="absence_push_settings">Abrir ajustes de notificaciones</string>
+    <string name="absence_push_error">No se ha podido actualizar la configuración.</string>
+    <string name="absence_push_retry">Reintentar</string>
+</resources>

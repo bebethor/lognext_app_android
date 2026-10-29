@@ -92,6 +92,7 @@ class MsalAuthRepository(
     }
 
     override suspend fun signOut() {
+        com.lognext.nexterandroid.core.AppDependencies.absenceNotifications.beforeSignOut()
         com.lognext.nexterandroid.core.AppDependencies.clearResponseCache(delete = true)
         if (AppConfig.UseFakeLogin) {
             account = null

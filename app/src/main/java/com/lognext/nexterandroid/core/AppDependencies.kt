@@ -42,6 +42,9 @@ object AppDependencies {
     lateinit var vacationService: VacationService
         private set
 
+    lateinit var absenceNotifications: com.lognext.nexterandroid.features.notifications.AbsenceNotificationController
+        private set
+
     suspend fun preloadForSession() {
         if (AppConfig.UseFakeLogin) return
         StartupPreloader(
@@ -72,6 +75,7 @@ object AppDependencies {
         peopleService = PeopleService(apiClient)
         vacationService = VacationService(apiClient)
         inventoryService = com.lognext.nexterandroid.features.more.InventoryService(apiClient)
+        absenceNotifications = com.lognext.nexterandroid.features.notifications.AbsenceNotificationController(context.applicationContext, apiClient, authRepository)
         initialized = true
     }
 }

@@ -1,0 +1,10 @@
+<resources>
+    <string name="absence_push_title">Notifications d’absence</string>
+    <string name="absence_push_approved">Votre demande de congés a été approuvée</string>
+    <string name="absence_push_rejected">Votre demande de congés a été refusée</string>
+    <string name="absence_push_body">Vos demandes de congés ont été mises à jour</string>
+    <string name="absence_push_explanation">Recevez une notification lorsque vos demandes de congés sont approuvées ou refusées.</string>
+    <string name="absence_push_settings">Ouvrir les paramètres de notification</string>
+    <string name="absence_push_error">Impossible de mettre à jour les paramètres.</string>
+    <string name="absence_push_retry">Réessayer</string>
+</resources>
